@@ -5,18 +5,18 @@
 #include <string.h>
 
 #define MAX_I64_WIDTH 20
-#define MAX_ROW_WIDTH MAX_I64_WIDTH
+#define MAX_ROW_WIDTH MAX_I64_WIDTH * 2
 
-Result nil_fmt(str *buffer, g0 value)
+Result nil_fmt(str *buffer)
 {
-    (*buffer) = (str)malloc(4);
+    *buffer = (str)malloc(4);
     strncpy(*buffer, "nil", 4);
     return Ok;
 }
 
 Result scalar_i64_fmt(str *buffer, g0 value)
 {
-    (*buffer) = (str)malloc(MAX_I64_WIDTH);
+    *buffer = (str)malloc(MAX_I64_WIDTH);
     if (snprintf(*buffer, MAX_I64_WIDTH, "%lld", value->i64_value) < 0)
     {
         return FormatError;
@@ -26,9 +26,9 @@ Result scalar_i64_fmt(str *buffer, g0 value)
 
 Result vector_i64_fmt(str *buffer, g0 value)
 {
-    (*buffer) = (str)malloc(MAX_ROW_WIDTH + 4);
+    *buffer = (str)malloc(MAX_ROW_WIDTH + 4);
     str buf = *buffer;
-    strncpy(buf, "[", 1);
+    strncpy(buf, "[", 2);
     buf += 1;
 
     i64 count = value->list_value.len < 1 ? 0 : value->list_value.len - 1;
@@ -75,7 +75,7 @@ Result vector_i64_fmt(str *buffer, g0 value)
         buf += 2;
     }
 
-    strncpy(buf, "]", 1);
+    strncpy(buf, "]", 2);
     return Ok;
 }
 
@@ -83,10 +83,6 @@ extern Result g0_fmt(str *buffer, g0 value)
 {
     switch (value->type)
     {
-    case TYPE_S0:
-    {
-        return Ok;
-    }
     case -TYPE_I64:
     {
         return scalar_i64_fmt(buffer, value);
@@ -97,7 +93,7 @@ extern Result g0_fmt(str *buffer, g0 value)
     }
     default:
     {
-        return nil_fmt(buffer, value);
+        return InvalidType;
     }
     }
 }
@@ -108,14 +104,20 @@ extern void result_fmt(str *buffer, Result result)
     {
     case Ok:
     {
-        (*buffer) = (str)malloc(3);
+        *buffer = (str)malloc(3);
         strncpy(*buffer, "Ok", 3);
         break;
     }
     case FormatError:
     {
-        (*buffer) = (str)malloc(12);
+        *buffer = (str)malloc(12);
         strncpy(*buffer, "FormatError", 12);
+        break;
+    }
+    case InvalidType:
+    {
+        *buffer = (str)malloc(12);
+        strncpy(*buffer, "InvalidType", 12);
         break;
     }
     }

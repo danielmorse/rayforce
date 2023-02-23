@@ -12,6 +12,8 @@ extern "C"
 #define _impl_CASSERT_LINE(predicate, line, file) \
     typedef char _impl_PASTE(assertion_failed_##file##_, line)[2 * !!(predicate)-1];
 
+#define UNUSED(x) (void)(x)
+
 // Type constants
 #define TYPE_S0 0
 #define TYPE_I8 1
@@ -23,6 +25,7 @@ extern "C"
     {
         Ok = 0,
         FormatError,
+        InvalidType
     } Result;
 
     typedef char i8;
@@ -40,14 +43,13 @@ extern "C"
             i8 i8_value;
             i64 i64_value;
             f64 f64_value;
-            struct s0 *g0_value;
             struct
             {
                 i64 len;
                 void *ptr;
             } list_value;
         };
-    } __attribute__((aligned(32))) * g0;
+    } __attribute__((aligned(16))) * g0;
 
     CASSERT(sizeof(struct s0) == 32, storm_h)
 
