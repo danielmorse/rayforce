@@ -30,10 +30,11 @@ extern str_t str_fmt(str_t fmt, ...)
     return p;
 }
 
-str_t vector_i64_fmt(value_t value)
+str_t vector_fmt(value_t value)
 {
     str_t str, buf;
     i64_t count, remains, len;
+    i8_t v_type = value->type;
 
     str = buf = (str_t)storm_malloc(MAX_ROW_WIDTH + 4);
     strncpy(buf, "[", 2);
@@ -46,7 +47,12 @@ str_t vector_i64_fmt(value_t value)
     for (i64_t i = 0; i < count; i++)
     {
         remains = MAX_ROW_WIDTH - (buf - str);
-        len = snprintf(buf, remains, "%lld, ", ((i64_t *)value->list_value.ptr)[i]);
+
+        if (v_type == TYPE_I64)
+            len = snprintf(buf, remains, "%lld, ", ((i64_t *)value->list_value.ptr)[i]);
+        else if (v_type == TYPE_F64)
+            len = snprintf(buf, remains, "%.*f, ", F64_PRECISION, ((f64_t *)value->list_value.ptr)[i]);
+
         if (len < 0)
         {
             storm_free(str);
@@ -64,7 +70,10 @@ str_t vector_i64_fmt(value_t value)
     remains = MAX_ROW_WIDTH - (buf - str);
     if (value->list_value.len > 0 && remains > 0)
     {
-        len = snprintf(buf, remains, "%lld", ((i64_t *)value->list_value.ptr)[count]);
+        if (v_type == TYPE_I64)
+            len = snprintf(buf, remains, "%lld", ((i64_t *)value->list_value.ptr)[count]);
+        else if (v_type == TYPE_F64)
+            len = snprintf(buf, remains, "%.*f", F64_PRECISION, ((f64_t *)value->list_value.ptr)[count]);
 
         if (len < 0)
         {
@@ -117,7 +126,7 @@ extern str_t value_fmt(value_t value)
     case -TYPE_F64:
         return str_fmt("%.*f", F64_PRECISION, value->f64_value);
     case TYPE_I64:
-        return vector_i64_fmt(value);
+        return vector_fmt(value);
     case TYPE_ERR:
         return error_fmt(value);
     default:

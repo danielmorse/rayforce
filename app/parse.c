@@ -7,6 +7,16 @@
 #include <errno.h>
 #include <limits.h>
 
+typedef struct
+{
+    u8_t is_int;
+    union
+    {
+        i64_t i64;
+        f64_t f64;
+    };
+} num_t;
+
 parser_t new_parser()
 {
     parser_t parser;
@@ -45,6 +55,38 @@ u8_t at_eof(u8_t c)
     return c == '\n';
 }
 
+num_t parse_number(str_t *current)
+{
+    num_t num;
+    str_t end;
+
+    errno = 0;
+
+    num.i64 = strtoll(*current, &end, 10);
+
+    if ((num.i64 == LONG_MAX || num.i64 == LONG_MIN) && errno == ERANGE)
+    {
+        num.is_int = 1;
+        return num;
+    }
+
+    if (end == *current)
+        return num;
+
+    // try double instead
+    if (*end == '.')
+    {
+        num.f64 = strtod(*current, &end);
+
+        if (errno == ERANGE)
+            return num;
+    }
+
+    *current = end;
+
+    return num;
+}
+
 value_t next(parser_t parser)
 {
     str_t *current = &parser->current;
@@ -54,6 +96,14 @@ value_t next(parser_t parser)
 
     while (is_whitespace(**current))
         (*current)++;
+
+    // if ((**current) == '[')
+    // {
+    //     i64_t *vec_i64 = NULL;
+    //     f64_t *vec_f64 = NULL;
+
+    //     (*current)++;
+    // }
 
     if ((**current) == '-' || is_digit(**current))
     {
