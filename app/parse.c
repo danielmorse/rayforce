@@ -178,6 +178,8 @@ value_t parse_vector(parser_t *parser)
         return xf64((f64_t *)vec, len);
     case 3:
         return xsymbol(vec, len);
+    default:
+        return error(ERR_PARSE, "Invalid vector");
     };
 }
 
@@ -194,6 +196,30 @@ value_t parse_symbol(parser_t *parser)
 
     res = symbol(parser->current, pos - parser->current);
     parser->current = pos;
+
+    return res;
+}
+
+value_t parse_string(parser_t *parser)
+{
+    str_t pos = parser->current, new_str;
+    u32_t len;
+    value_t res;
+
+    while (!at_eof(*pos))
+    {
+        pos++;
+
+        if (*(pos - 1) == '\\' && *pos == '"')
+            pos++;
+        else if (*pos == '"')
+            break;
+    }
+
+    len = pos - parser->current - 2;
+    new_str = string_clone(string_create(parser->current + 1, len));
+    res = string(new_str, len);
+    parser->current = pos + 1;
 
     return res;
 }
@@ -217,6 +243,9 @@ value_t advance(parser_t *parser)
     if (is_alpha(**current))
         return parse_symbol(parser);
 
+    if ((**current) == '"')
+        return parse_string(parser);
+
     return s0(NULL, 0);
 }
 
@@ -231,7 +260,7 @@ value_t parse_program(parser_t *parser)
     // } while (token != NULL);
 
     if (!is_error(&token) && !at_eof(*parser->current))
-        return error(ERR_PARSE, str_fmt("Unexpected token: %s", parser->current));
+        return error(ERR_PARSE, str_fmt(0, "Unexpected token: %s", parser->current));
 
     return token;
 }

@@ -9,17 +9,17 @@
 #define MAX_ROW_WIDTH MAX_i64_t_WIDTH * 2
 #define F64_PRECISION 4
 
-extern str_t str_fmt(str_t fmt, ...)
+extern str_t str_fmt(u32_t lim, str_t fmt, ...)
 {
-    int n, size = MAX_ROW_WIDTH;
+    i32_t n, size = lim > 0 ? lim : MAX_ROW_WIDTH;
     str_t p = (str_t)storm_malloc(size);
 
     while (1)
     {
-        va_list ap;
-        va_start(ap, fmt);
-        n = vsnprintf(p, size, fmt, ap);
-        va_end(ap);
+        va_list args;
+        va_start(args, fmt);
+        n = vsnprintf(p, size, fmt, args);
+        va_end(args);
 
         if (n > -1 && n < size)
             break;
@@ -116,7 +116,7 @@ str_t error_fmt(value_t *value)
         break;
     }
 
-    return str_fmt("** %s error: %s", code, value->error.message);
+    return str_fmt(0, "** %s error: %s", code, value->error.message);
 }
 
 extern str_t value_fmt(value_t *value)
@@ -124,22 +124,24 @@ extern str_t value_fmt(value_t *value)
     switch (value->type)
     {
     case TYPE_S0:
-        return str_fmt("null");
+        return str_fmt(0, "null");
     case -TYPE_I64:
-        return str_fmt("%lld", value->i64);
+        return str_fmt(0, "%lld", value->i64);
     case -TYPE_F64:
-        return str_fmt("%.*f", F64_PRECISION, value->f64);
+        return str_fmt(0, "%.*f", F64_PRECISION, value->f64);
     case -TYPE_SYMBOL:
-        return str_fmt("%s", symbols_get(value->i64));
+        return str_fmt(0, "%s", symbols_get(value->i64));
     case TYPE_I64:
         return vector_fmt(value);
     case TYPE_F64:
         return vector_fmt(value);
     case TYPE_SYMBOL:
         return vector_fmt(value);
+    case TYPE_STRING:
+        return str_fmt(value->s0.len, "\"%s\"", value->s0.ptr);
     case TYPE_ERROR:
         return error_fmt(value);
     default:
-        return str_fmt("null");
+        return str_fmt(0, "null");
     }
 }

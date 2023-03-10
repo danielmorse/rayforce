@@ -14,5 +14,6 @@ typedef struct string_t
 } string_t;
 
 string_t string_create(str_t str, u64_t len);
+str_t string_clone(string_t string);
 
 #endif
