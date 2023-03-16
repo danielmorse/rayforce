@@ -27,5 +27,7 @@
 #include "rayforce.h"
 
 u8_t string_match(str_t str, str_t pat);
+value_t string_from_str(str_t str);
+value_t string_from_const_str(str_t str);
 
 #endif

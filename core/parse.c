@@ -399,9 +399,11 @@ value_t parse_program(parser_t *parser)
 
         if (is_error(&token))
         {
-            err_msg = str_fmt(0, "%s:%d:%d: %s", parser->filename, parser->line, parser->column, as_string(&token));
-            value_free(&token);
-            return error(ERR_PARSE, err_msg);
+            // err_msg = str_fmt(0, "%s:%d:%d: %s", parser->filename, parser->line, parser->column, value_fmt(&token));
+            // value_free(&token);
+            // return error(ERR_PARSE, err_msg);
+            value_free(&list);
+            return token;
         }
 
         if (is_at(&token, '\0'))
@@ -409,9 +411,11 @@ value_t parse_program(parser_t *parser)
 
         if (is_at_term(&token))
         {
-            err_msg = str_fmt(0, "%s:%d:%d: %s", parser->filename, parser->line, parser->column, "Unexpected token");
-            value_free(&token);
-            return error(ERR_PARSE, err_msg);
+            // err_msg = str_fmt(0, "%s:%d:%d: %s", parser->filename, parser->line, parser->column, "Unexpected token");
+            // value_free(&token);
+            // return error(ERR_PARSE, err_msg);
+            value_free(&list);
+            return token;
         }
 
         list_push(&list, token);

@@ -108,13 +108,13 @@ extern value_t str(str_t ptr, i64_t len);         // str non-duplicated string, 
 extern value_t null();                            // null (as null list)
 extern value_t table(value_t keys, value_t vals); // table
 extern value_t dict(value_t keys, value_t vals);  // dict
+extern value_t value_clone(value_t *value);
 
 // Error
 extern value_t error(i8_t code, str_t message);
 
 // Destructor
 extern null_t value_free(value_t *value);
-extern value_t value_clone(value_t *value);
 
 // Accessors
 #define as_vector_i64(value) ((i64_t *)(value)->list.ptr)

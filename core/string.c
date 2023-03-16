@@ -65,6 +65,35 @@ extern value_t str(str_t ptr, i64_t len)
 }
 
 /*
+ * Creates new value_t string from a C string.
+ */
+value_t string_from_str(str_t str)
+{
+    i32_t len = strlen(str);
+    value_t s = string(len);
+    memcpy(s.list.ptr, str, len);
+    return s;
+}
+
+/*
+ * Creates new value_t string from a constant C string.
+ * Does not copy the string, but instead uses the pointer directly.
+ */
+value_t string_from_const_str(str_t str)
+{
+    i32_t len = strlen(str);
+    value_t string = {
+        .type = TYPE_STRING,
+        .list = {
+            .len = len,
+            .ptr = str,
+        },
+    };
+
+    return string;
+}
+
+/*
  * match() function takes in two pointers to character arrays: pattern and text.
  * It returns a u8_t value indicating whether the text string matches the pattern string.
  * Note that this implementation assumes that the pattern and text strings do not contain any null characters ('\0').
