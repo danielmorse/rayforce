@@ -109,7 +109,7 @@ int test_symbols()
     for (int i = 0; i < 1000000; i++)
     {
         // printf("%s\n", st[i]);
-        value_t s = str(st[i], strlen(st[i]));
+        rf_object_t s = str(st[i], strlen(st[i]));
         i64_t id = symbols_intern(&s);
         // str_t val = symbols_get(id);
         // if (val == NULL)
@@ -118,7 +118,7 @@ int test_symbols()
         //     printf("%s\n", val);
     }
 
-    // value_t s = str("code", 4);
+    // rf_object_t s = str("code", 4);
     // i64_t id1 = symbols_intern(&s), id2;
     // str_t val = symbols_get(id1);
 

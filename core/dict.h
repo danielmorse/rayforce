@@ -28,7 +28,7 @@
 #include "vector.h"
 #include "string.h"
 
-extern value_t dict_get(value_t *dict, value_t key);
-extern value_t dict_set(value_t *dict, value_t key, value_t val);
+extern rf_object_t dict_get(rf_object_t *dict, rf_object_t key);
+extern rf_object_t dict_set(rf_object_t *dict, rf_object_t key, rf_object_t val);
 
 #endif

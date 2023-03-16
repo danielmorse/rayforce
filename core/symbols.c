@@ -40,7 +40,7 @@ u64_t string_hash(null_t *val)
 {
     u32_t hash = 5381;
 
-    value_t *string = (value_t *)val;
+    rf_object_t *string = (rf_object_t *)val;
     u32_t len = string->list.len;
     str_t str = string->list.ptr;
 
@@ -61,16 +61,16 @@ i32_t i64_cmp(null_t *a, null_t *b)
 }
 
 /*
- * Compares value_t string with null terminated string.
+ * Compares rf_object_t string with null terminated string.
  * Returns 0 if equal, 1 if not equal.
  * Should not be used elsewere but symbols
  * a: raw C string already stored in a hash
- * b: value_t string to be inserted
+ * b: rf_object_t string to be inserted
  */
 i32_t string_str_cmp(null_t *a, null_t *b)
 {
     str_t str_a = (str_t)a;
-    value_t *str_b = (value_t *)b;
+    rf_object_t *str_b = (rf_object_t *)b;
 
     u64_t len_a = strlen(str_a);
 
@@ -101,7 +101,7 @@ null_t *str_dup(null_t *key, null_t *val, bucket_t *bucket)
     alloc_t alloc = alloc_get();
     symbols_t *symbols = alloc->symbols;
 
-    value_t *string = (value_t *)key;
+    rf_object_t *string = (rf_object_t *)key;
     u64_t len = string->list.len;
     str_t str = string->list.ptr;
 
@@ -151,7 +151,7 @@ null_t symbols_free(symbols_t *symbols)
     ht_free(symbols->id_to_str);
 }
 
-i64_t symbols_intern(value_t *string)
+i64_t symbols_intern(rf_object_t *string)
 {
     symbols_t *symbols = alloc_get()->symbols;
     u64_t id = symbols->str_to_id->size;

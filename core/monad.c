@@ -25,7 +25,7 @@
 #include "alloc.h"
 #include "vm.h"
 
-// value_t til(i64_t count)
+// rf_object_t til(i64_t count)
 // {
 //     i64_t *vec;
 
@@ -37,7 +37,7 @@
 //     return vector_i64(vec, count);
 // }
 
-// value_t rayforce_add(value_t *a, value_t *b)
+// rf_object_t rayforce_add(rf_object_t *a, rf_object_t *b)
 // {
 //     i64_t a_len, b_len, sum = 0;
 //     i64_t *a_vec;
@@ -55,7 +55,7 @@
 //     return i64(sum);
 // }
 
-u8_t *compile(value_t *value)
+u8_t *compile(rf_object_t *value)
 {
     u8_t *code;
 

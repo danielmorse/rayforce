@@ -44,7 +44,7 @@ typedef struct vm_t
     i32_t sp;    // Stack pointer
     i8_t halted; // Halt flag
     i64_t regs[16];
-    struct value_t stack[VM_STACK_SIZE];
+    struct rf_object_t stack[VM_STACK_SIZE];
 } *vm_t;
 
 vm_t vm_create();

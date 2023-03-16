@@ -24,7 +24,7 @@
 #include "dict.h"
 #include "vector.h"
 
-extern value_t dict(value_t keys, value_t vals)
+extern rf_object_t dict(rf_object_t keys, rf_object_t vals)
 {
     if (keys.type < 0 || vals.type < 0)
         return error(ERR_TYPE, "Keys and values must be lists");
@@ -32,7 +32,7 @@ extern value_t dict(value_t keys, value_t vals)
     if (keys.list.len != vals.list.len)
         return error(ERR_LENGTH, "Keys and values must have the same length");
 
-    value_t dict = list(2);
+    rf_object_t dict = list(2);
 
     as_list(&dict)[0] = keys;
     as_list(&dict)[1] = vals;
@@ -42,13 +42,13 @@ extern value_t dict(value_t keys, value_t vals)
     return dict;
 }
 
-extern value_t dict_get(value_t *dict, value_t key)
+extern rf_object_t dict_get(rf_object_t *dict, rf_object_t key)
 {
     if (dict->type != TYPE_DICT && dict->type != TYPE_ERROR)
         return error(ERR_TYPE, "Expected dict");
 
-    value_t *keys = &as_list(dict)[0];
-    value_t *vals = &as_list(dict)[1];
+    rf_object_t *keys = &as_list(dict)[0];
+    rf_object_t *vals = &as_list(dict)[1];
     u64_t index = vector_find(keys, key);
 
     if (index == keys->list.len)
@@ -57,13 +57,13 @@ extern value_t dict_get(value_t *dict, value_t key)
     return value_clone(&as_list(vals)[index]);
 }
 
-extern value_t dict_set(value_t *dict, value_t key, value_t val)
+extern rf_object_t dict_set(rf_object_t *dict, rf_object_t key, rf_object_t val)
 {
-    if (dict->type != TYPE_DICT)
+    if (dict->type != TYPE_DICT && dict->type != TYPE_ERROR)
         return error(ERR_TYPE, "Expected dict");
 
-    value_t *keys = &as_list(dict)[0];
-    value_t *vals = &as_list(dict)[1];
+    rf_object_t *keys = &as_list(dict)[0];
+    rf_object_t *vals = &as_list(dict)[1];
     u64_t index = vector_find(keys, key);
 
     if (index == keys->list.len)

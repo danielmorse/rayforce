@@ -41,7 +41,7 @@ const str_t PADDING = "                                                         
 const str_t TABLE_SEPARATOR = " | ";
 const str_t TABLE_HEADER_SEPARATOR = "------------------------------------------------------------------------------------";
 
-extern str_t value_fmt_ind(u32_t indent, u32_t limit, value_t *value);
+extern str_t value_fmt_ind(u32_t indent, u32_t limit, rf_object_t *value);
 
 extern i32_t str_fmt_into(u32_t limit, i32_t offset, str_t *dst, str_t fmt, ...)
 {
@@ -106,7 +106,7 @@ extern str_t str_fmt(u32_t limit, str_t fmt, ...)
     return p;
 }
 
-str_t vector_fmt(u32_t limit, value_t *value)
+str_t vector_fmt(u32_t limit, rf_object_t *value)
 {
     if (!limit)
         return "";
@@ -174,7 +174,7 @@ str_t vector_fmt(u32_t limit, value_t *value)
     return str;
 }
 
-str_t list_fmt(u32_t indent, u32_t limit, value_t *value)
+str_t list_fmt(u32_t indent, u32_t limit, rf_object_t *value)
 {
     if (!limit)
         return "";
@@ -189,7 +189,7 @@ str_t list_fmt(u32_t indent, u32_t limit, value_t *value)
 
     for (u64_t i = 0; i < value->list.len; i++)
     {
-        s = value_fmt_ind(indent, limit - indent, ((value_t *)value->list.ptr) + i);
+        s = value_fmt_ind(indent, limit - indent, ((rf_object_t *)value->list.ptr) + i);
         offset += str_fmt_into(0, offset, &str, "\n%*.*s%s", indent, indent, PADDING, s);
         rayforce_free(s);
     }
@@ -198,7 +198,7 @@ str_t list_fmt(u32_t indent, u32_t limit, value_t *value)
     return str;
 }
 
-str_t string_fmt(u32_t indent, u32_t limit, value_t *value)
+str_t string_fmt(u32_t indent, u32_t limit, rf_object_t *value)
 {
     if (!limit)
         return "";
@@ -209,12 +209,12 @@ str_t string_fmt(u32_t indent, u32_t limit, value_t *value)
     return str_fmt(value->list.len + 3, "\"%s\"", value->list.ptr);
 }
 
-str_t dict_fmt(u32_t indent, u32_t limit, value_t *value)
+str_t dict_fmt(u32_t indent, u32_t limit, rf_object_t *value)
 {
     if (!limit)
         return "";
 
-    value_t *keys = &as_list(value)[0], *vals = &as_list(value)[1];
+    rf_object_t *keys = &as_list(value)[0], *vals = &as_list(value)[1];
     str_t k, v, str = str_fmt(limit, "{");
     u32_t offset = 1;
 
@@ -264,13 +264,13 @@ str_t dict_fmt(u32_t indent, u32_t limit, value_t *value)
     return str;
 }
 
-str_t table_fmt(u32_t indent, u32_t limit, value_t *value)
+str_t table_fmt(u32_t indent, u32_t limit, rf_object_t *value)
 {
     if (!limit)
         return "";
 
     i64_t *header = as_vector_symbol(&as_list(value)[0]);
-    value_t *columns = &as_list(value)[1], column_widths;
+    rf_object_t *columns = &as_list(value)[1], column_widths;
     u32_t table_width, width, table_height;
     str_t str = str_fmt(0, "|"), s;
     str_t formatted_columns[TABLE_MAX_WIDTH][TABLE_MAX_HEIGHT] = {{NULL}};
@@ -296,7 +296,7 @@ str_t table_fmt(u32_t indent, u32_t limit, value_t *value)
         // Then traverse column until maximum height limit
         for (u64_t j = 0; j < table_height; j++)
         {
-            value_t *column = &as_list(columns)[i];
+            rf_object_t *column = &as_list(columns)[i];
 
             switch (column->type)
             {
@@ -357,15 +357,15 @@ str_t table_fmt(u32_t indent, u32_t limit, value_t *value)
     return str;
 }
 
-str_t error_fmt(u32_t indent, u32_t limit, value_t *value)
+str_t error_fmt(u32_t indent, u32_t limit, rf_object_t *value)
 {
-    value_t code = dict_get(value, symbol("code"));
-    value_t message = dict_get(value, symbol("message"));
+    rf_object_t code = dict_get(value, symbol("code"));
+    rf_object_t message = dict_get(value, symbol("message"));
 
     return str_fmt(0, "** [E%.3d] error: %s", code.i64, as_string(&message));
 }
 
-extern str_t value_fmt_ind(u32_t indent, u32_t limit, value_t *value)
+extern str_t value_fmt_ind(u32_t indent, u32_t limit, rf_object_t *value)
 {
     switch (value->type)
     {
@@ -396,7 +396,7 @@ extern str_t value_fmt_ind(u32_t indent, u32_t limit, value_t *value)
     }
 }
 
-extern str_t value_fmt(value_t *value)
+extern str_t value_fmt(rf_object_t *value)
 {
     u32_t indent = 0, limit = MAX_ROW_WIDTH - FORMAT_TRAILER_SIZE;
     return value_fmt_ind(indent, limit, value);

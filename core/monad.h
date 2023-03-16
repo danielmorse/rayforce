@@ -27,8 +27,8 @@
 #include "rayforce.h"
 
 // Monadic functions
-value_t til(i64_t count);
+rf_object_t til(i64_t count);
 
-u8_t *compile(value_t value);
-value_t rayforce_add(value_t a, value_t b);
+u8_t *compile(rf_object_t value);
+rf_object_t rayforce_add(rf_object_t a, rf_object_t b);
 #endif

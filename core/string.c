@@ -28,15 +28,15 @@
 #include "util.h"
 
 /*
- * Creates new value_t string from a C string.
+ * Creates new rf_object_t string from a C string.
  * Guarantees that the string is null-terminated.
  */
-extern value_t string(i64_t len)
+extern rf_object_t string(i64_t len)
 {
     str_t ptr = rayforce_malloc(len + 1);
     ptr[len] = '\0';
 
-    value_t string = {
+    rf_object_t string = {
         .type = TYPE_STRING,
         .list = {
             .len = len,
@@ -48,12 +48,12 @@ extern value_t string(i64_t len)
 }
 
 /*
- * Creates new value_t string from a C string (aka slice).
+ * Creates new rf_object_t string from a C string (aka slice).
  * Not guaranteed to be null-terminated.
  */
-extern value_t str(str_t ptr, i64_t len)
+extern rf_object_t str(str_t ptr, i64_t len)
 {
-    value_t string = {
+    rf_object_t string = {
         .type = TYPE_STRING,
         .list = {
             .len = len,
@@ -65,24 +65,24 @@ extern value_t str(str_t ptr, i64_t len)
 }
 
 /*
- * Creates new value_t string from a C string.
+ * Creates new rf_object_t string from a C string.
  */
-value_t string_from_str(str_t str)
+rf_object_t string_from_str(str_t str)
 {
     i32_t len = strlen(str);
-    value_t s = string(len);
+    rf_object_t s = string(len);
     memcpy(s.list.ptr, str, len);
     return s;
 }
 
 /*
- * Creates new value_t string from a constant C string.
+ * Creates new rf_object_t string from a constant C string.
  * Does not copy the string, but instead uses the pointer directly.
  */
-value_t string_from_const_str(str_t str)
+rf_object_t string_from_const_str(str_t str)
 {
     i32_t len = strlen(str);
-    value_t string = {
+    rf_object_t string = {
         .type = TYPE_STRING,
         .list = {
             .len = len,

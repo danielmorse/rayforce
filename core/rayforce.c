@@ -28,9 +28,9 @@
 #include "string.h"
 #include "vector.h"
 
-extern value_t error(i8_t code, str_t message)
+extern rf_object_t error(i8_t code, str_t message)
 {
-    value_t keys = vector_symbol(2), vals = list(2), c, error;
+    rf_object_t keys = vector_symbol(2), vals = list(2), c, error;
     c = string_from_const_str("code");
     as_vector_symbol(&keys)[0] = symbols_intern(&c);
     c = string_from_const_str("message");
@@ -45,9 +45,9 @@ extern value_t error(i8_t code, str_t message)
     return error;
 }
 
-extern value_t i64(i64_t value)
+extern rf_object_t i64(i64_t value)
 {
-    value_t scalar = {
+    rf_object_t scalar = {
         .type = -TYPE_I64,
         .i64 = value,
     };
@@ -55,9 +55,9 @@ extern value_t i64(i64_t value)
     return scalar;
 }
 
-extern value_t f64(f64_t value)
+extern rf_object_t f64(f64_t value)
 {
-    value_t scalar = {
+    rf_object_t scalar = {
         .type = -TYPE_F64,
         .f64 = value,
     };
@@ -65,13 +65,13 @@ extern value_t f64(f64_t value)
     return scalar;
 }
 
-extern value_t symbol(str_t ptr)
+extern rf_object_t symbol(str_t ptr)
 {
     // Do not allocate new string - it would be done by symbols_intern (if needed)
-    value_t string = str(ptr, strlen(ptr));
+    rf_object_t string = str(ptr, strlen(ptr));
     string.list.ptr = ptr;
     i64_t id = symbols_intern(&string);
-    value_t list = {
+    rf_object_t list = {
         .type = -TYPE_SYMBOL,
         .i64 = id,
     };
@@ -79,9 +79,9 @@ extern value_t symbol(str_t ptr)
     return list;
 }
 
-extern value_t null()
+extern rf_object_t null()
 {
-    value_t list = {
+    rf_object_t list = {
         .type = TYPE_LIST,
         .list = {
             .ptr = NULL,
@@ -92,7 +92,7 @@ extern value_t null()
     return list;
 }
 
-extern value_t table(value_t keys, value_t vals)
+extern rf_object_t table(rf_object_t keys, rf_object_t vals)
 {
     if (keys.type != TYPE_SYMBOL || vals.type != 0)
         return error(ERR_TYPE, "Keys must be a symbol vector and values must be list");
@@ -100,7 +100,7 @@ extern value_t table(value_t keys, value_t vals)
     if (keys.list.len != vals.list.len)
         return error(ERR_LENGTH, "Keys and values must have the same length");
 
-    // value_t *v = as_list(&vals);
+    // rf_object_t *v = as_list(&vals);
     // i64_t len = 0;
 
     // for (i64_t i = 0; i < v.list.len; i++)
@@ -109,7 +109,7 @@ extern value_t table(value_t keys, value_t vals)
     //         return error(ERR_TYPE, "Values must be scalars");
     // }
 
-    value_t table = list(2);
+    rf_object_t table = list(2);
 
     as_list(&table)[0] = keys;
     as_list(&table)[1] = vals;
@@ -119,7 +119,7 @@ extern value_t table(value_t keys, value_t vals)
     return table;
 }
 
-extern value_t value_clone(value_t *value)
+extern rf_object_t value_clone(rf_object_t *value)
 {
     switch (value->type)
     {
@@ -135,7 +135,7 @@ extern value_t value_clone(value_t *value)
     }
 }
 
-extern i8_t value_eq(value_t *a, value_t *b)
+extern i8_t value_eq(rf_object_t *a, rf_object_t *b)
 {
     if (a->type != b->type)
         return 0;
@@ -175,7 +175,7 @@ extern i8_t value_eq(value_t *a, value_t *b)
     return 0;
 }
 
-extern null_t value_free(value_t *value)
+extern null_t value_free(rf_object_t *value)
 {
     switch (value->type)
     {

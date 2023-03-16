@@ -78,10 +78,10 @@ null_t print_logo()
     rayforce_free(logo);
 }
 
-value_t parse_cmdline(i32_t argc, str_t argv[])
+rf_object_t parse_cmdline(i32_t argc, str_t argv[])
 {
     i32_t opt, len;
-    value_t keys = list(0), vals = list(0);
+    rf_object_t keys = list(0), vals = list(0);
 
     for (opt = 1; opt < argc && argv[opt][0] == '-'; opt++)
     {
@@ -95,7 +95,7 @@ value_t parse_cmdline(i32_t argc, str_t argv[])
 
             list_push(&keys, symbol("file"));
             len = strlen(argv[opt]) + 1;
-            value_t str = string(len);
+            rf_object_t str = string(len);
             strncpy(as_string(&str), argv[opt], len);
             list_push(&vals, str);
             break;
@@ -115,7 +115,7 @@ null_t load_file(str_t filename)
     i32_t fd;
     str_t file, buf;
     struct stat st;
-    value_t value;
+    rf_object_t value;
 
     fd = open(filename, O_RDONLY); // open the file for reading
 
@@ -155,14 +155,14 @@ i32_t main(i32_t argc, str_t argv[])
     rayforce_alloc_init();
     print_logo();
 
-    value_t args = parse_cmdline(argc, argv);
+    rf_object_t args = parse_cmdline(argc, argv);
     // load_file("test.ray");
 
     str_t filename = NULL;
     i8_t run = 1;
     str_t line = (str_t)rayforce_malloc(LINE_SIZE), ptr;
     memset(line, 0, LINE_SIZE);
-    value_t value;
+    rf_object_t value;
     vm_t vm;
     u8_t *code;
 

@@ -73,7 +73,7 @@ typedef double f64_t;
 typedef void null_t;
 
 // Generic type
-typedef struct value_t
+typedef struct rf_object_t
 {
     i8_t type;
     union
@@ -86,42 +86,42 @@ typedef struct value_t
             u64_t len;
             null_t *ptr;
         } list;
-        struct value_t *error;
+        struct rf_object_t *error;
     };
-} __attribute__((aligned(16))) value_t;
+} __attribute__((aligned(16))) rf_object_t;
 
-CASSERT(sizeof(struct value_t) == 32, rayforce_h)
+CASSERT(sizeof(struct rf_object_t) == 32, rayforce_h)
 
 // Constructors
-extern value_t i64(i64_t value);                               // i64 scalar
-extern value_t f64(f64_t value);                               // f64 scalar
-extern value_t symbol(str_t ptr);                              // symbol
-extern value_t vector(i8_t type, u8_t size_of_val, i64_t len); // vector of type
-extern value_t string(i64_t len);                              // string (allocates len + 1 for \0 but sets len to a 'len')
+extern rf_object_t i64(i64_t value);                               // i64 scalar
+extern rf_object_t f64(f64_t value);                               // f64 scalar
+extern rf_object_t symbol(str_t ptr);                              // symbol
+extern rf_object_t vector(i8_t type, u8_t size_of_val, i64_t len); // vector of type
+extern rf_object_t string(i64_t len);                              // string (allocates len + 1 for \0 but sets len to a 'len')
 
 #define vector_i64(len) (vector(TYPE_I64, sizeof(i64_t), len))       // i64 vector
 #define vector_f64(len) (vector(TYPE_F64, sizeof(f64_t), len))       // f64 vector
 #define vector_symbol(len) (vector(TYPE_SYMBOL, sizeof(i64_t), len)) // symbol vector
-#define list(len) (vector(TYPE_LIST, sizeof(value_t), len))          // list
+#define list(len) (vector(TYPE_LIST, sizeof(rf_object_t), len))      // list
 
-extern value_t str(str_t ptr, i64_t len);         // str non-duplicated string, possibly non null terminated
-extern value_t null();                            // null (as null list)
-extern value_t table(value_t keys, value_t vals); // table
-extern value_t dict(value_t keys, value_t vals);  // dict
-extern value_t value_clone(value_t *value);
+extern rf_object_t str(str_t ptr, i64_t len);                 // str non-duplicated string, possibly non null terminated
+extern rf_object_t null();                                    // null (as null list)
+extern rf_object_t table(rf_object_t keys, rf_object_t vals); // table
+extern rf_object_t dict(rf_object_t keys, rf_object_t vals);  // dict
+extern rf_object_t value_clone(rf_object_t *value);
 
 // Error
-extern value_t error(i8_t code, str_t message);
+extern rf_object_t error(i8_t code, str_t message);
 
 // Destructor
-extern null_t value_free(value_t *value);
+extern null_t value_free(rf_object_t *value);
 
 // Accessors
 #define as_vector_i64(value) ((i64_t *)(value)->list.ptr)
 #define as_vector_f64(value) ((f64_t *)(value)->list.ptr)
 #define as_vector_symbol(value) ((i64_t *)(value)->list.ptr)
 #define as_string(value) ((str_t)(value)->list.ptr)
-#define as_list(value) ((value_t *)(value)->list.ptr)
+#define as_list(value) ((rf_object_t *)(value)->list.ptr)
 
 // Checkers
 #define is_null(value) ((value)->type == TYPE_LIST && (value)->list.ptr == NULL)
@@ -129,11 +129,11 @@ extern null_t value_free(value_t *value);
 #define is_scalar(value) ((value)->type < 0)
 
 // Mutators
-extern u64_t vector_push(value_t *vector, value_t value);
-extern u64_t vector_pop(value_t *vector);
+extern u64_t vector_push(rf_object_t *vector, rf_object_t value);
+extern u64_t vector_pop(rf_object_t *vector);
 
 // Compare
-extern i8_t value_eq(value_t *a, value_t *b);
+extern i8_t value_eq(rf_object_t *a, rf_object_t *b);
 
 // #ifdef __cplusplus
 // }

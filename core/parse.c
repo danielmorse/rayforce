@@ -32,8 +32,46 @@
 #include "string.h"
 #include "vector.h"
 #include "util.h"
+#include "dict.h"
 
 #define TYPE_TOKEN 126
+
+typedef struct span_t
+{
+    u64_t line_start;
+    u64_t line_end;
+    u64_t col_start;
+    u64_t col_end;
+} span_t;
+
+span_t span(parser_t *parser)
+{
+    span_t s = {
+        .line_start = parser->line,
+        .line_end = parser->line,
+        .col_start = parser->column,
+        .col_end = parser->column,
+    };
+
+    return s;
+}
+
+rf_object_t label(span_t *span, str_t name)
+{
+    rf_object_t l = dict(vector_symbol(0), list(0));
+    dict_set(&l, symbol("name"), string(name));
+    // dict_set(&l, symbol("start_line"), i64(span->line_start));
+    // dict_set(&l, symbol("start_col"), i64(span->col_start));
+    // dict_set(&l, symbol("end_line"), i64(span->line_end));
+    // dict_set(&l, symbol("end_col"), i64(span->col_end));
+    return l;
+}
+
+null_t add_label(rf_object_t *error, span_t *span, str_t name)
+{
+    rf_object_t l = label(span, name);
+    // dict_set(&error, symbol("labels"), l);
+}
 
 u8_t is_whitespace(i8_t c)
 {
@@ -65,13 +103,12 @@ u8_t at_term(i8_t c)
     return c == ')' || c == ']' || c == '}' || c == ':' || c == '\0' || c == '\n';
 }
 
-u8_t is_at(value_t *token, i8_t c)
+u8_t is_at(rf_object_t *token, i8_t c)
 {
-    // debug("is_at: %lld %d IS: %d\n", token->i64, c, token->type == TYPE_TOKEN && token->i64 == (i64_t)c);
     return token->type == TYPE_TOKEN && token->i64 == (i64_t)c;
 }
 
-u8_t is_at_term(value_t *token)
+u8_t is_at_term(rf_object_t *token)
 {
     return token->type == TYPE_TOKEN && at_term(token->i64);
 }
@@ -87,19 +124,19 @@ u8_t shift(str_t *current)
     return res;
 }
 
-value_t to_token(i8_t c)
+rf_object_t to_token(i8_t c)
 {
-    value_t tok = i64(c);
+    rf_object_t tok = i64(c);
     tok.type = TYPE_TOKEN;
     return tok;
 }
 
-value_t parse_number(parser_t *parser)
+rf_object_t parse_number(parser_t *parser)
 {
     str_t end;
     i64_t num_i64;
     f64_t num_f64;
-    value_t num;
+    rf_object_t num;
     str_t *current = &parser->current;
 
     errno = 0;
@@ -132,12 +169,12 @@ value_t parse_number(parser_t *parser)
     return num;
 }
 
-value_t parse_string(parser_t *parser)
+rf_object_t parse_string(parser_t *parser)
 {
     parser->current++; // skip '"'
     str_t pos = parser->current;
     u32_t len;
-    value_t res;
+    rf_object_t res;
 
     while (!at_eof(*pos))
     {
@@ -161,10 +198,10 @@ value_t parse_string(parser_t *parser)
     return res;
 }
 
-value_t parse_symbol(parser_t *parser)
+rf_object_t parse_symbol(parser_t *parser)
 {
     str_t pos = parser->current;
-    value_t res, s;
+    rf_object_t res, s;
     i64_t id;
 
     // Skip first char and proceed until the end of the symbol
@@ -182,10 +219,13 @@ value_t parse_symbol(parser_t *parser)
     return res;
 }
 
-value_t parse_vector(parser_t *parser)
+rf_object_t parse_vector(parser_t *parser)
 {
     str_t *current = &parser->current;
-    value_t token, vec = vector_i64(0);
+    rf_object_t token, vec = vector_i64(0), err;
+
+    // save current span
+    span_t s = span(parser);
 
     (*current)++; // skip '['
     token = advance(parser);
@@ -201,7 +241,9 @@ value_t parse_vector(parser_t *parser)
         if (is_at(&token, '\0'))
         {
             value_free(&vec);
-            return error(ERR_PARSE, "Expected ']'");
+            err = error(ERR_PARSE, "Expected ']'");
+            add_label(&err, &s, "started here");
+            return err;
         }
 
         if (token.type == -TYPE_I64)
@@ -260,9 +302,9 @@ value_t parse_vector(parser_t *parser)
     return vec;
 }
 
-value_t parse_list(parser_t *parser)
+rf_object_t parse_list(parser_t *parser)
 {
-    value_t lst = list(0), token;
+    rf_object_t lst = list(0), token;
     str_t *current = &parser->current;
 
     (*current)++; // skip '('
@@ -291,10 +333,10 @@ value_t parse_list(parser_t *parser)
     return lst;
 }
 
-value_t parse_dict(parser_t *parser)
+rf_object_t parse_dict(parser_t *parser)
 {
     str_t *current = &parser->current;
-    value_t token, keys = list(0), vals = list(0);
+    rf_object_t token, keys = list(0), vals = list(0);
 
     (*current)++; // skip '{'
     token = advance(parser);
@@ -353,7 +395,7 @@ value_t parse_dict(parser_t *parser)
     return dict(keys, vals);
 }
 
-value_t advance(parser_t *parser)
+rf_object_t advance(parser_t *parser)
 {
     str_t *current = &parser->current;
 
@@ -388,10 +430,10 @@ value_t advance(parser_t *parser)
     return error(ERR_PARSE, str_fmt(0, "Unexpected token: %s", parser->current));
 }
 
-value_t parse_program(parser_t *parser)
+rf_object_t parse_program(parser_t *parser)
 {
     str_t err_msg;
-    value_t token, list = list(0);
+    rf_object_t token, list = list(0);
 
     while (!at_eof(*parser->current))
     {
@@ -424,9 +466,9 @@ value_t parse_program(parser_t *parser)
     return list;
 }
 
-extern value_t parse(str_t filename, str_t input)
+extern rf_object_t parse(str_t filename, str_t input)
 {
-    value_t prg;
+    rf_object_t prg;
 
     parser_t parser = {
         .filename = filename,

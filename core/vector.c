@@ -61,7 +61,7 @@
  */
 #define flatten(list, vec, fpush, mem)            \
     {                                             \
-        value_t *member;                          \
+        rf_object_t *member;                      \
         vec = vector_##mem(0);                    \
                                                   \
         for (u64_t i = 0; i < list.list.len; i++) \
@@ -78,9 +78,9 @@
         }                                         \
     }
 
-extern value_t vector(i8_t type, u8_t size_of_val, i64_t len)
+extern rf_object_t vector(i8_t type, u8_t size_of_val, i64_t len)
 {
-    value_t v = {
+    rf_object_t v = {
         .type = type,
         .list = {
             .ptr = NULL,
@@ -96,41 +96,41 @@ extern value_t vector(i8_t type, u8_t size_of_val, i64_t len)
     return v;
 }
 
-extern u64_t vector_i64_push(value_t *vector, i64_t value)
+extern u64_t vector_i64_push(rf_object_t *vector, i64_t value)
 {
     push(vector, i64_t, value);
     return vector->list.len;
 }
 
-extern u64_t vector_i64_pop(value_t *vector)
+extern u64_t vector_i64_pop(rf_object_t *vector)
 {
     pop(vector, i64_t);
     return vector->list.len;
 }
 
-extern u64_t vector_f64_push(value_t *vector, f64_t value)
+extern u64_t vector_f64_push(rf_object_t *vector, f64_t value)
 {
     push(vector, f64_t, value);
     return vector->list.len;
 }
 
-extern f64_t vector_f64_pop(value_t *vector)
+extern f64_t vector_f64_pop(rf_object_t *vector)
 {
     return pop(vector, f64_t);
 }
 
-extern u64_t list_push(value_t *list, value_t value)
+extern u64_t list_push(rf_object_t *list, rf_object_t value)
 {
-    push(list, value_t, value);
+    push(list, rf_object_t, value);
     return list->list.len;
 }
 
-extern value_t list_pop(value_t *list)
+extern rf_object_t list_pop(rf_object_t *list)
 {
-    return pop(list, value_t);
+    return pop(list, rf_object_t);
 }
 
-extern u64_t vector_push(value_t *vector, value_t value)
+extern u64_t vector_push(rf_object_t *vector, rf_object_t value)
 {
     i8_t type = vector->type;
 
@@ -152,7 +152,7 @@ extern u64_t vector_push(value_t *vector, value_t value)
     return vector->list.len;
 }
 
-extern u64_t vector_i64_find(value_t *vector, i64_t key)
+extern u64_t vector_i64_find(rf_object_t *vector, i64_t key)
 {
     i64_t *ptr = as_vector_i64(vector);
 
@@ -165,7 +165,7 @@ extern u64_t vector_i64_find(value_t *vector, i64_t key)
     return vector->list.len;
 }
 
-extern u64_t vector_f64_find(value_t *vector, f64_t key)
+extern u64_t vector_f64_find(rf_object_t *vector, f64_t key)
 {
     f64_t *ptr = as_vector_f64(vector);
 
@@ -178,9 +178,9 @@ extern u64_t vector_f64_find(value_t *vector, f64_t key)
     return vector->list.len;
 }
 
-extern u64_t list_find(value_t *list, value_t key)
+extern u64_t list_find(rf_object_t *list, rf_object_t key)
 {
-    value_t *ptr = as_list(list);
+    rf_object_t *ptr = as_list(list);
 
     for (u64_t i = 0; i < list->list.len; i++)
     {
@@ -191,7 +191,7 @@ extern u64_t list_find(value_t *list, value_t key)
     return list->list.len;
 }
 
-extern u64_t vector_find(value_t *vector, value_t key)
+extern u64_t vector_find(rf_object_t *vector, rf_object_t key)
 {
     i8_t type = vector->type;
 
@@ -211,14 +211,14 @@ extern u64_t vector_find(value_t *vector, value_t key)
 /*
  * Try to flatten list in a vector if all elements are of the same type
  */
-extern value_t list_flatten(value_t list)
+extern rf_object_t list_flatten(rf_object_t list)
 {
     if (list.type != TYPE_LIST)
         return list;
 
     u64_t len = list.list.len;
     i8_t type;
-    value_t vec;
+    rf_object_t vec;
 
     if (len == 0)
         return list;
