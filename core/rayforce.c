@@ -92,24 +92,6 @@ extern value_t null()
     return list;
 }
 
-extern value_t dict(value_t keys, value_t vals)
-{
-    if (keys.type < 0 || vals.type < 0)
-        return error(ERR_TYPE, "Keys and values must be lists");
-
-    if (keys.list.len != vals.list.len)
-        return error(ERR_LENGTH, "Keys and values must have the same length");
-
-    value_t dict = list(2);
-
-    as_list(&dict)[0] = keys;
-    as_list(&dict)[1] = vals;
-
-    dict.type = TYPE_DICT;
-
-    return dict;
-}
-
 extern value_t table(value_t keys, value_t vals)
 {
     if (keys.type != TYPE_SYMBOL || vals.type != 0)

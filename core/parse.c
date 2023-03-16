@@ -312,7 +312,7 @@ value_t parse_dict(parser_t *parser)
         {
             value_free(&keys);
             value_free(&vals);
-            return error(ERR_PARSE, "Expected key");
+            return error(ERR_PARSE, "Expected '}'");
         }
 
         list_push(&keys, token);
