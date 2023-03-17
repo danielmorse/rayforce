@@ -36,28 +36,26 @@
  * by Dan Bernstein
  * http://www.cse.yorku.ca/~oz/hash.html
  */
-u64_t string_hash(null_t *val)
+i64_t string_hash(null_t *val)
 {
-    u32_t hash = 5381;
-
     rf_object_t *string = (rf_object_t *)val;
-    u32_t len = string->list.len;
+    i32_t hash = 5381, len = string->list.len, i;
     str_t str = string->list.ptr;
 
-    for (u32_t i = 0; i < len; i++)
+    for (i = 0; i < len; i++)
         hash += (hash << 5) + str[i];
 
     return hash;
 }
 
-u64_t i64_hash(null_t *val)
+i64_t i64_hash(null_t *val)
 {
-    return (u64_t)val;
+    return (i64_t)val;
 }
 
 i32_t i64_cmp(null_t *a, null_t *b)
 {
-    return !((u64_t)a == (u64_t)b);
+    return !((i64_t)a == (i64_t)b);
 }
 
 /*
@@ -72,7 +70,7 @@ i32_t string_str_cmp(null_t *a, null_t *b)
     str_t str_a = (str_t)a;
     rf_object_t *str_b = (rf_object_t *)b;
 
-    u64_t len_a = strlen(str_a);
+    i64_t len_a = strlen(str_a);
 
     if (str_b->list.len != len_a)
         return 1;
@@ -102,11 +100,11 @@ null_t *str_dup(null_t *key, null_t *val, bucket_t *bucket)
     symbols_t *symbols = alloc->symbols;
 
     rf_object_t *string = (rf_object_t *)key;
-    u64_t len = string->list.len;
+    i64_t len = string->list.len;
     str_t str = string->list.ptr;
 
     // Allocate new pool node
-    if ((u64_t)symbols->strings_pool + len - (u64_t)symbols->pool_node > STRINGS_POOL_SIZE)
+    if ((i64_t)symbols->strings_pool + len - (i64_t)symbols->pool_node > STRINGS_POOL_SIZE)
     {
         pool_node_t *node = pool_node_create();
         symbols->pool_node->next = node;
@@ -154,8 +152,8 @@ null_t symbols_free(symbols_t *symbols)
 i64_t symbols_intern(rf_object_t *string)
 {
     symbols_t *symbols = alloc_get()->symbols;
-    u64_t id = symbols->str_to_id->size;
-    u64_t id_or_str = (u64_t)ht_insert_with(symbols->str_to_id, string, (null_t *)id, &str_dup);
+    i64_t id = symbols->str_to_id->size;
+    i64_t id_or_str = (i64_t)ht_insert_with(symbols->str_to_id, string, (null_t *)id, &str_dup);
     if (symbols->str_to_id->size == id)
         return id_or_str;
 

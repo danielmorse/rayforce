@@ -55,13 +55,13 @@
 //     return i64(sum);
 // }
 
-u8_t *compile(rf_object_t *object)
+i8_t *compile(rf_object_t *object)
 {
-    u8_t *code;
+    i8_t *code;
 
     UNUSED(object);
 
-    code = (u8_t *)rayforce_malloc(1024);
+    code = (i8_t *)rayforce_malloc(1024);
 
     code[0] = VM_ADD;
 

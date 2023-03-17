@@ -26,7 +26,7 @@
 
 #include "rayforce.h"
 
-extern str_t str_fmt(u32_t lim, str_t fmt, ...);
+extern str_t str_fmt(i32_t lim, str_t fmt, ...);
 extern str_t object_fmt(rf_object_t *object);
 
 #endif

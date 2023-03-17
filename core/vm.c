@@ -36,7 +36,7 @@ vm_t vm_create()
     return vm;
 }
 
-null_t vm_exec(vm_t vm, u8_t *code)
+null_t vm_exec(vm_t vm, i8_t *code)
 {
     // i8_t *stack = vm->stack;
     // i64_t *regs = vm->regs;
@@ -77,7 +77,7 @@ null_t vm_free(vm_t vm)
     rayforce_free(vm);
 }
 
-// str_t vm_code_fmt(u8_t *code)
+// str_t vm_code_fmt(i8_t *code)
 // {
 //     // TODO
 // }

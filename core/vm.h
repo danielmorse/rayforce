@@ -48,7 +48,7 @@ typedef struct vm_t
 } *vm_t;
 
 vm_t vm_create();
-null_t vm_exec(vm_t vm, u8_t *code);
+null_t vm_exec(vm_t vm, i8_t *code);
 null_t vm_free(vm_t vm);
 
 // void vm_init(VM *vm, int *code, int code_size, int nglobals);

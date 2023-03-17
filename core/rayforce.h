@@ -61,14 +61,10 @@
 #define ERR_UNKNOWN 127
 
 typedef char i8_t;
-typedef unsigned char u8_t;
 typedef char *str_t;
 typedef short i16_t;
-typedef unsigned short u16_t;
 typedef int i32_t;
-typedef unsigned int u32_t;
 typedef long long i64_t;
-typedef unsigned long long u64_t;
 typedef double f64_t;
 typedef void null_t;
 
@@ -83,7 +79,7 @@ typedef struct rf_object_t
         f64_t f64;
         struct list_t
         {
-            u64_t len;
+            i64_t len;
             null_t *ptr;
         } list;
         struct rf_object_t *error;
@@ -96,7 +92,7 @@ CASSERT(sizeof(struct rf_object_t) == 32, rayforce_h)
 extern rf_object_t i64(i64_t object);                              // i64 scalar
 extern rf_object_t f64(f64_t object);                              // f64 scalar
 extern rf_object_t symbol(str_t ptr);                              // symbol
-extern rf_object_t vector(i8_t type, u8_t size_of_val, i64_t len); // vector of type
+extern rf_object_t vector(i8_t type, i8_t size_of_val, i64_t len); // vector of type
 extern rf_object_t string(i64_t len);                              // string (allocates len + 1 for \0 but sets len to a 'len')
 
 #define vector_i64(len) (vector(TYPE_I64, sizeof(i64_t), len))       // i64 vector
@@ -129,7 +125,7 @@ extern null_t object_free(rf_object_t *object);
 #define is_scalar(object) ((object)->type < 0)
 
 // Mutators
-extern u64_t vector_push(rf_object_t *vector, rf_object_t object);
+extern i64_t vector_push(rf_object_t *vector, rf_object_t object);
 extern rf_object_t vector_pop(rf_object_t *vector);
 
 // Compare

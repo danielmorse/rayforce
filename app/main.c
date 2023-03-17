@@ -164,7 +164,7 @@ i32_t main(i32_t argc, str_t argv[])
     memset(line, 0, LINE_SIZE);
     rf_object_t object;
     vm_t vm;
-    u8_t *code;
+    i8_t *code;
 
     vm = vm_create();
 

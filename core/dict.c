@@ -52,7 +52,7 @@ extern rf_object_t dict_get(rf_object_t *dict, rf_object_t key)
 
     rf_object_t *keys = &as_list(dict)[0];
     rf_object_t *vals = &as_list(dict)[1];
-    u64_t index = vector_find(keys, key);
+    i64_t index = vector_find(keys, key);
 
     if (index == keys->list.len)
         return null();
@@ -67,7 +67,7 @@ extern rf_object_t dict_set(rf_object_t *dict, rf_object_t key, rf_object_t val)
 
     rf_object_t *keys = &as_list(dict)[0];
     rf_object_t *vals = &as_list(dict)[1];
-    u64_t index = vector_find(keys, key);
+    i64_t index = vector_find(keys, key);
 
     if (index == keys->list.len)
     {

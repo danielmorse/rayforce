@@ -29,6 +29,6 @@
 // Monadic functions
 rf_object_t til(i64_t count);
 
-u8_t *compile(rf_object_t object);
+i8_t *compile(rf_object_t object);
 rf_object_t rayforce_add(rf_object_t a, rf_object_t b);
 #endif

@@ -30,7 +30,7 @@
 #include "rayforce.h"
 #include "alloc.h"
 
-hash_table_t *ht_create(u64_t (*hasher)(null_t *a), i32_t (*compare)(null_t *a, null_t *b))
+hash_table_t *ht_create(i64_t (*hasher)(null_t *a), i32_t (*compare)(null_t *a, null_t *b))
 {
     hash_table_t *table = (hash_table_t *)rayforce_malloc(sizeof(hash_table_t));
 
@@ -48,10 +48,12 @@ hash_table_t *ht_create(u64_t (*hasher)(null_t *a), i32_t (*compare)(null_t *a, 
 
 null_t ht_free(hash_table_t *table)
 {
-    for (u64_t i = 0; i < table->size; i++)
+    i32_t i;
+    bucket_t *bucket, *next;
+
+    for (i = 0; i < table->size; i++)
     {
-        bucket_t *bucket = table->buckets[i];
-        bucket_t *next;
+        bucket = table->buckets[i];
 
         while (bucket)
         {
@@ -69,7 +71,7 @@ null_t ht_free(hash_table_t *table)
 null_t *ht_insert(hash_table_t *table, null_t *key, null_t *val)
 {
     // Table's size is always a power of 2
-    u64_t index = table->hasher(key) & (table->cap - 1);
+    i32_t index = table->hasher(key) & (table->cap - 1);
     bucket_t **bucket = &table->buckets[index];
 
     while (*bucket)
@@ -98,7 +100,7 @@ null_t *ht_insert(hash_table_t *table, null_t *key, null_t *val)
 null_t *ht_insert_with(hash_table_t *table, null_t *key, null_t *val, null_t *(*func)(null_t *key, null_t *val, bucket_t *bucket))
 {
     // Table's size is always a power of 2
-    u64_t index = table->hasher(key) & (table->cap - 1);
+    i32_t index = table->hasher(key) & (table->cap - 1);
     bucket_t **bucket = &table->buckets[index];
 
     while (*bucket)
@@ -125,7 +127,7 @@ null_t *ht_insert_with(hash_table_t *table, null_t *key, null_t *val, null_t *(*
  */
 null_t *ht_get(hash_table_t *table, null_t *key)
 {
-    u64_t index = table->hasher(key) & (table->cap - 1);
+    i32_t index = table->hasher(key) & (table->cap - 1);
     bucket_t *bucket = table->buckets[index];
 
     while (bucket)

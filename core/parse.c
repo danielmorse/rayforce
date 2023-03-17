@@ -38,10 +38,10 @@
 
 typedef struct span_t
 {
-    u64_t line_start;
-    u64_t line_end;
-    u64_t col_start;
-    u64_t col_end;
+    i32_t line_start;
+    i32_t line_end;
+    i32_t col_start;
+    i32_t col_end;
 } span_t;
 
 span_t span(parser_t *parser)
@@ -73,52 +73,52 @@ null_t add_label(rf_object_t *error, span_t *span, str_t name)
     dict_set(error, symbol("labels"), l);
 }
 
-u8_t is_whitespace(i8_t c)
+i8_t is_whitespace(i8_t c)
 {
     return c == ' ' || c == '\t' || c == '\r' || c == '\n';
 }
 
-u8_t is_digit(i8_t c)
+i8_t is_digit(i8_t c)
 {
     return c >= '0' && c <= '9';
 }
 
-u8_t is_alpha(i8_t c)
+i8_t is_alpha(i8_t c)
 {
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }
 
-u8_t is_alphanum(i8_t c)
+i8_t is_alphanum(i8_t c)
 {
     return is_alpha(c) || is_digit(c);
 }
 
-u8_t at_eof(i8_t c)
+i8_t at_eof(i8_t c)
 {
     return c == '\0' || c == EOF;
 }
 
-u8_t at_term(i8_t c)
+i8_t at_term(i8_t c)
 {
     return c == ')' || c == ']' || c == '}' || c == ':' || c == '\n';
 }
 
-u8_t is_at(rf_object_t *token, i8_t c)
+i8_t is_at(rf_object_t *token, i8_t c)
 {
     return token->type == TYPE_TOKEN && token->i64 == (i64_t)c;
 }
 
-u8_t is_at_term(rf_object_t *token)
+i8_t is_at_term(rf_object_t *token)
 {
     return token->type == TYPE_TOKEN && at_term(token->i64);
 }
 
-u8_t shift(parser_t *parser, u32_t num)
+i8_t shift(parser_t *parser, i32_t num)
 {
     if (at_eof(*parser->current))
         return 0;
 
-    u8_t res = *parser->current;
+    i8_t res = *parser->current;
     parser->current += num;
     parser->column += num;
 
@@ -173,7 +173,7 @@ rf_object_t parse_string(parser_t *parser)
 {
     parser->current++; // skip '"'
     str_t pos = parser->current;
-    u32_t len;
+    i32_t len;
     rf_object_t res;
 
     while (!at_eof(*pos))
@@ -222,6 +222,7 @@ rf_object_t parse_symbol(parser_t *parser)
 rf_object_t parse_vector(parser_t *parser)
 {
     rf_object_t token, vec = vector_i64(0), err;
+    i32_t i;
 
     // save current span
     span_t s = span(parser);
@@ -264,7 +265,7 @@ rf_object_t parse_vector(parser_t *parser)
             else if (vec.type == TYPE_I64)
             {
 
-                for (u64_t i = 0; i < vec.list.len; i++)
+                for (i = 0; i < vec.list.len; i++)
                     as_vector_f64(&vec)[i] = (f64_t)as_vector_i64(&vec)[i];
 
                 vector_f64_push(&vec, token.f64);

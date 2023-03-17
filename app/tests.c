@@ -93,10 +93,10 @@ int test_symbols()
 
     str_t st[1000000];
 
-    u64_t pg_size = 4096 * 1024;
+    i64_t pg_size = 4096 * 1024;
 
-    u64_t *buckets = malloc(pg_size * sizeof(u64_t));
-    memset(buckets, 0, pg_size * sizeof(u64_t));
+    i64_t *buckets = malloc(pg_size * sizeof(i64_t));
+    memset(buckets, 0, pg_size * sizeof(i64_t));
 
     for (int i = 0; i < 1000000; i++)
     {
@@ -135,6 +135,24 @@ int test_symbols()
     return 0;
 }
 
+null_t test_find()
+{
+    rf_object_t v = vector_i64(100000000);
+    for (int i = 0; i < 100000000; i++)
+    {
+        as_vector_i64(&v)[i] = i;
+    }
+
+    clock_t start, end;
+    f64_t cpu_time_used;
+    start = clock();
+    i64_t i = vector_find(&v, i64(99999999));
+    end = clock();
+    cpu_time_used = ((f64_t)(end - start)) / CLOCKS_PER_SEC;
+    printf("I: %lld\n", i);
+    printf("Time: %f ms\n", cpu_time_used * 1000);
+}
+
 null_t test_string_match()
 {
     debug("-- %d\n", string_match("brown", "br?*wn"));
@@ -153,7 +171,9 @@ i32_t main()
 {
     rayforce_alloc_init();
 
-    test_symbols();
+    // test_symbols();
+
+    test_find();
 
     // test_string_match();
     rayforce_alloc_deinit();

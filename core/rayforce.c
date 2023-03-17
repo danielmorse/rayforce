@@ -132,6 +132,8 @@ extern rf_object_t object_clone(rf_object_t *object)
 
 extern i8_t object_eq(rf_object_t *a, rf_object_t *b)
 {
+    i64_t i;
+
     if (a->type != b->type)
         return 0;
 
@@ -145,7 +147,7 @@ extern i8_t object_eq(rf_object_t *a, rf_object_t *b)
             return 1;
         if (a->list.len != b->list.len)
             return 0;
-        for (u64_t i = 0; i < a->list.len; i++)
+        for (i = 0; i < a->list.len; i++)
         {
             if (as_vector_i64(a)[i] != as_vector_i64(b)[i])
                 return 0;
@@ -158,7 +160,7 @@ extern i8_t object_eq(rf_object_t *a, rf_object_t *b)
             return 1;
         if (a->list.len != b->list.len)
             return 0;
-        for (u64_t i = 0; i < a->list.len; i++)
+        for (i = 0; i < a->list.len; i++)
         {
             if (as_vector_f64(a)[i] != as_vector_f64(b)[i])
                 return 0;
