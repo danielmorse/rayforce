@@ -109,7 +109,7 @@ op_sumi:
     vm->ip++;
     y = pop(vm);
     x = pop(vm);
-    for (i = 0; i < x.adt.len; i++)
+    for (i = 0; i < x.adt->len; i++)
         as_vector_i64(&x)[i] = ADDI64(as_vector_i64(&x)[i], y.i64);
     push(vm, x);
     dispatch();

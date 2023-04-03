@@ -77,6 +77,19 @@ typedef unsigned long long u64_t;
 typedef double f64_t;
 typedef void null_t;
 
+/*
+ * Vector header
+ */
+typedef struct header_t
+{
+    i64_t len;
+    i64_t rc;
+    i64_t attrs;
+    i64_t pad;
+} header_t;
+
+CASSERT(sizeof(struct header_t) == 32, vector_c)
+
 // Generic type
 typedef struct rf_object_t
 {
@@ -88,31 +101,12 @@ typedef struct rf_object_t
         i8_t i8;
         i64_t i64;
         f64_t f64;
-
-        // Aggregate types
-        struct adt_t
-        {
-            i64_t len;
-            null_t *ptr;
-
-            union
-            {
-                // Attributes of the object
-                struct attrs_t
-                {
-                    i64_t rc;      // reference counter
-                    null_t *index; // search index (if any)
-                } *attrs;
-
-                // Error code
-                i8_t code;
-            };
-        } adt;
+        header_t *adt;
     };
 
 } rf_object_t;
 
-CASSERT(sizeof(struct rf_object_t) == 32, rayforce_h)
+CASSERT(sizeof(struct rf_object_t) == 16, rayforce_h)
 
 // Constructors
 extern rf_object_t i64(i64_t object);                              // i64 scalar
@@ -126,7 +120,6 @@ extern rf_object_t string(i64_t len);                              // string (al
 #define vector_symbol(len) (vector(TYPE_SYMBOL, sizeof(i64_t), len)) // symbol vector
 #define list(len) (vector(TYPE_LIST, sizeof(rf_object_t), len))      // list
 
-extern rf_object_t str(str_t ptr, i64_t len);                 // str non-duplicated string, possibly non null terminated
 extern rf_object_t null();                                    // null (as null list)
 extern rf_object_t table(rf_object_t keys, rf_object_t vals); // table
 extern rf_object_t dict(rf_object_t keys, rf_object_t vals);  // dict
@@ -139,14 +132,14 @@ extern rf_object_t error(i8_t code, str_t message);
 extern null_t object_free(rf_object_t *object);
 
 // Accessors
-#define as_vector_i64(object) ((i64_t *)(object)->adt.ptr)
-#define as_vector_f64(object) ((f64_t *)(object)->adt.ptr)
-#define as_vector_symbol(object) ((i64_t *)(object)->adt.ptr)
-#define as_string(object) ((str_t)(object)->adt.ptr)
-#define as_list(object) ((rf_object_t *)(object)->adt.ptr)
+#define as_string(object) ((str_t)(object)->adt + sizeof(header_t))
+#define as_vector_i64(object) ((i64_t *)(as_string(object)))
+#define as_vector_f64(object) ((f64_t *)(as_string(object)))
+#define as_vector_symbol(object) ((i64_t *)(as_string(object)))
+#define as_list(object) ((rf_object_t *)(as_string(object)))
 
 // Checkers
-#define is_null(object) ((object)->type == TYPE_LIST && (object)->adt.ptr == NULL)
+#define is_null(object) ((object)->type == TYPE_LIST && (object)->adt == NULL)
 #define is_error(object) ((object)->type == TYPE_ERROR)
 #define is_scalar(object) ((object)->type < 0)
 

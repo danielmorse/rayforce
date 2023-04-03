@@ -43,8 +43,8 @@ rf_object_t rayforce_add(rf_object_t *a, rf_object_t *b)
     i64_t a_len;
     i64_t *a_vec;
 
-    a_len = a->adt.len;
-    a_vec = a->adt.ptr;
+    a_len = a->adt->len;
+    a_vec = as_vector_i64(a);
 
     for (i64_t i = 0; i < a_len; i++)
         a_vec[i] = ADDI64(a_vec[i], b->i64);

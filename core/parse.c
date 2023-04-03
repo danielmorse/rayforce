@@ -238,7 +238,7 @@ rf_object_t parse_symbol(parser_t *parser)
         pos++;
     } while (is_alphanum(*pos) || is_op(*pos));
 
-    s = str(parser->current, pos - parser->current);
+    s = string_from_str(parser->current, pos - parser->current);
     id = symbols_intern(&s);
     res = i64(id);
     res.type = -TYPE_SYMBOL;
@@ -295,7 +295,7 @@ rf_object_t parse_vector(parser_t *parser)
             else if (vec.type == TYPE_I64)
             {
 
-                for (i = 0; i < vec.adt.len; i++)
+                for (i = 0; i < vec.adt->len; i++)
                     as_vector_f64(&vec)[i] = (f64_t)as_vector_i64(&vec)[i];
 
                 vector_f64_push(&vec, token.f64);
@@ -311,7 +311,7 @@ rf_object_t parse_vector(parser_t *parser)
         }
         else if (token.type == -TYPE_SYMBOL)
         {
-            if (vec.type == TYPE_SYMBOL || (vec.adt.len == 0))
+            if (vec.type == TYPE_SYMBOL || (vec.adt->len == 0))
             {
                 vector_i64_push(&vec, token.i64);
                 vec.type = TYPE_SYMBOL;

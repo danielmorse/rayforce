@@ -33,67 +33,20 @@
  */
 extern rf_object_t string(i64_t len)
 {
-    rf_object_t string = {
-        .type = TYPE_STRING,
-        .adt = {
-            .len = len,
-            .ptr = NULL,
-        },
-    };
+    rf_object_t string = vector(TYPE_STRING, 1, len + 1);
 
-    if (len == 0)
-        return string;
-
-    string.adt.ptr = rayforce_malloc(len);
-    ((str_t)string.adt.ptr)[len] = '\0';
-
-    return string;
-}
-
-/*
- * Creates new rf_object_t string from a C string (aka slice).
- * Not guaranteed to be null-terminated.
- */
-extern rf_object_t str(str_t ptr, i64_t len)
-{
-    rf_object_t string = {
-        .type = TYPE_STRING,
-        .adt = {
-            .len = len,
-            .ptr = ptr,
-        },
-    };
-
+    as_string(&string)[len] = '\0';
     return string;
 }
 
 /*
  * Creates new rf_object_t string from a C string.
  */
-rf_object_t string_from_str(str_t str)
+rf_object_t string_from_str(str_t str, i32_t len)
 {
-    i32_t len = strlen(str);
     rf_object_t s = string(len);
-    memcpy(s.adt.ptr, str, len);
+    memcpy(as_string(&s), str, len);
     return s;
-}
-
-/*
- * Creates new rf_object_t string from a constant C string.
- * Does not copy the string, but instead uses the pointer directly.
- */
-rf_object_t string_from_const_str(str_t str)
-{
-    i32_t len = strlen(str);
-    rf_object_t string = {
-        .type = TYPE_STRING,
-        .adt = {
-            .len = len,
-            .ptr = str,
-        },
-    };
-
-    return string;
 }
 
 /*

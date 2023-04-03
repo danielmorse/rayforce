@@ -34,9 +34,9 @@
 
 extern rf_object_t error(i8_t code, str_t message)
 {
-    rf_object_t err = string_from_str(message);
+    rf_object_t err = string_from_str(message, strlen(message));
     err.type = TYPE_ERROR;
-    err.adt.code = code;
+    // err.adt.code = code;
 
     return err;
 }
@@ -63,9 +63,9 @@ extern rf_object_t f64(f64_t object)
 
 extern rf_object_t symbol(str_t ptr)
 {
-    // Do not allocate new string - it would be done by symbols_intern (if needed)
-    rf_object_t string = str(ptr, strlen(ptr));
-    string.adt.ptr = ptr;
+    // TODO: Do not allocate new string - it would be done by symbols_intern (if needed)
+    rf_object_t string = string_from_str(ptr, strlen(ptr));
+    // string.adt.ptr = ptr;
     i64_t id = symbols_intern(&string);
     rf_object_t sym = {
         .type = -TYPE_SYMBOL,
@@ -79,10 +79,7 @@ extern rf_object_t null()
 {
     rf_object_t list = {
         .type = TYPE_LIST,
-        .adt = {
-            .ptr = NULL,
-            .len = 0,
-        },
+        .adt = NULL,
     };
 
     return list;
@@ -93,7 +90,7 @@ extern rf_object_t table(rf_object_t keys, rf_object_t vals)
     if (keys.type != TYPE_SYMBOL || vals.type != 0)
         return error(ERR_TYPE, "Keys must be a symbol vector and objects must be list");
 
-    if (keys.adt.len != vals.adt.len)
+    if (keys.adt->len != vals.adt->len)
         return error(ERR_LENGTH, "Keys and objects must have the same length");
 
     // rf_object_t *v = as_list(&vals);
@@ -130,9 +127,9 @@ extern i8_t object_eq(rf_object_t *a, rf_object_t *b)
     {
         if (as_vector_i64(a) == as_vector_i64(b))
             return 1;
-        if (a->adt.len != b->adt.len)
+        if (a->adt->len != b->adt->len)
             return 0;
-        for (i = 0; i < a->adt.len; i++)
+        for (i = 0; i < a->adt->len; i++)
         {
             if (as_vector_i64(a)[i] != as_vector_i64(b)[i])
                 return 0;
@@ -143,9 +140,9 @@ extern i8_t object_eq(rf_object_t *a, rf_object_t *b)
     {
         if (as_vector_f64(a) == as_vector_f64(b))
             return 1;
-        if (a->adt.len != b->adt.len)
+        if (a->adt->len != b->adt->len)
             return 0;
-        for (i = 0; i < a->adt.len; i++)
+        for (i = 0; i < a->adt->len; i++)
         {
             if (as_vector_f64(a)[i] != as_vector_f64(b)[i])
                 return 0;
@@ -165,10 +162,10 @@ extern rf_object_t object_clone(rf_object_t *object)
     if (object->type < 0)
         return *object;
 
-    if (object->adt.ptr == NULL)
+    if (object->adt == NULL)
         return *object;
 
-    __atomic_fetch_add(&object->adt.attrs->rc, 1, __ATOMIC_RELAXED);
+    __atomic_fetch_add(&object->adt->rc, 1, __ATOMIC_RELAXED);
 
     return *object;
 }
@@ -179,7 +176,7 @@ extern null_t object_free(rf_object_t *object)
     if (object->type < 0)
         return;
 
-    if (object->adt.ptr == NULL)
+    if (object->adt == NULL)
         return;
 
     if (object->type == TYPE_ERROR)

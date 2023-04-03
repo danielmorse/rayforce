@@ -30,17 +30,17 @@
 #include "vector.h"
 #include "string.h"
 
-#define push_opcode(c, x)                       \
-    {                                           \
-        vector_reserve(c, 1);                   \
-        as_string(c)[(c)->adt.len++] = (i8_t)x; \
+#define push_opcode(c, x)                        \
+    {                                            \
+        vector_reserve(c, 1);                    \
+        as_string(c)[(c)->adt->len++] = (i8_t)x; \
     }
 
-#define push_object(c, x)                                  \
-    {                                                      \
-        vector_reserve(c, sizeof(rf_object_t));            \
-        *(rf_object_t *)(as_string(c) + (c)->adt.len) = x; \
-        (c)->adt.len += sizeof(rf_object_t);               \
+#define push_object(c, x)                                   \
+    {                                                       \
+        vector_reserve(c, sizeof(rf_object_t));             \
+        *(rf_object_t *)(as_string(c) + (c)->adt->len) = x; \
+        (c)->adt->len += sizeof(rf_object_t);               \
     }
 
 typedef struct dispatch_record_t
@@ -106,7 +106,7 @@ i8_t cc_compile_code(rf_object_t *object, rf_object_t *code)
         return -TYPE_SYMBOL;
 
     case TYPE_LIST:
-        if (object->adt.len == 0)
+        if (object->adt->len == 0)
         {
             push_opcode(code, OP_PUSH);
             push_object(code, object_clone(object));
@@ -123,7 +123,7 @@ i8_t cc_compile_code(rf_object_t *object, rf_object_t *code)
             return TYPE_ERROR;
         }
 
-        arity = object->adt.len - 1;
+        arity = object->adt->len - 1;
         if (arity > 4)
         {
             object_free(code);
@@ -220,10 +220,10 @@ rf_object_t cc_compile(rf_object_t *list)
 
     rf_object_t code = string(0);
 
-    for (u32_t i = 0; i < list->adt.len; i++)
+    for (u32_t i = 0; i < list->adt->len; i++)
         cc_compile_code(&as_list(list)[i], &code);
 
-    if (list->adt.len == 0)
+    if (list->adt->len == 0)
     {
         push_opcode(&code, OP_PUSH);
         push_object(&code, null());
@@ -239,13 +239,13 @@ rf_object_t cc_compile(rf_object_t *list)
 
 str_t cc_code_fmt(rf_object_t *code)
 {
-    i32_t p = 0, c = 0, len = code->adt.len;
-    str_t ip = code->adt.ptr;
+    i32_t p = 0, c = 0, len = code->adt->len;
+    str_t ip = as_string(code);
     str_t s = str_fmt(0, "-- code:\n");
 
     p = strlen(s);
 
-    while ((ip - ((str_t)code->adt.ptr)) < len)
+    while ((ip - as_string(code)) < len)
     {
         switch (*ip)
         {

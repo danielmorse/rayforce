@@ -46,16 +46,12 @@
  */
 #define reserve(v, t, n)                                            \
     {                                                               \
-        i64_t occup = (v)->adt.len * sizeof(t);                     \
+        i64_t occup = (v)->adt->len * sizeof(t) + sizeof(header_t); \
         i64_t cap = capacity(occup);                                \
-        i64_t req_cap = n * sizeof(t);                              \
+        i64_t req_cap = n * sizeof(t) + sizeof(header_t);           \
         i64_t new_cap = capacity(cap + req_cap);                    \
-        if (cap >= req_cap + occup)                                 \
-            ;                                                       \
-        else if ((v)->adt.len == 0)                                 \
-            (v)->adt.ptr = rayforce_malloc(new_cap);                \
-        else                                                        \
-            (v)->adt.ptr = rayforce_realloc((v)->adt.ptr, new_cap); \
+        if (cap < req_cap + occup)                                  \
+            (v)->adt = rayforce_realloc((v)->adt, new_cap);         \
     }
 
 /*
@@ -64,13 +60,13 @@
  * t - type of object to append
  * x - object to append
  */
-#define push(v, t, x)                              \
-    {                                              \
-        reserve(v, t, 1);                          \
-        ((t *)((v)->adt.ptr))[(v)->adt.len++] = x; \
+#define push(v, t, x)                               \
+    {                                               \
+        reserve(v, t, 1);                           \
+        ((t *)(as_string(v)))[(v)->adt->len++] = x; \
     }
 
-#define pop(v, t) ((t *)((v)->adt.ptr))[--(v)->adt.len]
+#define pop(v, t) ((t *)(as_string(v)))[--(v)->adt->len]
 
 /*
  * Attemts to make vector from list if all elements are of the same type
@@ -86,7 +82,7 @@
         i8_t type = as_list(&l)[0].type;        \
         v = vector_##t(0);                      \
                                                 \
-        for (i = 0; i < l.adt.len; i++)         \
+        for (i = 0; i < l.adt->len; i++)        \
         {                                       \
             member = &as_list(&l)[i];           \
                                                 \
@@ -105,23 +101,10 @@
  */
 extern rf_object_t vector(i8_t type, i8_t size_of_val, i64_t len)
 {
-    struct attrs_t *attrs = rayforce_malloc(sizeof(struct attrs_t));
-    attrs->rc = 1;
-    attrs->index = NULL;
-
     rf_object_t v = {
         .type = type,
-        .adt = {
-            .len = len,
-            .ptr = NULL,
-            .attrs = attrs,
-        },
+        .adt = rayforce_malloc(capacity(size_of_val * len + sizeof(header_t))),
     };
-
-    if (len == 0)
-        return v;
-
-    v.adt.ptr = rayforce_malloc(capacity(size_of_val * len));
 
     return v;
 }
@@ -129,7 +112,7 @@ extern rf_object_t vector(i8_t type, i8_t size_of_val, i64_t len)
 extern i64_t vector_i64_push(rf_object_t *vector, i64_t value)
 {
     push(vector, i64_t, value);
-    return vector->adt.len;
+    return vector->adt->len;
 }
 
 extern i64_t vector_i64_pop(rf_object_t *vector)
@@ -140,7 +123,7 @@ extern i64_t vector_i64_pop(rf_object_t *vector)
 extern i64_t vector_f64_push(rf_object_t *vector, f64_t value)
 {
     push(vector, f64_t, value);
-    return vector->adt.len;
+    return vector->adt->len;
 }
 
 extern f64_t vector_f64_pop(rf_object_t *vector)
@@ -151,7 +134,7 @@ extern f64_t vector_f64_pop(rf_object_t *vector)
 extern i64_t list_push(rf_object_t *list, rf_object_t object)
 {
     push(list, rf_object_t, object);
-    return list->adt.len;
+    return list->adt->len;
 }
 
 extern rf_object_t list_pop(rf_object_t *list)
@@ -185,12 +168,12 @@ extern i64_t vector_push(rf_object_t *vector, rf_object_t object)
         exit(1);
     }
 
-    return vector->adt.len;
+    return vector->adt->len;
 }
 
 extern rf_object_t vector_pop(rf_object_t *vector)
 {
-    if (vector->adt.len == 0)
+    if (vector->adt->len == 0)
         return null();
 
     i8_t type = vector->type;
@@ -242,13 +225,13 @@ extern i64_t vector_i64_find(rf_object_t *vector, i64_t key)
     i64_t *ptr = as_vector_i64(vector);
     i32_t i;
 
-    for (i = 0; i < vector->adt.len; i++)
+    for (i = 0; i < vector->adt->len; i++)
     {
         if (ptr[i] == key)
             return i;
     }
 
-    return vector->adt.len;
+    return vector->adt->len;
 }
 
 extern i64_t vector_f64_find(rf_object_t *vector, f64_t key)
@@ -256,13 +239,13 @@ extern i64_t vector_f64_find(rf_object_t *vector, f64_t key)
     f64_t *ptr = as_vector_f64(vector);
     i32_t i;
 
-    for (i = 0; i < vector->adt.len; i++)
+    for (i = 0; i < vector->adt->len; i++)
     {
         if (ptr[i] == key)
             return i;
     }
 
-    return vector->adt.len;
+    return vector->adt->len;
 }
 
 extern i64_t list_find(rf_object_t *list, rf_object_t key)
@@ -270,13 +253,13 @@ extern i64_t list_find(rf_object_t *list, rf_object_t key)
     rf_object_t *ptr = as_list(list);
     i32_t i;
 
-    for (i = 0; i < list->adt.len; i++)
+    for (i = 0; i < list->adt->len; i++)
     {
         if (object_eq(&ptr[i], &key))
             return i;
     }
 
-    return list->adt.len;
+    return list->adt->len;
 }
 
 extern i64_t vector_find(rf_object_t *vector, rf_object_t key)
@@ -304,7 +287,7 @@ extern rf_object_t list_flatten(rf_object_t list)
     if (list.type != TYPE_LIST)
         return list;
 
-    i64_t len = list.adt.len;
+    i64_t len = list.adt->len;
     i8_t type;
     rf_object_t vec;
 

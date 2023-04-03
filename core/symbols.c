@@ -40,8 +40,8 @@
 i64_t string_hash(null_t *val)
 {
     rf_object_t *string = (rf_object_t *)val;
-    i32_t hash = 5381, len = string->adt.len, i;
-    str_t str = string->adt.ptr;
+    i32_t hash = 5381, len = string->adt->len, i;
+    str_t str = as_string(string);
 
     for (i = 0; i < len; i++)
         hash += (hash << 5) + str[i];
@@ -73,10 +73,10 @@ i32_t string_str_cmp(null_t *a, null_t *b)
 
     i64_t len_a = strlen(str_a);
 
-    if (str_b->adt.len != len_a)
+    if (str_b->adt->len != len_a)
         return 1;
 
-    return strncmp(str_b->adt.ptr, str_a, len_a);
+    return strncmp(as_string(str_b), str_a, len_a);
 }
 
 /*
@@ -101,8 +101,8 @@ null_t *str_dup(null_t *key, null_t *val, bucket_t *bucket)
     symbols_t *symbols = alloc->symbols;
 
     rf_object_t *string = (rf_object_t *)key;
-    i64_t len = string->adt.len;
-    str_t str = string->adt.ptr;
+    i64_t len = string->adt->len;
+    str_t str = as_string(string);
 
     // Allocate new pool node
     if ((i64_t)symbols->strings_pool + len - (i64_t)symbols->pool_node > STRINGS_POOL_SIZE)
