@@ -29,6 +29,8 @@
 #include "util.h"
 #include "vector.h"
 #include "string.h"
+#include "env.h"
+#include "runtime.h"
 
 #define push_opcode(c, x)                        \
     {                                            \
@@ -43,49 +45,12 @@
         (c)->adt->len += sizeof(rf_object_t);               \
     }
 
-typedef struct dispatch_record_t
-{
-    str_t name;
-    i8_t args[8];
-    i8_t ret;
-    vm_opcode_t opcode;
-} dispatch_record_t;
-
-#define DISPATCH_TABLE_SIZE 5
-#define DISPATCH_RECORD_SIZE 16
-
-// clang-format off
-static dispatch_record_t _DISPATCH_TABLE[DISPATCH_TABLE_SIZE][DISPATCH_RECORD_SIZE] = {
-    // Nilary
-    {
-        {"halt", {0},  TYPE_LIST, OP_HALT}
-    },
-    // Unary
-    {
-        {"-",    {-TYPE_I64}, -TYPE_I64,    OP_HALT},            
-        {"type", {TYPE_ANY }, -TYPE_SYMBOL, OP_TYPE},
-        {"til",  {-TYPE_I64},  TYPE_I64,     OP_TIL}
-    },
-    // Binary
-    {
-        {"+",    {-TYPE_I64,     -TYPE_I64}, -TYPE_I64,    OP_ADDI}, 
-        {"+",    {-TYPE_F64,     -TYPE_F64}, -TYPE_F64,    OP_ADDF},
-        {"-",    {-TYPE_I64,     -TYPE_I64}, -TYPE_I64,    OP_SUBI},
-        {"sum",  {TYPE_I64,      -TYPE_I64},  TYPE_I64,    OP_SUMI},
-        {"like", {TYPE_STRING, TYPE_STRING}, -TYPE_I64,    OP_LIKE}
-    },
-    // Ternary
-    {{0}},
-    // Quaternary
-    {{0}},
-};
-// clang-format on
-
 i8_t cc_compile_code(rf_object_t *object, rf_object_t *code)
 {
-    u32_t arity, i = 0, j = 0, match = 0;
+    u32_t arity, i = 0, j = 0, match = 0, found = 0, records_len = 0;
     rf_object_t *car, err;
-    dispatch_record_t *rec;
+    env_t env = runtime_get()->env;
+    env_record_t *rec;
     i8_t ret = TYPE_ERROR, arg_types[8], type;
 
     switch (object->type)
@@ -134,7 +99,7 @@ i8_t cc_compile_code(rf_object_t *object, rf_object_t *code)
         }
 
         // special cases
-        if (strcmp(symbols_get(car->i64), "time") == 0)
+        if (car->i64 == symbol("time").i64)
         {
             if (arity != 1)
             {
@@ -163,14 +128,16 @@ i8_t cc_compile_code(rf_object_t *object, rf_object_t *code)
             arg_types[j - 1] = type;
         }
 
-        // try to find matching function prototype
-        while ((rec = &_DISPATCH_TABLE[arity][i++]))
-        {
-            if (i > DISPATCH_RECORD_SIZE)
-                break;
+        records_len = get_records_len(&env.records, arity);
 
-            if (rec->name != 0 && strcmp(symbols_get(car->i64), rec->name) == 0)
+        // try to find matching function prototype
+        while (i < records_len)
+        {
+            rec = get_record(&env.records, arity, i++);
+
+            if (car->i64 == rec->name)
             {
+                found = 1;
                 for (j = 1; j <= arity; j++)
                 {
                     if (rec->args[j - 1] != TYPE_ANY && arg_types[j - 1] != rec->args[j - 1])
@@ -179,9 +146,10 @@ i8_t cc_compile_code(rf_object_t *object, rf_object_t *code)
                     match++;
                 }
 
-                if (match < arity)
+                if (match != arity)
                 {
                     match = 0;
+                    found = 0;
                     continue;
                 }
 
@@ -192,7 +160,7 @@ i8_t cc_compile_code(rf_object_t *object, rf_object_t *code)
             }
         }
 
-        if (!match && arity)
+        if (!found)
         {
             object_free(code);
             err = error(ERR_LENGTH, "compile list: function proto or arity mismatch");

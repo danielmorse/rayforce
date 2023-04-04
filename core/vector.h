@@ -25,6 +25,77 @@
 #define VECTOR_H
 
 #include "rayforce.h"
+#include "alloc.h"
+#include "ops.h"
+
+/*
+ * Each vector capacity is always factor of 8
+ * This allows to avoid storing capacity in vector
+ */
+#define CAPACITY_FACTOR 16
+
+/*
+ * Calculates capacity for vector of length x
+ */
+#define capacity(x) (ALIGNUP(x, CAPACITY_FACTOR))
+
+/*
+ * Reserves memory for n elements
+ * v - vector to reserve memory for
+ * t - type of element
+ * n - number of elements
+ */
+#define reserve(v, t, n)                                            \
+    {                                                               \
+        i64_t occup = (v)->adt->len * sizeof(t) + sizeof(header_t); \
+        i64_t cap = capacity(occup);                                \
+        i64_t req_cap = n * sizeof(t) + sizeof(header_t);           \
+        i64_t new_cap = capacity(cap + req_cap);                    \
+        if (cap < req_cap + occup)                                  \
+            (v)->adt = rayforce_realloc((v)->adt, new_cap);         \
+    }
+
+/*
+ * Appends object to the end of vector (dynamically grows vector if needed)
+ * v - vector to append to
+ * t - type of object to append
+ * x - object to append
+ */
+#define push(v, t, x)                               \
+    {                                               \
+        reserve(v, t, 1);                           \
+        ((t *)(as_string(v)))[(v)->adt->len++] = x; \
+    }
+
+#define pop(v, t) ((t *)(as_string(v)))[--(v)->adt->len]
+
+/*
+ * Attemts to make vector from list if all elements are of the same type
+ * l - list
+ * v - vector
+ * f - function to push element to vector
+ * t - member type of element to push
+ */
+#define flatten(l, v, t)                        \
+    {                                           \
+        rf_object_t *member;                    \
+        i64_t i;                                \
+        i8_t type = as_list(&l)[0].type;        \
+        v = vector_##t(0);                      \
+                                                \
+        for (i = 0; i < l.adt->len; i++)        \
+        {                                       \
+            member = &as_list(&l)[i];           \
+                                                \
+            if (member->type != type)           \
+            {                                   \
+                object_free(&vec);              \
+                return list;                    \
+            }                                   \
+                                                \
+            vector_##t##_push(&vec, member->t); \
+        }                                       \
+    }
 
 extern rf_object_t list_flatten(rf_object_t object);
 extern i64_t vector_i64_find(rf_object_t *vector, i64_t key);

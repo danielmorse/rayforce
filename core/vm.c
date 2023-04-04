@@ -30,10 +30,11 @@
 #include "util.h"
 #include "string.h"
 #include "ops.h"
+#include "env.h"
 
-#define push(v, x) (v->stack[v->sp++] = x)
-#define pop(v) (v->stack[--v->sp])
-#define peek(v) (&v->stack[v->sp - 1])
+#define stack_push(v, x) (v->stack[v->sp++] = x)
+#define stack_pop(v) (v->stack[--v->sp])
+#define stack_peek(v) (&v->stack[v->sp - 1])
 
 vm_t *vm_create()
 {
@@ -73,56 +74,56 @@ rf_object_t vm_exec(vm_t *vm, str_t code)
 op_halt:
     vm->halted = 1;
     if (vm->sp > 0)
-        return pop(vm);
+        return stack_pop(vm);
     else
         return null();
 op_push:
     vm->ip++;
     y = *(rf_object_t *)(code + vm->ip);
-    push(vm, y);
+    stack_push(vm, y);
     vm->ip += sizeof(rf_object_t);
     dispatch();
 op_pop:
     vm->ip++;
-    y = pop(vm);
+    y = stack_pop(vm);
     dispatch();
 op_addi:
     vm->ip++;
-    y = pop(vm);
-    x = pop(vm);
+    y = stack_pop(vm);
+    x = stack_pop(vm);
     z = i64(ADDI64(x.i64, y.i64));
-    push(vm, z);
+    stack_push(vm, z);
     dispatch();
 op_addf:
     vm->ip++;
-    y = pop(vm);
-    peek(vm)->f64 += y.f64;
+    y = stack_pop(vm);
+    stack_peek(vm)->f64 += y.f64;
     dispatch();
 op_subi:
     vm->ip++;
-    y = pop(vm);
-    x = pop(vm);
+    y = stack_pop(vm);
+    x = stack_pop(vm);
     z = i64(SUBI64(x.i64, y.i64));
-    push(vm, z);
+    stack_push(vm, z);
     dispatch();
 op_sumi:
     vm->ip++;
-    y = pop(vm);
-    x = pop(vm);
+    y = stack_pop(vm);
+    x = stack_pop(vm);
     for (i = 0; i < x.adt->len; i++)
         as_vector_i64(&x)[i] = ADDI64(as_vector_i64(&x)[i], y.i64);
-    push(vm, x);
+    stack_push(vm, x);
     dispatch();
 op_like:
     vm->ip++;
-    y = pop(vm);
-    x = pop(vm);
-    push(vm, i64(string_match(as_string(&y), as_string(&x))));
+    y = stack_pop(vm);
+    x = stack_pop(vm);
+    stack_push(vm, i64(string_match(as_string(&y), as_string(&x))));
     dispatch();
 op_type:
     vm->ip++;
-    y = pop(vm);
-    push(vm, symbol(type_fmt(y.type)));
+    y = stack_pop(vm);
+    stack_push(vm, symbol(type_fmt(y.type)));
     dispatch();
 op_timer_start:
     vm->ip++;
@@ -130,15 +131,15 @@ op_timer_start:
     dispatch();
 op_timer_get:
     vm->ip++;
-    push(vm, f64((((f64_t)(clock() - vm->timer)) / CLOCKS_PER_SEC) * 1000));
+    stack_push(vm, f64((((f64_t)(clock() - vm->timer)) / CLOCKS_PER_SEC) * 1000));
     dispatch();
 op_til:
     vm->ip++;
-    y = pop(vm);
+    y = stack_pop(vm);
     x = vector_i64(y.i64);
     for (i = 0; i < y.i64; i++)
         as_vector_i64(&x)[i] = i;
-    push(vm, x);
+    stack_push(vm, x);
     dispatch();
 }
 

@@ -45,6 +45,7 @@ typedef enum vm_opcode_t
     OP_TIMER_START, // Start timer
     OP_TIMER_GET,   // Get timer value
     OP_TIL,         // Create i64 vector of length n
+    OP_INVALID,     // Invalid opcode
 } vm_opcode_t;
 
 typedef struct vm_t

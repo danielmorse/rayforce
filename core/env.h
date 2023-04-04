@@ -21,26 +21,38 @@
  *   SOFTWARE.
  */
 
-#ifndef RUNTIME_H
-#define RUNTIME_H
+#ifndef ENV_H
+#define ENV_H
 
 #include "rayforce.h"
 #include "alloc.h"
-#include "debuginfo.h"
-#include "env.h"
+#include "vm.h"
+#include "vector.h"
+
+#define MAX_ARITY 4
 
 /*
- * Runtime structure.
+ *  Environment record entry
  */
-typedef struct runtime_t
+typedef struct env_record_t
 {
-    alloc_t alloc;
-    env_t env;
-    debuginfo_t *debuginfo;
-} *runtime_t;
+    i64_t name;
+    i8_t ret;
+    vm_opcode_t opcode;
+    i8_t args[8];
+} env_record_t;
 
-extern null_t runtime_init();
-extern null_t runtime_cleanup();
-extern runtime_t runtime_get();
+/*
+ *  Environment variables
+ */
+typedef struct env_t
+{
+    rf_object_t records; // list, containing records
+} env_t;
+
+env_t create_env();
+
+#define get_records_len(records, i) (as_list(records)[i].adt->len)
+#define get_record(records, i, j) (((env_record_t *)as_string((as_list(records) + i))) + j)
 
 #endif

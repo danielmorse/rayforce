@@ -34,6 +34,7 @@ extern null_t runtime_init()
     runtime->debuginfo = rayforce_malloc(sizeof(struct debuginfo_t));
     debuginfo_init(runtime->debuginfo);
     _RUNTIME = runtime;
+    runtime->env = create_env();
 }
 
 extern null_t runtime_cleanup()
