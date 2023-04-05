@@ -190,8 +190,7 @@ rf_object_t parse_number(parser_t *parser)
 rf_object_t parse_string(parser_t *parser)
 {
     span_t span = span_start(parser);
-    parser->current++; // skip '"'
-    str_t pos = parser->current;
+    str_t pos = parser->current + 1; // skip '"'
     i32_t len;
     rf_object_t str, err;
 
@@ -206,7 +205,7 @@ rf_object_t parse_string(parser_t *parser)
         pos++;
     }
 
-    if ((*pos) != '"')
+    if ((*pos++) != '"')
     {
         span.end_column += (pos - parser->current);
         err = error(ERR_PARSE, "Expected '\"'");
@@ -214,12 +213,11 @@ rf_object_t parse_string(parser_t *parser)
         return err;
     }
 
-    len = pos - parser->current;
-    str = string(len + 1);
-    strncpy(as_string(&str), parser->current, len);
-    shift(parser, len + 1);
+    len = pos - parser->current - 2;
+    str = string_from_str(parser->current + 1, len);
 
-    span.end_column += len + 1;
+    shift(parser, len + 2);
+    span_extend(parser, &span);
     str.id = span_commit(span);
 
     return str;
@@ -229,7 +227,6 @@ rf_object_t parse_symbol(parser_t *parser)
 {
     str_t pos = parser->current;
     rf_object_t res, s;
-    i64_t id;
     span_t span = span_start(parser);
 
     // Skip first char and proceed until the end of the symbol
@@ -239,9 +236,7 @@ rf_object_t parse_symbol(parser_t *parser)
     } while (is_alphanum(*pos) || is_op(*pos));
 
     s = string_from_str(parser->current, pos - parser->current);
-    id = symbols_intern(&s);
-    res = i64(id);
-    res.type = -TYPE_SYMBOL;
+    res = symbol(as_string(&s));
     shift(parser, pos - parser->current);
     span_extend(parser, &span);
     res.id = span_commit(span);
@@ -383,7 +378,7 @@ rf_object_t parse_list(parser_t *parser)
 
     span_extend(parser, &span);
     lst.id = span_commit(span);
-
+    printf("END: %lld", parser->column);
     return lst;
 }
 

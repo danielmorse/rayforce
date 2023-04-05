@@ -36,7 +36,7 @@
  */
 typedef struct env_record_t
 {
-    i64_t name;
+    i64_t id;
     i8_t ret;
     vm_opcode_t opcode;
     i8_t args[8];

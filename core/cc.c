@@ -135,7 +135,7 @@ i8_t cc_compile_code(rf_object_t *object, rf_object_t *code)
         {
             rec = get_record(&env.records, arity, i++);
 
-            if (car->i64 == rec->name)
+            if (car->i64 == rec->id)
             {
                 found = 1;
                 for (j = 1; j <= arity; j++)
