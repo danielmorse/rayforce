@@ -1,0 +1,13 @@
+- Getting Started
+  - [Introduction](../README.md)
+  - [Installation](installation.md)
+- Language Basics
+  - [Syntax](syntax.md)
+  - [Data Types](datatypes.md)
+  - [Control Structures](controlstructures.md)
+  - [Functions](functions.md)
+  - [Modules](modules.md)
+- Advanced Topics
+  - [Concurrency](concurrency.md)
+  - [Error Handling](errorhandling.md)
+- [API Reference](api.md)
