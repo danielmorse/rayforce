@@ -179,7 +179,14 @@ op_call1:
     vm->ip += sizeof(rf_object_t);
     x = stack_pop(vm);
     unary_t f = (unary_t)y.i64;
-    stack_push(vm, f(&x));
+    z = f(&x);
+    // TODO: unwind
+    if (z.type == TYPE_ERROR)
+    {
+        z.id = y.id;
+        return z;
+    }
+    stack_push(vm, z);
     dispatch();
 }
 

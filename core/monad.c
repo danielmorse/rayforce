@@ -28,5 +28,9 @@
 
 rf_object_t rf_flip(rf_object_t *x)
 {
-    return i64(34567);
+    switch (x->type)
+    {
+    default:
+        return error(ERR_NOT_IMPLEMENTED, "flip: not implemented");
+    }
 }

@@ -82,6 +82,7 @@ env_record_t *find_record(rf_object_t *records, rf_object_t *car, i8_t *arg_type
 i8_t cc_compile_call(rf_object_t *car, i8_t *arg_types, i8_t arity, rf_object_t *code)
 {
     env_record_t *rec;
+    rf_object_t fn;
 
     rec = find_record(&runtime_get()->env.functions, car, arg_types, arity);
 
@@ -89,7 +90,9 @@ i8_t cc_compile_call(rf_object_t *car, i8_t *arg_types, i8_t arity, rf_object_t 
         return TYPE_ERROR;
 
     push_opcode(code, OP_CALL1);
-    push_object(code, i64(rec->op));
+    fn = i64(rec->op);
+    fn.id = car->id;
+    push_object(code, fn);
     return rec->ret;
 }
 
@@ -170,7 +173,11 @@ i8_t cc_compile_fn(rf_object_t *object, rf_object_t *code)
             }
 
             push_opcode(code, OP_TIMER_SET);
-            cc_compile_fn(&as_list(object)[1], code);
+            type = cc_compile_fn(&as_list(object)[1], code);
+
+            if (type == TYPE_ERROR)
+                return TYPE_ERROR;
+
             push_opcode(code, OP_TIMER_GET);
             return -TYPE_F64;
         }
