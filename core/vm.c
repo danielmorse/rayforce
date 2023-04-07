@@ -58,7 +58,7 @@ vm_t *vm_create()
  */
 rf_object_t vm_exec(vm_t *vm, str_t code)
 {
-    rf_object_t x, y, z, w, k, p, n, v, *addr;
+    rf_object_t x, y, z, w, p, v, *addr;
     i32_t i;
 
     vm->ip = 0;
@@ -252,7 +252,7 @@ op_set:
     dispatch();
 op_get:
     vm->ip++;
-    addr = (*(rf_object_t *)(code + vm->ip)).i64;
+    addr = (rf_object_t *)((rf_object_t *)(code + vm->ip))->i64;
     vm->ip += sizeof(rf_object_t);
     stack_push(vm, rf_object_clone(addr));
     dispatch();

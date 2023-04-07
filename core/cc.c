@@ -128,12 +128,21 @@ i8_t cc_compile_fn(rf_object_t *rf_object, rf_object_t *code)
         return -TYPE_F64;
 
     case -TYPE_SYMBOL:
+        // symbol is quoted
+        if (rf_object->flags == 1)
+        {
+            rf_object->flags = 0;
+            push_opcode(code, OP_PUSH);
+            push_rf_object(code, *rf_object);
+            return -TYPE_SYMBOL;
+        }
+
         addr = env_get_variable(&runtime_get()->env, *rf_object);
 
         if (addr == NULL)
         {
             rf_object_free(code);
-            err = error(ERR_TYPE, "compile list: variable not set");
+            err = error(ERR_TYPE, "compile list: unknown symbol");
             err.id = rf_object->id;
             *code = err;
             return TYPE_ERROR;
@@ -145,8 +154,9 @@ i8_t cc_compile_fn(rf_object_t *rf_object, rf_object_t *code)
         return addr->type;
 
     case TYPE_LIST:
-        if (rf_object->adt->len == 0)
+        if (rf_object->adt->len == 0 || rf_object->flags == 1)
         {
+            rf_object->flags = 0;
             push_opcode(code, OP_PUSH);
             push_rf_object(code, rf_object_clone(rf_object));
             return TYPE_LIST;

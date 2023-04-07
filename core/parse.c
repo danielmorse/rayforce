@@ -223,7 +223,7 @@ rf_object_t parse_string(parser_t *parser)
     return str;
 }
 
-rf_object_t parse_symbol(parser_t *parser)
+rf_object_t parse_symbol(parser_t *parser, i8_t quote)
 {
     str_t pos = parser->current;
     rf_object_t res, s;
@@ -240,6 +240,7 @@ rf_object_t parse_symbol(parser_t *parser)
     shift(parser, pos - parser->current);
     span_extend(parser, &span);
     res.id = span_commit(span);
+    res.flags |= quote;
 
     return res;
 }
@@ -337,7 +338,7 @@ rf_object_t parse_vector(parser_t *parser)
     return vec;
 }
 
-rf_object_t parse_list(parser_t *parser)
+rf_object_t parse_list(parser_t *parser, i8_t quote)
 {
     rf_object_t lst = list(0), token, err;
     span_t span = span_start(parser);
@@ -378,6 +379,7 @@ rf_object_t parse_list(parser_t *parser)
 
     span_extend(parser, &span);
     lst.id = span_commit(span);
+    lst.flags |= quote;
 
     return lst;
 }
@@ -459,6 +461,7 @@ rf_object_t parse_dict(parser_t *parser)
 rf_object_t advance(parser_t *parser)
 {
     rf_object_t tok, err;
+    i8_t quote = 0;
 
     // Skip all whitespaces
     while (is_whitespace(*parser->current))
@@ -474,6 +477,12 @@ rf_object_t advance(parser_t *parser)
             shift(parser, 1);
     }
 
+    if ((*parser->current) == '\'')
+    {
+        quote = 1;
+        shift(parser, 1);
+    }
+
     if (at_eof(*parser->current))
         return to_token(parser);
 
@@ -481,7 +490,7 @@ rf_object_t advance(parser_t *parser)
         return parse_vector(parser);
 
     if ((*parser->current) == '(')
-        return parse_list(parser);
+        return parse_list(parser, quote);
 
     if ((*parser->current) == '{')
         return parse_dict(parser);
@@ -490,7 +499,7 @@ rf_object_t advance(parser_t *parser)
         return parse_number(parser);
 
     if (is_alpha(*parser->current) || is_op(*parser->current))
-        return parse_symbol(parser);
+        return parse_symbol(parser, quote);
 
     if ((*parser->current) == '"')
         return parse_string(parser);
