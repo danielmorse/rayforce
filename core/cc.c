@@ -233,15 +233,11 @@ i8_t cc_compile_special_forms(rf_object_t *rf_object, u32_t arity, rf_object_t *
             return TYPE_ERROR;
         }
 
-        type = cc_compile_fn(&as_list(rf_object)[1], code);
+        if (cc_compile_fn(&as_list(rf_object)[1], code) == TYPE_ERROR)
+            return TYPE_ERROR;
 
-        if (type == TYPE_ERROR)
-            return type;
-
-        type = cc_compile_fn(&as_list(rf_object)[2], code);
-
-        if (type == TYPE_ERROR)
-            return type;
+        if (cc_compile_fn(&as_list(rf_object)[2], code) == TYPE_ERROR)
+            return TYPE_ERROR;
 
         push_opcode(code, OP_CAST);
         push_opcode(code, type);

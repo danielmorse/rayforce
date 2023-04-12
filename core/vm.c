@@ -61,7 +61,7 @@ vm_create()
 rf_object_t vm_exec(vm_t *vm, str_t code)
 {
     rf_object_t x1, x2, x3, x4, x5, x6, *addr;
-    i64_t *v;
+    i64_t *v, t;
     i32_t i, l;
     nilary_t f0;
     unary_t f1;
@@ -168,8 +168,11 @@ op_like:
     dispatch();
 op_type:
     vm->ip++;
-    x1 = stack_pop(vm);
-    stack_push(vm, symbol(type_fmt(x1.type)));
+    x2 = stack_pop(vm);
+    t = env_get_typename_by_type(&runtime_get()->env, x2.type);
+    x1 = i64(t);
+    x1.type = -TYPE_SYMBOL;
+    stack_push(vm, x1);
     dispatch();
 op_timer_set:
     vm->ip++;

@@ -430,5 +430,5 @@ extern str_t rf_object_fmt(rf_object_t *rf_object)
 
 extern str_t type_fmt(i8_t type)
 {
-    return str_fmt(0, 0, "%s", symbols_get(env_get_typename_by_type(&runtime_get()->env, type)));
+    return str_fmt(0, "%s", symbols_get(env_get_typename_by_type(&runtime_get()->env, type)));
 }
