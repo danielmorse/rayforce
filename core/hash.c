@@ -122,6 +122,39 @@ null_t *ht_insert_with(hash_table_t *table, null_t *key, null_t *val, null_t *(*
 }
 
 /*
+ * Inserts new node or updates existing one.
+ * Returns 1 if the node was updated, 0 if it was inserted.
+ */
+i32_t ht_update(hash_table_t *table, null_t *key, null_t *val)
+{
+    // Table's size is always a power of 2
+    i32_t index = table->hasher(key) & (table->cap - 1);
+    bucket_t **bucket = &table->buckets[index];
+
+    while (*bucket)
+    {
+        // Key already exists, update it
+        if (table->compare((*bucket)->key, key) == 0)
+        {
+            (*bucket)->val = val;
+            return 1;
+        }
+
+        bucket = &((*bucket)->next);
+    }
+
+    // Add new bucket to the end of the list
+    (*bucket) = (bucket_t *)rf_malloc(sizeof(bucket_t));
+    (*bucket)->key = key;
+    (*bucket)->val = val;
+    (*bucket)->next = NULL;
+
+    table->size++;
+
+    return 0;
+}
+
+/*
  * Returns the rf_object of the node with the given key.
  * Returns NULL if the key does not exist.
  */

@@ -49,7 +49,7 @@ null_t debuginfo_insert(debuginfo_t *debuginfo, u32_t index, span_t span)
 {
     u64_t s;
     memcpy(&s, &span, sizeof(span_t));
-    ht_insert(debuginfo->spans, (null_t *)(i64_t)index, (null_t *)s);
+    ht_update(debuginfo->spans, (null_t *)(i64_t)index, (null_t *)s);
 }
 
 span_t debuginfo_get(debuginfo_t *debuginfo, u32_t index)

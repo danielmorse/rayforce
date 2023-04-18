@@ -49,6 +49,7 @@ null_t ht_free(hash_table_t *table);
 
 null_t *ht_insert(hash_table_t *table, null_t *key, null_t *val);
 null_t *ht_insert_with(hash_table_t *table, null_t *key, null_t *val, null_t *(*func)(null_t *key, null_t *val, bucket_t *bucket));
+i32_t ht_update(hash_table_t *table, null_t *key, null_t *val);
 null_t *ht_get(hash_table_t *table, null_t *key);
 
 #endif
