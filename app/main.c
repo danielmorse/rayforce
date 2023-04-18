@@ -196,7 +196,7 @@ rf_object_t parse_cmdline(i32_t argc, str_t argv[])
     return dict(keys, vals);
 }
 
-null_t load_file(str_t filename, debuginfo_t *debuginfo)
+null_t load_file(parser_t *parser, str_t filename)
 {
     i32_t fd;
     str_t file, buf;
@@ -222,10 +222,7 @@ null_t load_file(str_t filename, debuginfo_t *debuginfo)
         return;
     }
 
-    debuginfo->filename = filename;
-    debuginfo->function = "";
-
-    rf_object = parse(filename, file, debuginfo);
+    rf_object = parse(parser, filename, file);
     buf = rf_object_fmt(&rf_object);
 
     // printf("%s%s%s\n", TOMATO, buf, RESET);
@@ -256,7 +253,7 @@ i32_t main(i32_t argc, str_t argv[])
 
     vm = vm_new();
 
-    // load_file("/tmp/test.ray", &debuginfo);
+    // load_file(&parser, "/tmp/test.ray");
     rf_object_free(&args);
 
     while (run)

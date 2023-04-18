@@ -21,17 +21,17 @@
  *   SOFTWARE.
  */
 
-#ifndef LAMBDA_H
-#define LAMBDA_H
+#ifndef FUNCTION_H
+#define FUNCTION_H
 
 #include "rayforce.h"
 #include "debuginfo.h"
 
-typedef struct lambda_t
+typedef struct function_t
 {
     str_t file;
     str_t name;
     str_t code;
-} lambda_t;
+} function_t;
 
 #endif

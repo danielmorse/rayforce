@@ -310,6 +310,9 @@ i32_t dict_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t l
 
 i32_t table_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t limit, rf_object_t *rf_object)
 {
+    UNUSED(indent);
+    UNUSED(limit);
+
     i64_t *header = as_vector_symbol(&as_list(rf_object)[0]);
     rf_object_t *columns = &as_list(rf_object)[1], column_widths;
     i32_t table_width, table_height;
@@ -401,6 +404,8 @@ i32_t table_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t 
 i32_t error_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t limit, rf_object_t *error)
 {
     UNUSED(limit);
+    UNUSED(indent);
+
     return str_fmt_into(dst, len, offset, 0, "** [E%.3d] error: %s", error->adt->code, as_string(error));
 }
 

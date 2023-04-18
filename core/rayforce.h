@@ -47,6 +47,7 @@
 #define TYPE_LIST 97
 #define TYPE_DICT 98
 #define TYPE_TABLE 99
+#define TYPE_FUNCTION 100
 #define TYPE_ERROR 127
 
 // Result constants
