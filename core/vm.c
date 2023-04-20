@@ -40,8 +40,7 @@
 #define stack_pop(v) (v->stack[--v->sp])
 #define stack_peek(v) (&v->stack[v->sp - 1])
 
-vm_t *
-vm_new()
+vm_t *vm_new()
 {
     vm_t *vm;
 
@@ -79,7 +78,7 @@ rf_object_t vm_exec(vm_t *vm, rf_object_t *fun)
 
     // The indices of labels in the dispatch_table are the relevant opcodes
     static null_t *dispatch_table[] = {
-        &&op_halt, &&op_push, &&op_pop, &&op_addi, &&op_addf, &&op_subi, &&op_subf,
+        &&op_halt, &&op_ret, &&op_push, &&op_pop, &&op_addi, &&op_addf, &&op_subi, &&op_subf,
         &&op_muli, &&op_mulf, &&op_divi, &&op_divf, &&op_sumi, &&op_like, &&op_type,
         &&op_timer_set, &&op_timer_get, &&op_til, &&op_call0, &&op_call1, &&op_call2,
         &&op_call3, &&op_call4, &&op_calln, &&op_set, &&op_get, &&op_cast};
@@ -101,6 +100,10 @@ op_halt:
         return stack_pop(vm);
     else
         return null();
+op_ret:
+    vm->ip++;
+    x1 = stack_pop(vm);
+    dispatch();
 op_push:
     vm->ip++;
     x1 = *(rf_object_t *)(code + vm->ip);
@@ -296,5 +299,6 @@ op_cast:
 
 null_t vm_free(vm_t *vm)
 {
+    munmap(vm->stack, VM_STACK_SIZE);
     rf_free(vm);
 }

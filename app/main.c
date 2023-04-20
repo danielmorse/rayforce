@@ -257,7 +257,6 @@ i32_t main(i32_t argc, str_t argv[])
 
     while (run)
     {
-
         printf("%s%s%s", GREEN, PROMPT, RESET);
         ptr = fgets(line, LINE_SIZE, stdin);
         if ((ptr) == NULL)

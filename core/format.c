@@ -32,6 +32,7 @@
 #include "debuginfo.h"
 #include "runtime.h"
 #include "ops.h"
+#include "function.h"
 
 #define MAX_ROW_WIDTH 20
 #define FORMAT_TRAILER_SIZE 4
@@ -409,6 +410,16 @@ i32_t error_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t 
     return str_fmt_into(dst, len, offset, 0, "** [E%.3d] error: %s", error->adt->code, as_string(error));
 }
 
+i32_t function_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t limit, rf_object_t *rf_object)
+{
+    UNUSED(limit);
+    UNUSED(indent);
+
+    // function_t *function = as_function(rf_object);
+
+    return str_fmt_into(dst, len, offset, 0, "<function>");
+}
+
 extern i32_t rf_object_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t limit, rf_object_t *rf_object)
 {
     switch (rf_object->type)
@@ -433,6 +444,8 @@ extern i32_t rf_object_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t ind
         return dict_fmt_into(dst, len, offset, indent, limit, rf_object);
     case TYPE_TABLE:
         return table_fmt_into(dst, len, offset, indent, limit, rf_object);
+    case TYPE_FUNCTION:
+        return function_fmt_into(dst, len, offset, indent, limit, rf_object);
     case TYPE_ERROR:
         return error_fmt_into(dst, len, offset, indent, limit, rf_object);
     default:

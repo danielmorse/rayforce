@@ -35,6 +35,7 @@
 #include "function.h"
 
 i8_t cc_compile_expr(cc_t *cc, rf_object_t *object);
+rf_object_t cc_compile_function(str_t name, rf_object_t args, rf_object_t *body, u32_t id, i32_t len, debuginfo_t *debuginfo);
 
 #define push_opcode(c, k, v, x)                                   \
     {                                                             \
@@ -93,7 +94,7 @@ env_record_t *find_record(rf_object_t *records, rf_object_t *car, i32_t args, u3
 i8_t cc_compile_special_forms(cc_t *cc, rf_object_t *object, u32_t arity)
 {
     i8_t type;
-    rf_object_t *car = &as_list(object)[0], *addr, err;
+    rf_object_t *car = &as_list(object)[0], *addr, *b, fun, err;
     rf_object_t *code = &as_function(&cc->function)->code;
 
     // compile special forms
@@ -199,6 +200,15 @@ i8_t cc_compile_special_forms(cc_t *cc, rf_object_t *object, u32_t arity)
         push_opcode(cc, car->id, code, type);
 
         return type;
+    }
+
+    if (car->i64 == symbol("fn").i64)
+    {
+        b = as_list(object) + 1;
+        fun = cc_compile_function("superfun", null(), b, car->id, arity, cc->debuginfo);
+        push_opcode(cc, object->id, code, OP_PUSH);
+        push_rf_object(code, fun);
+        return TYPE_FUNCTION;
     }
 
     return TYPE_ANY;
@@ -359,11 +369,8 @@ i8_t cc_compile_expr(cc_t *cc, rf_object_t *object)
 /*
  * Compile function
  */
-rf_object_t cc_compile_function(str_t name, rf_object_t args, rf_object_t *body, debuginfo_t *debuginfo)
+rf_object_t cc_compile_function(str_t name, rf_object_t args, rf_object_t *body, u32_t id, i32_t len, debuginfo_t *debuginfo)
 {
-    if (body->type != TYPE_LIST)
-        return error(ERR_TYPE, str_fmt(0, "compile '%s': expected list", name));
-
     cc_t cc = {
         .debuginfo = debuginfo,
         .function = function(args, string(0), debuginfo_new(debuginfo->filename, name)),
@@ -372,18 +379,18 @@ rf_object_t cc_compile_function(str_t name, rf_object_t args, rf_object_t *body,
     i32_t i;
     rf_object_t *code = &as_function(&cc.function)->code, err;
 
-    for (i = 0; i < body->adt->len; i++)
-        cc_compile_expr(&cc, &as_list(body)[i]);
+    for (i = 0; i < len; i++)
+        cc_compile_expr(&cc, body + i);
 
     if (code->type != TYPE_ERROR)
     {
-        if (body->adt->len == 0)
+        if (len == 0)
         {
-            push_opcode(&cc, body->id, code, OP_PUSH);
+            push_opcode(&cc, id, code, OP_PUSH);
             push_rf_object(code, null());
         }
 
-        push_opcode(&cc, body->id, code, OP_HALT);
+        push_opcode(&cc, id, code, OP_HALT);
 
         return cc.function;
     }
@@ -400,7 +407,13 @@ rf_object_t cc_compile_function(str_t name, rf_object_t args, rf_object_t *body,
  */
 rf_object_t cc_compile(rf_object_t *body, debuginfo_t *debuginfo)
 {
-    return cc_compile_function("top-level", null(), body, debuginfo);
+    if (body->type != TYPE_LIST)
+        return error(ERR_TYPE, str_fmt(0, "compile '%s': expected list", "top-level"));
+
+    rf_object_t *b = as_list(body);
+    i32_t len = body->adt->len;
+
+    return cc_compile_function("top-level", null(), b, body->id, len, debuginfo);
 }
 
 /*

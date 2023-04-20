@@ -34,6 +34,7 @@
 typedef enum vm_opcode_t
 {
     OP_HALT = 0,  // Halt the VM
+    OP_RET,       // Return from function
     OP_PUSH,      // Push an rf_object to the stack
     OP_POP,       // Pop an rf_object from the stack
     OP_ADDI,      // Add two i64 from the stack
@@ -67,12 +68,12 @@ CASSERT(OP_INVALID < 127, vm_h)
 
 typedef struct vm_t
 {
+    i8_t halted;        // Halt flag
     i32_t ip;           // Instruction pointer
     i32_t sp;           // Stack pointer
-    i8_t halted;        // Halt flag
     rf_object_t r[8];   // Registers of rf_objects
-    clock_t timer;      // Timer for execution time
-    rf_object_t *stack; // Stack of rf_objects
+    i64_t timer;        // Timer for execution time
+    rf_object_t *stack; // Stack of arguments
 } vm_t;
 
 vm_t *vm_new();
