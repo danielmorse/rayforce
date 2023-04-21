@@ -33,6 +33,7 @@
 #include "runtime.h"
 #include "binary.h"
 #include "function.h"
+#include "dict.h"
 
 i8_t cc_compile_expr(cc_t *cc, rf_object_t *object);
 rf_object_t cc_compile_function(i8_t top, str_t name, rf_object_t args, rf_object_t *body, u32_t id, i32_t len, debuginfo_t *debuginfo);
@@ -94,8 +95,9 @@ env_record_t *find_record(rf_object_t *records, rf_object_t *car, i32_t args, u3
 i8_t cc_compile_special_forms(cc_t *cc, rf_object_t *object, u32_t arity)
 {
     i8_t type;
-    rf_object_t *car = &as_list(object)[0], *addr, *b, fun, err;
-    rf_object_t *code = &as_function(&cc->function)->code;
+    rf_object_t *car = &as_list(object)[0], *addr, *b, fun, arg, err;
+    function_t *func = as_function(&cc->function);
+    rf_object_t *code = &func->code;
 
     // compile special forms
     if (car->i64 == symbol("time").i64)
@@ -156,7 +158,7 @@ i8_t cc_compile_special_forms(cc_t *cc, rf_object_t *object, u32_t arity)
             return TYPE_ERROR;
         }
 
-        push_opcode(cc, car->id, code, OP_SET);
+        push_opcode(cc, car->id, code, OP_GSET);
         push_rf_object(code, as_list(object)[1]);
 
         return type;
@@ -204,8 +206,27 @@ i8_t cc_compile_special_forms(cc_t *cc, rf_object_t *object, u32_t arity)
 
     if (car->i64 == symbol("fn").i64)
     {
-        b = as_list(object) + 1;
-        fun = cc_compile_function(0, "superfun", null(), b, car->id, arity, cc->debuginfo);
+        if (arity == 0)
+        {
+            rf_object_free(code);
+            err = error(ERR_LENGTH, "'fn' expects dict with function arguments");
+            err.id = object->id;
+            *code = err;
+            return TYPE_ERROR;
+        }
+
+        if (as_list(object)[1].type != TYPE_DICT)
+        {
+            rf_object_free(code);
+            err = error(ERR_LENGTH, "'fn' expects dict with function arguments");
+            err.id = as_list(object)[1].id;
+            *code = err;
+            return TYPE_ERROR;
+        }
+
+        arity -= 1;
+        b = as_list(object) + 2;
+        fun = cc_compile_function(0, "anonymous", rf_object_clone(&as_list(object)[1]), b, car->id, arity, cc->debuginfo);
         push_opcode(cc, object->id, code, OP_PUSH);
         push_rf_object(code, fun);
         return TYPE_FUNCTION;
@@ -262,11 +283,12 @@ i8_t cc_compile_call(cc_t *cc, rf_object_t *car, i32_t args, u32_t arity)
 
 i8_t cc_compile_expr(cc_t *cc, rf_object_t *object)
 {
-    rf_object_t *car, err, *addr;
-    i8_t type;
+    rf_object_t *car, err, *addr, arg;
+    i8_t type = TYPE_ANY;
     u32_t i, arity;
     i32_t args = 0;
     rf_object_t *code = &as_function(&cc->function)->code;
+    function_t *func = as_function(&cc->function);
 
     switch (object->type)
     {
@@ -290,6 +312,23 @@ i8_t cc_compile_expr(cc_t *cc, rf_object_t *object)
             return -TYPE_SYMBOL;
         }
 
+        // first try to search in the function args
+        if (func->args.type == TYPE_DICT)
+        {
+            arg = dict_get(&func->args, *object);
+
+            if (!is_null(&arg))
+            {
+                type = env_get_type_by_typename(&runtime_get()->env, arg.i64);
+
+                push_opcode(cc, object->id, code, OP_LLOAD);
+                push_rf_object(code, i64((i64_t)-1));
+
+                return type;
+            }
+        }
+
+        // then in a global env
         addr = env_get_variable(&runtime_get()->env, *object);
 
         if (addr == NULL)
@@ -301,7 +340,7 @@ i8_t cc_compile_expr(cc_t *cc, rf_object_t *object)
             return TYPE_ERROR;
         }
 
-        push_opcode(cc, object->id, code, OP_GET);
+        push_opcode(cc, object->id, code, OP_GLOAD);
         push_rf_object(code, i64((i64_t)addr));
 
         return addr->type;

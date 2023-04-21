@@ -42,6 +42,14 @@
     } while (0)
 
 #define debug_assert(x) (assert(x))
+
+#define debug_object(o)             \
+    {                               \
+        str_t f = rf_object_fmt(o); \
+        debug("%s", f);             \
+        rf_free(f);                 \
+    }
+
 #else
 #define debug(fmt, ...) (null_t)0
 #define debug_assert(x) (null_t)0

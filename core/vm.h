@@ -59,8 +59,10 @@ typedef enum vm_opcode_t
     OP_CALL4,     // Call function with four arguments
     OP_CALLN,     // Call function with n arguments
     OP_CALLF,     // Call user function
-    OP_SET,       // Set global variable
-    OP_GET,       // Get global variable
+    OP_LSET,      // Set local variable
+    OP_GSET,      // Set global variable
+    OP_LLOAD,     // Load local variable
+    OP_GLOAD,     // Load global variable
     OP_CAST,      // Cast rf_object to another type
 
     OP_INVALID, // Invalid opcode
@@ -73,6 +75,7 @@ typedef struct vm_t
     i8_t halted;        // Halt flag
     i32_t ip;           // Instruction pointer
     i32_t sp;           // Stack pointer
+    i32_t bp;           // Base pointer (beginning on stack frame)
     rf_object_t r[8];   // Registers of rf_objects
     i64_t timer;        // Timer for execution time
     rf_object_t *stack; // Stack of arguments

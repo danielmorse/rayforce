@@ -42,19 +42,14 @@
 #define stack_pop(v) (v->stack[--v->sp])
 #define stack_peek(v) (&v->stack[v->sp - 1])
 
-/*
- * Switch context represent as rf_object_t
- */
-rf_object_t ctx(u32_t ip, function_t *f)
+typedef struct ctx_t
 {
-    rf_object_t ctx = {
-        .type = TYPE_CTX,
-        .id = ip,
-        .i64 = (i64_t)f,
-    };
+    function_t *addr;
+    i32_t ip;
+    i32_t bp;
+} ctx_t;
 
-    return ctx;
-}
+CASSERT(sizeof(ctx_t) == sizeof(rf_object_t), vm_c)
 
 vm_t *vm_new()
 {
@@ -88,16 +83,19 @@ rf_object_t vm_exec(vm_t *vm, rf_object_t *fun)
     ternary_t f3;
     quaternary_t f4;
     nary_t fn;
+    ctx_t ctx;
 
     vm->ip = 0;
     vm->sp = 0;
+    vm->bp = 0;
 
     // The indices of labels in the dispatch_table are the relevant opcodes
     static null_t *dispatch_table[] = {
         &&op_halt, &&op_ret, &&op_push, &&op_pop, &&op_addi, &&op_addf, &&op_subi, &&op_subf,
         &&op_muli, &&op_mulf, &&op_divi, &&op_divf, &&op_sumi, &&op_like, &&op_type,
         &&op_timer_set, &&op_timer_get, &&op_til, &&op_call0, &&op_call1, &&op_call2,
-        &&op_call3, &&op_call4, &&op_calln, &&op_callf, &&op_set, &&op_get, &&op_cast};
+        &&op_call3, &&op_call4, &&op_calln, &&op_callf, &&op_lset, &&op_gset, &&op_lload,
+        &&op_gload, &&op_cast};
 
 #define dispatch() goto *dispatch_table[(i32_t)code[vm->ip]]
 
@@ -118,12 +116,15 @@ op_halt:
         return null();
 op_ret:
     vm->ip++;
+    x3 = stack_pop(vm);
     x2 = stack_pop(vm);
     x1 = stack_pop(vm);
-    f = (function_t *)x1.i64;
-    vm->ip = x1.id;
+    ctx = *(ctx_t *)&x2;
+    vm->ip = ctx.ip;
+    vm->bp = ctx.bp;
+    f = ctx.addr;
     code = as_string(&f->code);
-    stack_push(vm, x2);
+    stack_push(vm, x3);
     dispatch();
 op_push:
     vm->ip++;
@@ -295,16 +296,41 @@ op_calln:
     stack_push(vm, x1);
     dispatch();
 op_callf:
+    /* Call stack of user function call looks as follows:
+     * +-------------------+
+     * |       ...         | <- callee sp
+     * +-------------------+
+     * |      localn       |
+     * +-------------------+
+     * |       ...         |
+     * +-------------------+
+     * |      local2       |
+     * +-------------------+
+     * |      local1       |
+     * +-------------------+
+     * | ctx {ret, ip, sp} | <- bp
+     * +-------------------+
+     * |       argn        |
+     * +-------------------+
+     * |       ...         |
+     * +-------------------+
+     * |       arg2        |
+     * +-------------------+
+     * |       arg1        | <- caller sp
+     * +-------------------+
+     */
     b = vm->ip++;
     x2 = *(rf_object_t *)(code + vm->ip);
     vm->ip += sizeof(rf_object_t);
-    x1 = ctx(vm->ip, f);
+    ctx = (ctx_t){.addr = f, .ip = vm->ip, .bp = vm->bp};
+    x1 = *(rf_object_t *)&ctx;
     f = as_function(&x2);
     code = as_string(&f->code);
     vm->ip = 0;
+    vm->bp = vm->sp;
     stack_push(vm, x1);
     dispatch();
-op_set:
+op_lset:
     b = vm->ip++;
     x2 = *(rf_object_t *)(code + vm->ip);
     vm->ip += sizeof(rf_object_t);
@@ -312,7 +338,22 @@ op_set:
     env_set_variable(&runtime_get()->env, x2, rf_object_clone(&x1));
     stack_push(vm, x1);
     dispatch();
-op_get:
+op_gset:
+    b = vm->ip++;
+    x2 = *(rf_object_t *)(code + vm->ip);
+    vm->ip += sizeof(rf_object_t);
+    x1 = stack_pop(vm);
+    env_set_variable(&runtime_get()->env, x2, rf_object_clone(&x1));
+    stack_push(vm, x1);
+    dispatch();
+op_lload:
+    b = vm->ip++;
+    t = ((rf_object_t *)(code + vm->ip))->i64;
+    vm->ip += sizeof(rf_object_t);
+    x1 = vm->stack[vm->bp + t];
+    stack_push(vm, rf_object_clone(&x1));
+    dispatch();
+op_gload:
     b = vm->ip++;
     addr = (rf_object_t *)((rf_object_t *)(code + vm->ip))->i64;
     vm->ip += sizeof(rf_object_t);

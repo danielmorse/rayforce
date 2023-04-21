@@ -33,6 +33,7 @@ rf_object_t function(rf_object_t args, rf_object_t code, debuginfo_t debuginfo)
     f->args = args;
     f->code = code;
     f->debuginfo = debuginfo;
+    f->rettype = TYPE_ANY;
 
     rf_object_t fun = {
         .type = TYPE_FUNCTION,
