@@ -1,6 +1,7 @@
+;; Author: 0x0L
 (set fib (fn 'i64 {x: 'i64} 
     (if (< x 2) 
         1 
         (+ (self (- x 1)) (self (- x 2))))))
 
-(println "U: %" (fib 10))
+;; (println "U: %" (fib 10))

@@ -495,6 +495,15 @@ rf_object_t advance(parser_t *parser)
             shift(parser, 1);
     }
 
+    // Skip comments
+    if ((*parser->current) == ';')
+    {
+        while (!at_eof(*parser->current) && (*parser->current) != '\n')
+            shift(parser, 1);
+
+        return advance(parser);
+    }
+
     if ((*parser->current) == '\'')
     {
         quote = 1;
