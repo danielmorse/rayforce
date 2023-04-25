@@ -91,10 +91,10 @@ rf_object_t vm_exec(vm_t *vm, rf_object_t *fun)
 
     // The indices of labels in the dispatch_table are the relevant opcodes
     static null_t *dispatch_table[] = {
-        &&op_halt, &&op_ret, &&op_push, &&op_reserve, &&op_pop, &&op_swapn, &&op_addi, &&op_addf, &&op_subi, &&op_subf,
-        &&op_muli, &&op_mulf, &&op_divi, &&op_divf, &&op_sumi, &&op_like, &&op_type,
-        &&op_timer_set, &&op_timer_get, &&op_til, &&op_call0, &&op_call1, &&op_call2,
-        &&op_call3, &&op_call4, &&op_calln, &&op_callf, &&op_lset, &&op_gset, &&op_lload,
+        &&op_halt, &&op_ret, &&op_push, &&op_reserve, &&op_pop, &&op_swapn, &&op_eq, &&op_addi,
+        &&op_addf, &&op_subi, &&op_subf, &&op_muli, &&op_mulf, &&op_divi, &&op_divf, &&op_sumi,
+        &&op_like, &&op_type, &&op_timer_set, &&op_timer_get, &&op_til, &&op_call0, &&op_call1,
+        &&op_call2, &&op_call3, &&op_call4, &&op_calln, &&op_callf, &&op_lset, &&op_gset, &&op_lload,
         &&op_gload, &&op_cast};
 
 #define dispatch() goto *dispatch_table[(i32_t)code[vm->ip]]
@@ -147,6 +147,13 @@ op_swapn:
     x1 = stack_pop(vm);
     for (i = 0; i < l; i++)
         x2 = stack_pop(vm);
+    stack_push(vm, x1);
+    dispatch();
+op_eq:
+    vm->ip++;
+    x3 = stack_pop(vm);
+    x2 = stack_pop(vm);
+    x1 = bool(rf_eq(&x2, &x3));
     stack_push(vm, x1);
     dispatch();
 op_addi:

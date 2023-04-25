@@ -29,9 +29,29 @@
  * compiler optimizations. So we need to use memcpy to get the bits of the x
  * and then separate check mantissa and exponent.
  */
-extern i8_t rf_is_nan(f64_t x)
+bool_t rf_is_nan(f64_t x)
 {
     u64_t bits;
     memcpy(&bits, &x, sizeof(x));
     return (bits & 0x7FF0000000000000ULL) == 0x7FF0000000000000ULL && (bits & 0x000FFFFFFFFFFFFFULL) != 0;
+}
+
+bool_t rf_eq(rf_object_t *x, rf_object_t *y)
+{
+    if (x->type != y->type)
+        return false;
+
+    switch (x->type)
+    {
+    case -TYPE_BOOL:
+        return x->bool == y->bool;
+    case -TYPE_I64:
+        return x->i64 == y->i64;
+    case -TYPE_F64:
+        return x->f64 == y->f64;
+    case TYPE_STRING:
+        return strcmp(as_string(x), as_string(y)) == 0;
+    default:
+        return false;
+    }
 }
