@@ -33,7 +33,7 @@
  */
 typedef struct runtime_t
 {
-    alloc_t alloc;
+    symbols_t *symbols;
     env_t env;
 } *runtime_t;
 

@@ -36,7 +36,6 @@
 
 typedef struct alloc_t
 {
-    symbols_t *symbols;
     null_t *freelist[CELL_COUNT];
     i8_t pool[POOL_SIZE];
 } __attribute__((aligned(PAGE_SIZE))) * alloc_t;
@@ -48,6 +47,7 @@ extern null_t *rf_realloc(null_t *ptr, i32_t size);
 extern null_t rf_free(null_t *block);
 
 extern alloc_t rf_alloc_init();
-extern null_t rf_alloc_cleanup(alloc_t alloc);
+extern alloc_t rf_alloc_get();
+extern null_t rf_alloc_cleanup();
 
 #endif

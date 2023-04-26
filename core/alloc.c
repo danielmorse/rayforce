@@ -28,6 +28,8 @@
 #include "ops.h"
 #include "mmap.h"
 
+static alloc_t _ALLOC = NULL;
+
 /*
  * Allocate via mmap if size is greater than 32 Mb
  */
@@ -55,22 +57,22 @@ extern null_t *rf_realloc(null_t *ptr, i32_t size)
     // return new_ptr;
 
     return realloc(ptr, size);
-    
 }
 
 extern alloc_t rf_alloc_init()
 {
-    alloc_t alloc;
+    _ALLOC = (alloc_t)mmap(NULL, sizeof(struct alloc_t),
+                           PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
-    alloc = (alloc_t)mmap(NULL, sizeof(struct alloc_t),
-                          PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    alloc->symbols = symbols_new();
-
-    return alloc;
+    return _ALLOC;
 }
 
-extern null_t rf_alloc_cleanup(alloc_t alloc)
+extern alloc_t rf_alloc_get()
 {
-    symbols_free(alloc->symbols);
-    // munmap(GLOBAL_A0, sizeof(struct alloc_t));
+    return _ALLOC;
+}
+
+extern null_t rf_alloc_cleanup()
+{
+    munmap(_ALLOC, sizeof(struct alloc_t));
 }

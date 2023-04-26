@@ -22,24 +22,24 @@
  */
 
 #include "runtime.h"
+#include "alloc.h"
 
 // Global runtime reference
 runtime_t _RUNTIME = NULL;
 
 extern null_t runtime_init()
 {
-    alloc_t alloc = rf_alloc_init();
+    rf_alloc_init();
     runtime_t runtime = rf_malloc(sizeof(struct runtime_t));
-    runtime->alloc = alloc;
+    runtime->symbols = symbols_new();
     _RUNTIME = runtime;
     runtime->env = create_env();
 }
 
 extern null_t runtime_cleanup()
 {
-    alloc_t alloc = _RUNTIME->alloc;
     rf_free(_RUNTIME);
-    rf_alloc_cleanup(alloc);
+    rf_alloc_cleanup();
 }
 
 extern runtime_t runtime_get()

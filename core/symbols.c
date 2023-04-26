@@ -103,8 +103,7 @@ pool_node_t *pool_node_new()
  */
 null_t *str_dup(null_t *key, null_t *val, bucket_t *bucket)
 {
-    alloc_t alloc = runtime_get()->alloc;
-    symbols_t *symbols = alloc->symbols;
+    symbols_t *symbols = runtime_get()->symbols;
 
     str_slice_t *string = (str_slice_t *)key;
     str_t str = string->str;
@@ -158,7 +157,7 @@ null_t symbols_free(symbols_t *symbols)
 
 i64_t symbols_intern(str_t s, i64_t len)
 {
-    symbols_t *symbols = runtime_get()->alloc->symbols;
+    symbols_t *symbols = runtime_get()->symbols;
     i64_t id = symbols->str_to_id->size;
     str_slice_t str_slice = {s, len};
     i64_t id_or_str = (i64_t)ht_insert_with(symbols->str_to_id, &str_slice, (null_t *)id, &str_dup);
@@ -171,6 +170,6 @@ i64_t symbols_intern(str_t s, i64_t len)
 
 str_t symbols_get(i64_t key)
 {
-    symbols_t *symbols = runtime_get()->alloc->symbols;
+    symbols_t *symbols = runtime_get()->symbols;
     return (str_t)ht_get(symbols->id_to_str, (null_t *)key);
 }
