@@ -203,6 +203,9 @@ i8_t cc_compile_special_forms(cc_t *cc, rf_object_t *object, u32_t arity)
         id = vector_i64_find(&as_list(&func->locals)[0], as_list(object)[1].i64);
         push_rf_object(code, i64(1 + id));
 
+        // FIXME!!!!
+        push_opcode(cc, car->id, code, OP_POP);
+
         return type;
     }
 
@@ -288,7 +291,7 @@ i8_t cc_compile_special_forms(cc_t *cc, rf_object_t *object, u32_t arity)
 
         arity -= 1;
         fun = cc_compile_function(false, "anonymous", rettype, rf_object_clone(b), b + 1, car->id, arity, cc->debuginfo);
-        // printf("%s\n", vm_code_fmt(&fun));
+        printf("%s\n", vm_code_fmt(&fun));
         push_opcode(cc, object->id, code, OP_PUSH);
         push_rf_object(code, fun);
         return TYPE_FUNCTION;
@@ -296,10 +299,10 @@ i8_t cc_compile_special_forms(cc_t *cc, rf_object_t *object, u32_t arity)
 
     if (car->i64 == symbol("if").i64)
     {
-        if (arity < 2)
+        if (arity < 2 || arity > 3)
         {
             rf_object_free(code);
-            err = error(ERR_LENGTH, "'if' takes at least two arguments");
+            err = error(ERR_LENGTH, "'if' takes at 2 .. 3 arguments");
             err.id = object->id;
             *code = err;
             return TYPE_ERROR;
@@ -323,38 +326,43 @@ i8_t cc_compile_special_forms(cc_t *cc, rf_object_t *object, u32_t arity)
         lbl1 = code->adt->len;
         push_rf_object(code, i64(0));
 
+        // true branch
         type = cc_compile_expr(cc, &as_list(object)[2]);
 
         if (type == TYPE_ERROR)
             return type;
 
-        // if (arity == 2)
-        // {
-        //     *lbl = code->adt->len;
-        //     return type;
-        // }
-
-        push_opcode(cc, car->id, code, OP_JMP);
-        lbl2 = code->adt->len;
-        push_rf_object(code, i64(0));
-        ((rf_object_t *)(as_string(code) + lbl1))->i64 = code->adt->len;
-        type1 = cc_compile_expr(cc, &as_list(object)[3]);
-
-        if (type1 == TYPE_ERROR)
-            return type1;
-
-        if (type != type1)
+        // there is else branch
+        if (arity == 3)
         {
-            rf_object_free(code);
-            err = error(ERR_TYPE, str_fmt(0, "'if': different types of branches: '%s', '%s'",
-                                          symbols_get(env_get_typename_by_type(env, type)),
-                                          symbols_get(env_get_typename_by_type(env, type1))));
-            err.id = object->id;
-            *code = err;
-            return TYPE_ERROR;
-        }
+            push_opcode(cc, car->id, code, OP_JMP);
+            lbl2 = code->adt->len;
+            push_rf_object(code, i64(0));
+            ((rf_object_t *)(as_string(code) + lbl1))->i64 = code->adt->len;
 
-        ((rf_object_t *)(as_string(code) + lbl2))->i64 = code->adt->len;
+            // false branch
+            type1 = cc_compile_expr(cc, &as_list(object)[3]);
+
+            if (type1 == TYPE_ERROR)
+                return type1;
+
+            if (type != type1)
+            {
+                rf_object_free(code);
+                err = error(ERR_TYPE, str_fmt(0, "'if': different types of branches: '%s', '%s'",
+                                              symbols_get(env_get_typename_by_type(env, type)),
+                                              symbols_get(env_get_typename_by_type(env, type1))));
+                err.id = object->id;
+                *code = err;
+                return TYPE_ERROR;
+            }
+
+            ((rf_object_t *)(as_string(code) + lbl2))->i64 = code->adt->len;
+        }
+        else
+        {
+            ((rf_object_t *)(as_string(code) + lbl1))->i64 = code->adt->len;
+        }
 
         return type;
     }
@@ -643,6 +651,7 @@ rf_object_t cc_compile_function(bool_t top, str_t name, i8_t rettype, rf_object_
 {
     cc_t cc = {
         .top_level = top,
+        .root = true,
         .debuginfo = debuginfo,
         .function = function(rettype, args, null(), string(0), debuginfo_new(debuginfo->filename, name)),
     };
@@ -677,8 +686,6 @@ rf_object_t cc_compile_function(bool_t top, str_t name, i8_t rettype, rf_object_
             rf_object_free(&cc.function);
             return err;
         }
-
-        push_opcode(&cc, id, code, OP_POP);
     }
 
     // Compile last argument
