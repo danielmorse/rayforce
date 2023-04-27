@@ -563,20 +563,21 @@ rf_object_t cc_compile_function(bool_t top, str_t name, i8_t rettype, rf_object_
     i8_t l = 0, type;
     i32_t i;
     function_t *func = as_function(&cc.function);
-    rf_object_t *code = &func->code, *b, err;
+    rf_object_t *code = &func->code, *b = body, err;
     env_t *env = &runtime_get()->env;
 
     if (len == 0)
     {
         push_opcode(&cc, id, code, OP_PUSH);
         push_rf_object(code, null());
+        type = TYPE_LIST;
         goto epilogue;
     }
 
     // Compile all arguments but the last one
     for (i = 0; i < len - 1; i++)
     {
-        b = body + i;
+        b += i;
         // skip const expressions
         if (b->type != TYPE_LIST)
             continue;
@@ -588,7 +589,7 @@ rf_object_t cc_compile_function(bool_t top, str_t name, i8_t rettype, rf_object_
     }
 
     // Compile last argument
-    b = body + i;
+    b += i;
     type = cc_compile_expr(true, &cc, b);
 
     if (type == TYPE_ERROR)
@@ -602,9 +603,9 @@ epilogue:
     if (func->rettype != TYPE_ANY && func->rettype != type)
     {
         rf_object_free(&cc.function);
-        err = error(ERR_TYPE, str_fmt(0, "function return type mismatch: specified %s, inferred %s",
-                                      symbols_get(env_get_typename_by_type(env, func->rettype)),
-                                      symbols_get(env_get_typename_by_type(env, type))));
+        err = error(ERR_TYPE, str_fmt(0, "function returns type '%s', but declared '%s'",
+                                      symbols_get(env_get_typename_by_type(env, type)),
+                                      symbols_get(env_get_typename_by_type(env, func->rettype))));
         cc.function = err;
         cc.function.adt->span = debuginfo_get(cc.debuginfo, b->id);
         return err;
