@@ -93,6 +93,7 @@ null_t init_typenames(i64_t *typenames)
 }
 // clang-format on
 
+// TODO: figure out if we need to allocate env related objects using mmap
 env_t create_env()
 {
     rf_object_t functions = list(REC_SIZE);
@@ -115,7 +116,6 @@ env_t create_env()
 
 null_t free_env(env_t *env)
 {
-
     for (i32_t i = 0; i < REC_SIZE; i++)
         rf_object_free(&as_list(&env->functions)[i]);
 

@@ -22,23 +22,28 @@
  */
 
 #include "runtime.h"
+#include "mmap.h"
 #include "alloc.h"
+#include "util.h"
 
 // Global runtime reference
 runtime_t _RUNTIME = NULL;
 
-extern null_t runtime_init()
+extern null_t runtime_init(u16_t slaves)
 {
     rf_alloc_init();
-    runtime_t runtime = rf_malloc(sizeof(struct runtime_t));
-    runtime->symbols = symbols_new();
-    _RUNTIME = runtime;
-    runtime->env = create_env();
+
+    _RUNTIME = mmap(NULL, ALIGNUP(sizeof(struct runtime_t), PAGE_SIZE),
+                    PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+    _RUNTIME->slaves = slaves;
+    _RUNTIME->symbols = symbols_new();
+    _RUNTIME->env = create_env();
 }
 
 extern null_t runtime_cleanup()
 {
-    rf_free(_RUNTIME);
+    munmap(_RUNTIME, ALIGNUP(sizeof(struct runtime_t), PAGE_SIZE));
     rf_alloc_cleanup();
 }
 

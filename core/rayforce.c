@@ -31,6 +31,46 @@
 #include "dict.h"
 #include "util.h"
 #include "string.h"
+#include "runtime.h"
+
+/*
+ * Increment reference counter of the object
+ */
+#define rc_inc(object)                                                 \
+    {                                                                  \
+        u16_t slaves = runtime_get()->slaves;                          \
+        if (slaves)                                                    \
+            __atomic_fetch_add(&object->adt->rc, 1, __ATOMIC_RELAXED); \
+        else                                                           \
+            object->adt->rc += 1;                                      \
+    }
+
+/*
+ * Decrement reference counter of the object
+ */
+#define rc_dec(rc, object)                                                  \
+    {                                                                       \
+        u16_t slaves = runtime_get()->slaves;                               \
+        if (slaves)                                                         \
+            rc = __atomic_sub_fetch(&object->adt->rc, 1, __ATOMIC_RELAXED); \
+        else                                                                \
+        {                                                                   \
+            object->adt->rc -= 1;                                           \
+            rc = object->adt->rc;                                           \
+        }                                                                   \
+    }
+
+/*
+ * Get reference counter of the object
+ */
+#define rc_get(rc, object)                                            \
+    {                                                                 \
+        u16_t slaves = runtime_get()->slaves;                         \
+        if (slaves)                                                   \
+            rc = __atomic_load_n(&object->adt->rc, __ATOMIC_RELAXED); \
+        else                                                          \
+            rc = object->adt->rc;                                     \
+    }
 
 rf_object_t error(i8_t code, str_t message)
 {
@@ -177,7 +217,7 @@ rf_object_t rf_object_clone(rf_object_t *object)
         return *object;
     }
 
-    __atomic_fetch_add(&object->adt->rc, 1, __ATOMIC_RELAXED);
+    rc_inc(object);
 
     return *object;
 }
@@ -199,7 +239,8 @@ null_t rf_object_free(rf_object_t *object)
         return;
     }
 
-    i64_t rc = __atomic_sub_fetch(&object->adt->rc, 1, __ATOMIC_RELAXED);
+    i64_t rc;
+    rc_dec(rc, object);
 
     if (object->type == TYPE_LIST)
     {
@@ -229,7 +270,7 @@ rf_object_t rf_object_cow(rf_object_t *object)
         return *object;
     }
 
-    if (object->adt->rc == 1)
+    if (rf_object_rc(object) == 1)
         return *object;
 
     switch (object->type)
@@ -272,5 +313,8 @@ i64_t rf_object_rc(rf_object_t *object)
     if (object->type == TYPE_ERROR)
         return 1;
 
-    return __atomic_load_n(&object->adt->rc, __ATOMIC_RELAXED);
+    i64_t rc;
+    rc_get(rc, object);
+
+    return rc;
 }

@@ -33,11 +33,12 @@
  */
 typedef struct runtime_t
 {
-    symbols_t *symbols;
-    env_t env;
+    u16_t slaves;       // Number of slave threads.
+    symbols_t *symbols; // Symbols pool.
+    env_t env;          // Environment.
 } *runtime_t;
 
-extern null_t runtime_init();
+extern null_t runtime_init(u16_t slaves);
 extern null_t runtime_cleanup();
 extern runtime_t runtime_get();
 

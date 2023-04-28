@@ -271,7 +271,7 @@ null_t load_file(parser_t *parser, vm_t *vm, str_t filename)
 
 i32_t main(i32_t argc, str_t argv[])
 {
-    runtime_init();
+    runtime_init(0);
 
     rf_object_t args = parse_cmdline(argc, argv), filename;
     i8_t run = 1;
