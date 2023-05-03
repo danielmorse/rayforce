@@ -68,8 +68,10 @@ typedef enum vm_opcode_t
     OP_LLOAD,     // Load local variable
     OP_GLOAD,     // Load global variable
     OP_CAST,      // Cast rf_object to another type
-    OP_TRAP,      // Trap an expression to return here on error
+    OP_TRY,       // Trap an expression to return here on error
+    OP_CATCH,     // Catch an error from vm register and push it onto the stack
     OP_THROW,     // Throw an error
+    OP_TRACE,     // Print stack trace (limit)
 
     OP_INVALID, // Invalid opcode
 } vm_opcode_t;
@@ -79,10 +81,12 @@ CASSERT(OP_INVALID < 127, vm_h)
 typedef struct vm_t
 {
     i8_t halted;        // Halt flag
+    u8_t trace;         // Trace flag (print stack trace on error limited to n frames)
     i32_t ip;           // Instruction pointer
     i32_t sp;           // Stack pointer
     i32_t bp;           // Base pointer (beginning on stack frame)
     i64_t timer;        // Timer for execution time
+    rf_object_t acc;    // Accumulator
     rf_object_t *stack; // Stack of arguments
 } vm_t;
 

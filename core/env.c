@@ -49,7 +49,9 @@ null_t init_functions(rf_object_t *records)
     REC(records, 0, "env",    TYPE_DICT,    rf_env,    { 0                       });
     // Unary  
     REC(records, 1, "type",  -TYPE_SYMBOL,  OP_TYPE,   { TYPE_NULL                });
-    REC(records, 1, "til" ,   TYPE_I64,     OP_TIL,    {-TYPE_I64                });
+    REC(records, 1, "til" ,   TYPE_I64,     OP_TIL,    {-TYPE_I64                 });
+    REC(records, 1, "trace" , TYPE_I64,     OP_TRACE,  {TYPE_NULL                 });
+
     // Binary
     REC(records, 2, "==",    -TYPE_BOOL,    OP_EQ,     { TYPE_NULL,    TYPE_NULL   });
     // REC(records, 2, "!=",    -TYPE_BOOL,    OP_NEQ,    { TYPE_NULL,    TYPE_NULL   });
@@ -73,8 +75,8 @@ null_t init_functions(rf_object_t *records)
     // Nary
     REC(records, 5, "list",    TYPE_LIST,    rf_list,    { 0                       });
     REC(records, 5, "format",  TYPE_STRING,  rf_format,  { 0                       });
-    REC(records, 5, "print",   TYPE_LIST,    rf_print,   { 0                       });
-    REC(records, 5, "println", TYPE_LIST,    rf_println, { 0                       });
+    REC(records, 5, "print",   TYPE_NULL,    rf_print,   { 0                       });
+    REC(records, 5, "println", TYPE_NULL,    rf_println, { 0                       });
 }
 
 null_t init_typenames(i64_t *typenames)
@@ -167,5 +169,5 @@ extern i8_t env_get_type_by_typename(env_t *env, i64_t name)
         if (env->typenames[i] == name)
             return i - TYPE_OFFSET;
 
-    return TYPE_NULL;
+    return TYPE_NONE;
 }

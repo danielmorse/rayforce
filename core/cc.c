@@ -131,7 +131,7 @@ i8_t cc_compile_time(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t a
         return -TYPE_F64;
     }
 
-    return TYPE_NULL;
+    return TYPE_NONE;
 }
 
 i8_t cc_compile_set(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
@@ -202,7 +202,7 @@ i8_t cc_compile_set(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t ar
         return type;
     }
 
-    return TYPE_NULL;
+    return TYPE_NONE;
 }
 
 i8_t cc_compile_cast(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
@@ -223,7 +223,7 @@ i8_t cc_compile_cast(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t a
 
         type = env_get_type_by_typename(env, as_list(object)[1].i64);
 
-        if (type == TYPE_NULL)
+        if (type == TYPE_NONE)
             ccerr(cc, as_list(object)[1].id, ERR_TYPE,
                   str_fmt(0, "'as': unknown type '%s", symbols_get(as_list(object)[1].i64)));
 
@@ -239,7 +239,7 @@ i8_t cc_compile_cast(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t a
         return type;
     }
 
-    return TYPE_NULL;
+    return TYPE_NONE;
 }
 
 i8_t cc_compile_fn(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
@@ -264,7 +264,7 @@ i8_t cc_compile_fn(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t ari
         {
             type = env_get_type_by_typename(env, b->i64);
 
-            if (type == TYPE_NULL)
+            if (type == TYPE_NONE)
                 ccerr(cc, as_list(object)[1].id, ERR_TYPE,
                       str_fmt(0, "'fn': unknown type '%s", symbols_get(as_list(object)[1].i64)));
 
@@ -293,7 +293,7 @@ i8_t cc_compile_fn(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t ari
         return TYPE_FUNCTION;
     }
 
-    return TYPE_NULL;
+    return TYPE_NONE;
 }
 
 i8_t cc_compile_cond(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
@@ -356,10 +356,10 @@ i8_t cc_compile_cond(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t a
         return type;
     }
 
-    return TYPE_NULL;
+    return TYPE_NONE;
 }
 
-i8_t cc_compile_trap(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+i8_t cc_compile_try(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
     i8_t type, type1;
     i64_t lbl1, lbl2;
@@ -371,9 +371,9 @@ i8_t cc_compile_trap(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t a
     if (car->i64 == symbol("try").i64)
     {
         if (arity != 2)
-            cerr(cc, car->id, ERR_LENGTH, "'trap': expects 2 arguments");
+            cerr(cc, car->id, ERR_LENGTH, "'try': expects 2 arguments");
 
-        push_opcode(cc, car->id, code, OP_TRAP);
+        push_opcode(cc, car->id, code, OP_TRY);
         lbl1 = code->adt->len;
         push_rf_object(code, i64(0));
 
@@ -397,7 +397,7 @@ i8_t cc_compile_trap(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t a
 
         if (type != type1)
             ccerr(cc, object->id, ERR_TYPE,
-                  str_fmt(0, "'trap': different types of expressions: '%s', '%s'",
+                  str_fmt(0, "'try': different types of expressions: '%s', '%s'",
                           symbols_get(env_get_typename_by_type(env, type)),
                           symbols_get(env_get_typename_by_type(env, type1))));
 
@@ -406,7 +406,7 @@ i8_t cc_compile_trap(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t a
         return type;
     }
 
-    return TYPE_NULL;
+    return TYPE_NONE;
 }
 
 i8_t cc_compile_throw(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
@@ -439,13 +439,34 @@ i8_t cc_compile_throw(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t 
         return TYPE_THROW;
     }
 
-    return TYPE_NULL;
+    return TYPE_NONE;
+}
+
+i8_t cc_compile_catch(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+{
+    UNUSED(has_consumer);
+
+    rf_object_t *car = &as_list(object)[0];
+    function_t *func = as_function(&cc->function);
+    rf_object_t *code = &func->code;
+
+    if (car->i64 == symbol("catch").i64)
+    {
+        if (arity != 0)
+            cerr(cc, car->id, ERR_LENGTH, "'catch': expects 0 arguments");
+
+        push_opcode(cc, car->id, code, OP_CATCH);
+
+        return TYPE_STRING;
+    }
+
+    return TYPE_NONE;
 }
 
 /*
  * Special forms are those that are not in a table of functions because of their special nature.
  * return TYPE_ERROR if there is an error
- * return TYPE_NULL if it is not a special form
+ * return TYPE_NONE if it is not a special form
  * return type of the special form if it is a special form
  */
 i8_t cc_compile_special_forms(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
@@ -454,35 +475,43 @@ i8_t cc_compile_special_forms(bool_t has_consumer, cc_t *cc, rf_object_t *object
 
     type = cc_compile_time(has_consumer, cc, object, arity);
 
-    if (type != TYPE_NULL)
+    if (type != TYPE_NONE)
         return type;
 
     type = cc_compile_set(has_consumer, cc, object, arity);
 
-    if (type != TYPE_NULL)
+    if (type != TYPE_NONE)
         return type;
 
     type = cc_compile_cast(has_consumer, cc, object, arity);
 
-    if (type != TYPE_NULL)
+    if (type != TYPE_NONE)
         return type;
 
     type = cc_compile_fn(has_consumer, cc, object, arity);
 
-    if (type != TYPE_NULL)
+    if (type != TYPE_NONE)
         return type;
 
     type = cc_compile_cond(has_consumer, cc, object, arity);
 
-    if (type != TYPE_NULL)
+    if (type != TYPE_NONE)
         return type;
 
-    type = cc_compile_trap(has_consumer, cc, object, arity);
+    type = cc_compile_try(has_consumer, cc, object, arity);
 
-    if (type != TYPE_NULL)
+    if (type != TYPE_NONE)
+        return type;
+
+    type = cc_compile_catch(has_consumer, cc, object, arity);
+
+    if (type != TYPE_NONE)
         return type;
 
     type = cc_compile_throw(has_consumer, cc, object, arity);
+
+    if (type != TYPE_NONE)
+        return type;
 
     return type;
 }
@@ -560,7 +589,7 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
 
     case -TYPE_SYMBOL:
         if (!has_consumer)
-            return TYPE_NULL;
+            return TYPE_NONE;
 
         // symbol is quoted
         if (object->flags == 1)
@@ -648,7 +677,7 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
         if (type == TYPE_ERROR)
             return type;
 
-        if (type != TYPE_NULL)
+        if (type != TYPE_NONE)
             return type;
 
         // Compile user function call

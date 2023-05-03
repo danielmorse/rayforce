@@ -36,6 +36,8 @@
 #define TYPE_TRAP (TYPE_ERROR + 3)
 // trow type
 #define TYPE_THROW (TYPE_ERROR + 4)
+// none type
+#define TYPE_NONE (TYPE_ERROR + 5)
 // --
 
 #define ADDI64(x, y) (((x | y) & NULL_I64) ? NULL_I64 : (x + y))
