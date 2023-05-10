@@ -39,7 +39,7 @@ rf_object_t vector(i8_t type, i8_t size_of_val, i64_t len)
     header_t *adt;
     i64_t size = size_of_val * len + sizeof(header_t);
 
-    adt = size < SIZE_TO_MMAP ? rf_malloc(size) : mmap(NULL, ALIGNUP(size, PAGE_SIZE), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    adt = size < SIZE_TO_MMAP ? rf_malloc(ALIGNUP(size, CAPACITY_FACTOR)) : mmap(NULL, ALIGNUP(size, PAGE_SIZE), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
     if (adt == NULL)
         panic("OOM");

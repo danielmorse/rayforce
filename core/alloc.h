@@ -46,6 +46,7 @@ CASSERT(sizeof(struct node_t) == 16, alloc_h)
 typedef struct alloc_t
 {
     node_t *freelist[MAX_ORDER + 2];
+    u32_t blocks;
     u8_t pool[POOL_SIZE];
 } __attribute__((aligned(PAGE_SIZE))) * alloc_t;
 

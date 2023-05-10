@@ -31,11 +31,13 @@
 
 static alloc_t _ALLOC = NULL;
 
+#define MASK ((u64_t)0xFFFFFFFFFFFFFFFF)
 #define MEMBASE ((i64_t)_ALLOC->pool)
 #define offset(b) ((i64_t)b - MEMBASE)
 #define _buddyof(b, i) (offset(b) ^ (1 << (i)))
 #define buddyof(b, i) ((null_t *)(_buddyof(b, i) + MEMBASE))
 #define blocksize(i) (1 << (i))
+#define order_of(s) (32 - __builtin_clz(s + sizeof(struct node_t) - 1))
 
 alloc_t rf_alloc_init()
 {
@@ -44,6 +46,7 @@ alloc_t rf_alloc_init()
 
     memset(_ALLOC, 0, sizeof(struct alloc_t));
     _ALLOC->freelist[MAX_ORDER] = _ALLOC->pool;
+    _ALLOC->blocks = 1 << MAX_ORDER;
 
     return _ALLOC;
 }
@@ -96,55 +99,55 @@ null_t debug_blocks()
 
 null_t *rf_malloc(i32_t size)
 {
-    i32_t i = 0, order;
+    debug_assert(size > 1);
+
+    i32_t i, order;
     null_t *block;
     node_t *node;
 
     // calculate minimal order for this size
-    size += sizeof(node_t);
-    order = 32 - __builtin_clz(size - 1);
-    i = order;
+    order = order_of(size);
 
-    // debug("malloc: size: %d, order: %d", size, order);
-    // debug_blocks();
+    // find least order block that fits
+    i = (MASK << order) & _ALLOC->blocks;
+    debug_assert(i > 0);
+    i = __builtin_ctz(i);
 
-    // level up until non-null list found
-    for (;; i++)
-    {
-        if (i > MAX_ORDER)
-            return NULL;
-        if (_ALLOC->freelist[i])
-            break;
-    }
+    if (i > MAX_ORDER)
+        return NULL;
 
     // remove the block out of list
     block = _ALLOC->freelist[i];
     _ALLOC->freelist[i] = _ALLOC->freelist[i]->ptr;
+    ((node_t *)block)->order = order;
+    if (_ALLOC->freelist[i] == NULL)
+        _ALLOC->blocks &= ~(1 << i);
 
     // split until i == order
     while (i-- > order)
     {
-        node = (node_t *)buddyof(block, i); // get the buddy block
+        node = (node_t *)buddyof(block, i);
         node->order = order;
         node->ptr = _ALLOC->freelist[i];
         _ALLOC->freelist[i] = node;
+        _ALLOC->blocks |= (1 << i);
     }
 
-    return (null_t *)((node_t *)block + 1);
+    block = (null_t *)((node_t *)block + 1);
+    return block;
 }
 
 null_t rf_free(null_t *block)
 {
     i32_t i;
     node_t *node = (node_t *)block - 1;
+    block = (null_t *)node;
     null_t *buddy;
     null_t **p;
 
     i = node->order;
-    debug("FREE NODE: %p", node);
     for (;; i++)
     {
-        debug("free order: %d", i);
         // calculate buddy
         buddy = buddyof(block, i);
         p = &(_ALLOC->freelist[i]);
@@ -157,8 +160,8 @@ null_t rf_free(null_t *block)
         if (*p != buddy)
         {
             node->ptr = _ALLOC->freelist[i];
-            debug("return to freelist: %d %d", i, node->order);
             _ALLOC->freelist[i] = node;
+            _ALLOC->blocks |= (1 << i);
             return;
         }
 
@@ -166,15 +169,39 @@ null_t rf_free(null_t *block)
         block = (block < buddy) ? block : buddy;
         // remove buddy out of list
         *p = *(null_t **)*p;
+        _ALLOC->blocks &= ~(1 << i);
     }
 }
 
 null_t *rf_realloc(null_t *ptr, i32_t new_size)
 {
+    if (ptr == NULL)
+        return rf_malloc(new_size);
+
+    if (new_size == 0)
+    {
+        rf_free(ptr);
+        return NULL;
+    }
+
+    node_t *node = ((node_t *)ptr) - 1;
+    i32_t size = 1 << node->order;
+    i32_t adjusted_size = 1 << order_of(new_size);
+
+    // debug("SIZE: %d, ADJUSTED: %d", size, adjusted_size);
+
+    // If new size is smaller or equal to the current block size, no need to reallocate
+    if (adjusted_size <= size)
+        return ptr;
+
     null_t *new_ptr = rf_malloc(new_size);
-    if (ptr)
-        memcpy(new_ptr, ptr, new_size);
-    // rf_free(ptr);
+    if (new_ptr)
+    {
+        // Take the minimum of size and new_size to prevent buffer overflow
+        memcpy(new_ptr, ptr, size < new_size ? size : new_size);
+        rf_free(ptr);
+    }
+
     return new_ptr;
 }
 
