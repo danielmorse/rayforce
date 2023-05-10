@@ -29,9 +29,6 @@
 #include "mmap.h"
 #include "util.h"
 
-#include <stdlib.h>
-#include <math.h>
-
 static alloc_t _ALLOC = NULL;
 
 #define MEMBASE ((i64_t)_ALLOC->pool)
@@ -61,6 +58,25 @@ null_t rf_alloc_cleanup()
     munmap(_ALLOC, sizeof(struct alloc_t));
 }
 
+#ifdef SYS_MALLOC
+
+null_t *rf_malloc(i32_t size)
+{
+    return malloc(size);
+}
+
+null_t rf_free(null_t *block)
+{
+    free(block);
+}
+
+null_t *rf_realloc(null_t *ptr, i32_t new_size)
+{
+    return realloc(ptr, new_size);
+}
+
+#else
+
 null_t debug_blocks()
 {
     i32_t i = 0;
@@ -72,7 +88,7 @@ null_t debug_blocks()
         while (node)
         {
             printf("%p, ", node);
-            node = node->next;
+            node = node->ptr;
         }
         printf("]\n");
     }
@@ -81,7 +97,7 @@ null_t debug_blocks()
 null_t *rf_malloc(i32_t size)
 {
     i32_t i = 0, order;
-    null_t *block, *buddy;
+    null_t *block;
     node_t *node;
 
     // calculate minimal order for this size
@@ -103,29 +119,63 @@ null_t *rf_malloc(i32_t size)
 
     // remove the block out of list
     block = _ALLOC->freelist[i];
-    _ALLOC->freelist[i] = ((node_t *)block)->next;
+    _ALLOC->freelist[i] = _ALLOC->freelist[i]->ptr;
 
     // split until i == order
     while (i-- > order)
     {
-        buddy = buddyof(block, i); // get the buddy block
-        ((node_t *)buddy)->next = _ALLOC->freelist[i];
-        _ALLOC->freelist[i] = block;
-        block = buddy;
+        node = (node_t *)buddyof(block, i); // get the buddy block
+        node->order = order;
+        node->ptr = _ALLOC->freelist[i];
+        _ALLOC->freelist[i] = node;
     }
 
-    return (null_t *)(((node_t *)block) + 1);
+    return (null_t *)((node_t *)block + 1);
 }
 
-null_t rf_free(null_t *ptr)
+null_t rf_free(null_t *block)
 {
+    i32_t i;
+    node_t *node = (node_t *)block - 1;
+    null_t *buddy;
+    null_t **p;
+
+    i = node->order;
+    debug("FREE NODE: %p", node);
+    for (;; i++)
+    {
+        debug("free order: %d", i);
+        // calculate buddy
+        buddy = buddyof(block, i);
+        p = &(_ALLOC->freelist[i]);
+
+        // find buddy in list
+        while ((*p != NULL) && (*p != buddy))
+            p = (null_t **)*p;
+
+        // not found, insert into list
+        if (*p != buddy)
+        {
+            node->ptr = _ALLOC->freelist[i];
+            debug("return to freelist: %d %d", i, node->order);
+            _ALLOC->freelist[i] = node;
+            return;
+        }
+
+        // found, merged block starts from the lower one
+        block = (block < buddy) ? block : buddy;
+        // remove buddy out of list
+        *p = *(null_t **)*p;
+    }
 }
 
 null_t *rf_realloc(null_t *ptr, i32_t new_size)
 {
-
     null_t *new_ptr = rf_malloc(new_size);
     if (ptr)
         memcpy(new_ptr, ptr, new_size);
+    // rf_free(ptr);
     return new_ptr;
 }
+
+#endif

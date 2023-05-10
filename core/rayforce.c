@@ -295,13 +295,13 @@ type_dict:
     rf_object_free(&as_list(object)[0]);
     rf_object_free(&as_list(object)[1]);
     if (rc == 0)
-        vector_free(object);
+        rf_free(object->adt);
     return;
 type_table:
     rf_object_free(&as_list(object)[0]);
     rf_object_free(&as_list(object)[1]);
     if (rc == 0)
-        vector_free(object);
+        rf_free(object->adt);
     return;
 type_function:
     if (rc == 0)

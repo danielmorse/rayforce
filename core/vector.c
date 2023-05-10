@@ -24,6 +24,7 @@
 #include "rayforce.h"
 #include "vector.h"
 #include "util.h"
+#include "format.h"
 
 /*
  * Allocate via mmap if size is greater than 32 Mb
@@ -45,7 +46,8 @@ rf_object_t vector(i8_t type, i8_t size_of_val, i64_t len)
 
     // return ;
     adt->len = len;
-    adt->attrs = size >= SIZE_TO_MMAP;
+    if (size >= SIZE_TO_MMAP)
+        adt->attrs |= ATTR_MMAP_ALLOCATED;
     adt->rc = 1;
 
     rf_object_t v = {
@@ -277,5 +279,38 @@ rf_object_t list_flatten(rf_object_t list)
 
 null_t vector_free(rf_object_t *vector)
 {
-    //
+    i64_t size_of_val;
+    i64_t size;
+
+    switch (vector->type)
+    {
+    case TYPE_BOOL:
+        size_of_val = sizeof(i8_t);
+        break;
+    case TYPE_I64:
+        size_of_val = sizeof(i64_t);
+        break;
+    case TYPE_F64:
+        size_of_val = sizeof(f64_t);
+        break;
+    case TYPE_SYMBOL:
+        size_of_val = sizeof(i64_t);
+        break;
+    case TYPE_LIST:
+        size_of_val = sizeof(rf_object_t);
+        break;
+    case TYPE_STRING:
+        size_of_val = sizeof(i8_t);
+        break;
+    default:
+        panic(str_fmt(0, "unknown type: %d", vector->type));
+    }
+
+    if (vector->adt->attrs & ATTR_MMAP_ALLOCATED)
+    {
+        size = size_of_val * vector->adt->len + sizeof(header_t);
+        munmap(vector->adt, ALIGNUP(size, PAGE_SIZE));
+    }
+    else
+        rf_free(vector->adt);
 }

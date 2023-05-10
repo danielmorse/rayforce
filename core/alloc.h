@@ -35,11 +35,14 @@
 
 typedef struct node_t
 {
-    i64_t size;
-    struct node_t *next;
+    struct node_t *ptr;
+    u8_t order;
+    u8_t occup;
+    u8_t pad[6];
 } node_t;
 
 CASSERT(sizeof(struct node_t) == 16, alloc_h)
+
 typedef struct alloc_t
 {
     node_t *freelist[MAX_ORDER + 2];

@@ -101,6 +101,8 @@
         }                                       \
     }
 
+#define ATTR_MMAP_ALLOCATED 1
+
 extern rf_object_t list_flatten(rf_object_t object);
 extern i64_t vector_i64_find(rf_object_t *vector, i64_t key);
 extern i64_t vector_f64_find(rf_object_t *vector, f64_t key);
