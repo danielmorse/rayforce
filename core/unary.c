@@ -42,3 +42,47 @@ rf_object_t rf_til(rf_object_t *x)
 
     return vec;
 }
+
+rf_object_t rf_distinct_i64(rf_object_t *x)
+{
+    i32_t i, j = 0, mask_size;
+    i64_t min, max, l = x->adt->len, *xi = as_vector_i64(x), *vi;
+    rf_object_t mask, vec;
+    bool_t *m;
+
+    if (l == 0)
+        return vector_i64(0);
+
+    max = min = xi[0];
+
+    for (i = 0; i < l; i++)
+    {
+        if (xi[i] < min)
+            min = xi[i];
+        else if (xi[i] > max)
+            max = xi[i];
+    }
+
+    mask_size = max - min + 1;
+
+    mask = vector_bool(mask_size);
+    m = as_vector_bool(&mask);
+    memset(m, 0, mask_size);
+
+    vec = vector_i64(x->adt->len);
+    vi = as_vector_i64(&vec);
+
+    for (i = 0; i < l; i++)
+    {
+        if (!m[xi[i]])
+        {
+            vi[j++] = xi[i];
+            m[xi[i]] = true;
+        }
+    }
+
+    rf_free(&mask);
+    vec.adt->len = j;
+
+    return vec;
+}

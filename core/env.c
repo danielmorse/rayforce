@@ -48,9 +48,10 @@ null_t init_functions(rf_object_t *records)
     REC(records, 0, "halt",   TYPE_LIST,    OP_HALT,   { 0                       });
     REC(records, 0, "env",    TYPE_DICT,    rf_env,    { 0                       });
     // Unary  
-    REC(records, 1, "type",  -TYPE_SYMBOL,  OP_TYPE,   { TYPE_NULL                });
-    REC(records, 1, "til" ,   TYPE_I64,     rf_til,    {-TYPE_I64                 });
-    REC(records, 1, "trace" , TYPE_I64,     OP_TRACE,  {TYPE_NULL                 });
+    REC(records, 1, "type",    -TYPE_SYMBOL,  OP_TYPE,         { TYPE_NULL                });
+    REC(records, 1, "til" ,     TYPE_I64,     rf_til,          {-TYPE_I64                 });
+    REC(records, 1, "trace" ,   TYPE_I64,     OP_TRACE,        {TYPE_NULL                 });
+    REC(records, 1, "distinct", TYPE_I64,     rf_distinct_i64, {TYPE_I64                  });
 
     // Binary
     REC(records, 2, "==",    -TYPE_BOOL,    OP_EQ,     { TYPE_NULL,    TYPE_NULL   });
