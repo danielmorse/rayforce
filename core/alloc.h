@@ -37,7 +37,7 @@
 typedef struct node_t
 {
     struct node_t *next;
-    u64_t order;
+    u64_t size;
 } node_t;
 
 CASSERT(sizeof(struct node_t) == 16, alloc_h)

@@ -44,15 +44,15 @@ static alloc_t _ALLOC = NULL;
 
 null_t *rf_alloc_add_pool(u32_t size)
 {
-    u32_t order = orderof(size);
     null_t *pool = (null_t *)mmap(NULL, size,
                                   PROT_READ | PROT_WRITE,
                                   MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     memset(pool, 0, size);
 
     node_t *base = (node_t *)pool;
-    base->order = order;
+    base->size = size;
     base->next = _ALLOC->pools;
+    debug("ALLOC POOL: %p ORDER: %d SIZE: %d", base, orderof(size), size);
     _ALLOC->pools = base;
 
     return (null_t *)(base + 1);
@@ -82,7 +82,10 @@ alloc_t rf_alloc_get()
 null_t rf_alloc_cleanup()
 {
     for (node_t *node = _ALLOC->pools; node; node = node->next)
-        munmap(node - 1, blocksize(node->order));
+    {
+        // debug("FREE POOL: %p SIZE: %d", node, node->size);
+        munmap(node, node->size);
+    }
 
     munmap(_ALLOC, sizeof(struct alloc_t));
 }
@@ -129,7 +132,7 @@ null_t *rf_malloc(i32_t size)
     // remove the block out of list
     block = _ALLOC->freelist[i];
     _ALLOC->freelist[i] = _ALLOC->freelist[i]->next;
-    ((node_t *)block)->order = order;
+    ((node_t *)block)->size = size;
     if (_ALLOC->freelist[i] == NULL)
         _ALLOC->avail &= ~blocksize(i);
 
@@ -137,7 +140,7 @@ null_t *rf_malloc(i32_t size)
     while (i-- > order)
     {
         node = (node_t *)buddyof(block, i);
-        node->order = order;
+        node->size = size;
         node->next = _ALLOC->freelist[i];
         _ALLOC->freelist[i] = node;
         _ALLOC->avail |= blocksize(i);
@@ -152,9 +155,9 @@ null_t rf_free(null_t *block)
     node_t *node = (node_t *)block - 1, **n;
     block = (null_t *)node;
     null_t *buddy;
-    i32_t i = node->order;
+    i32_t i = orderof(node->size);
 
-    for (; i <= MAX_ORDER; i++)
+    for (;; i++)
     {
         // calculate buddy
         buddy = buddyof(block, i);
@@ -197,7 +200,7 @@ null_t *rf_realloc(null_t *ptr, i32_t new_size)
     new_size = realsize(new_size);
 
     node_t *node = ((node_t *)ptr) - 1;
-    i32_t size = blocksize(node->order);
+    i32_t size = node->size;
     i32_t adjusted_size = blocksize(orderof(new_size));
 
     // If new size is smaller or equal to the current block size, no need to reallocate
