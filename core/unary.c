@@ -35,6 +35,7 @@ rf_object_t rf_til_i64(rf_object_t *x)
     rf_object_t vec;
 
     vec = vector_i64(l);
+
     v = as_vector_i64(&vec);
 
     for (i = 0; i < l; i++)
