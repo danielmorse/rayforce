@@ -27,5 +27,6 @@
 #include "rayforce.h"
 
 rf_object_t rf_env();
+rf_object_t rf_memstat();
 
 #endif

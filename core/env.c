@@ -47,6 +47,8 @@ null_t init_functions(rf_object_t *records)
     // Nilary
     REC(records, 0, "halt",      TYPE_LIST,       OP_HALT,                 { 0                        });
     REC(records, 0, "env",       TYPE_DICT,       rf_env,                  { 0                        });
+    REC(records, 0, "memstat",   TYPE_DICT,       rf_memstat,              { 0                        });
+
     // Unary  
     REC(records, 1, "type",     -TYPE_SYMBOL,     OP_TYPE,                 { TYPE_NULL                });
     REC(records, 1, "til" ,      TYPE_I64,        rf_til_i64,              {-TYPE_I64                 });

@@ -80,13 +80,10 @@ null_t *rf_alloc_add_pool(u32_t size)
     null_t *pool = (null_t *)mmap(NULL, size,
                                   PROT_READ | PROT_WRITE,
                                   MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    memset(pool, 0, size);
 
     node_t *node = (node_t *)pool;
     node->size = size;
-    // node->next = _ALLOC->pools;
     node->base = pool;
-    _ALLOC->pools = node;
 
     return (null_t *)node;
 }
@@ -96,13 +93,13 @@ alloc_t rf_alloc_init()
     _ALLOC = (alloc_t)mmap(NULL, sizeof(struct alloc_t),
                            PROT_READ | PROT_WRITE,
                            MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    _ALLOC->pools = NULL;
 
     node_t *node = (node_t *)rf_alloc_add_pool(realsize(POOL_SIZE));
 
     debug_assert(node != NULL);
     debug_assert((i64_t)node % 16 == 0);
 
+    node->next = NULL;
     _ALLOC->freelist[MAX_ORDER] = node;
     _ALLOC->avail = 1 << MAX_ORDER;
 
@@ -116,15 +113,30 @@ alloc_t rf_alloc_get()
 
 null_t rf_alloc_cleanup()
 {
-    // node_t *node = _ALLOC->pools, *next;
-    // while (node)
-    // {
-    //     next = node->next;
-    //     munmap(node, node->size);
-    //     node = next;
-    // }
-
+    print_blocks();
     munmap(_ALLOC, sizeof(struct alloc_t));
+}
+
+memstat_t rf_alloc_memstat()
+{
+    print_blocks();
+    memstat_t stat = {0};
+    i32_t i = 0;
+    node_t *node;
+
+    for (; i <= MAX_POOL_ORDER; i++)
+    {
+        node = _ALLOC->freelist[i];
+        while (node)
+        {
+            stat.total += node->size;
+            node = node->next;
+        }
+    }
+
+    stat.used = stat.total - stat.free;
+
+    return stat;
 }
 
 #ifdef SYS_MALLOC
@@ -188,8 +200,6 @@ null_t *rf_malloc(i32_t size)
         _ALLOC->avail |= blocksize(i);
     }
 
-    // print_blocks();
-
     return (null_t *)((node_t *)block + 1);
 }
 
@@ -204,14 +214,24 @@ null_t rf_free(null_t *block)
     {
         // calculate buddy
         buddy = buddyof(block, node->base, order);
+
+        // node is the root block, wich can't have higher order buddies, so just insert it into list
+        if (__builtin_expect((block > buddy) && node->base == node, 0))
+        {
+            node->next = _ALLOC->freelist[order];
+            _ALLOC->freelist[order] = node;
+            _ALLOC->avail |= blocksize(order);
+            return;
+        }
+
         n = &_ALLOC->freelist[order];
 
-        // find buddy in list
+        // then continue to find the buddy of the block in the freelist.
         while ((*n != NULL) && (*n != buddy))
             n = &((*n)->next);
 
-        // not found, insert into list
-        if (*n != buddy)
+        // not found, insert into freelist
+        if (*n == NULL)
         {
             node->next = _ALLOC->freelist[order];
             _ALLOC->freelist[order] = node;
@@ -224,16 +244,8 @@ null_t rf_free(null_t *block)
         if (_ALLOC->freelist[order] == NULL)
             _ALLOC->avail &= ~blocksize(order);
 
-        // parent node has no buddies, so just insert into list
-        if ((buddy < block) && node->base == node)
-        {
-            node->next = _ALLOC->freelist[order];
-            _ALLOC->freelist[order] = node;
-            _ALLOC->avail |= blocksize(order);
-            return;
-        }
-
-        block = (block < buddy) ? block : buddy;
+        // check if buddy is lower address than block (means it is of higher order), if so, swap them
+        block = (buddy > block) ? block : buddy;
         node = block;
     }
 }
@@ -262,8 +274,7 @@ null_t *rf_realloc(null_t *ptr, i32_t new_size)
     null_t *new_ptr = rf_malloc(new_size);
     if (new_ptr)
     {
-        // Take the minimum of size and new_size to prevent buffer overflow
-        memcpy(new_ptr, ptr, size < new_size ? size : new_size);
+        memcpy(new_ptr, ptr, size);
         rf_free(ptr);
     }
 

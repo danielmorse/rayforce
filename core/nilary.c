@@ -23,8 +23,17 @@
 
 #include "nilary.h"
 #include "runtime.h"
+#include "alloc.h"
 
 rf_object_t rf_env()
 {
     return rf_object_clone(&runtime_get()->env.variables);
+}
+
+rf_object_t rf_memstat()
+{
+    memstat_t stat = rf_alloc_memstat();
+    rf_object_t ret = dict(vector_symbol(0), list(0));
+
+    return ret;
 }

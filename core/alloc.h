@@ -47,21 +47,28 @@ typedef struct node_t
 
 CASSERT(sizeof(struct node_t) == 16, alloc_h)
 
+typedef struct memstat_t
+{
+    i64_t total;
+    i64_t used;
+    i64_t free;
+} memstat_t;
+
 typedef struct alloc_t
 {
     node_t *freelist[MAX_POOL_ORDER + 2]; // free list of blocks by order
-    node_t *pools;                        // list of pools
     u64_t   avail;                        // mask of available blocks by order
 } __attribute__((aligned(PAGE_SIZE))) * alloc_t;
 
 CASSERT(sizeof(struct alloc_t) % PAGE_SIZE == 0, alloc_h)
 
-extern null_t *rf_malloc(i32_t size);
-extern null_t *rf_realloc(null_t *ptr, i32_t size);
-extern null_t  rf_free(null_t *block);
-extern alloc_t rf_alloc_init();
-extern alloc_t rf_alloc_get();
-extern null_t  rf_alloc_cleanup();
+extern null_t   *rf_malloc(i32_t size);
+extern null_t   *rf_realloc(null_t *ptr, i32_t size);
+extern null_t    rf_free(null_t *block);
+extern alloc_t   rf_alloc_init();
+extern alloc_t   rf_alloc_get();
+extern null_t    rf_alloc_cleanup();
+extern memstat_t rf_alloc_memstat();
 // clang-format on
 
 #endif

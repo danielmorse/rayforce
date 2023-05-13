@@ -351,7 +351,7 @@ i32_t main(i32_t argc, str_t argv[])
 
     rf_object_free(&filename);
 
-    while (running)
+    while (running && !vm->halted)
     {
         printf("%s%s%s", GREEN, PROMPT, RESET);
         ptr = fgets(line, LINE_SIZE, stdin);
