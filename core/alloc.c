@@ -114,7 +114,7 @@ alloc_t rf_alloc_get()
 null_t rf_alloc_cleanup()
 {
     // All the nodes remains are pools, so just munmap them
-    for (i32_t i = 0; i < MAX_POOL_ORDER; i++)
+    for (i32_t i = 0; i <= MAX_POOL_ORDER; i++)
     {
         node_t *node = _ALLOC->freelist[i];
         while (node)
@@ -131,7 +131,6 @@ null_t rf_alloc_cleanup()
 
 memstat_t rf_alloc_memstat()
 {
-    print_blocks();
     memstat_t stat = {0};
     i32_t i = 0;
     node_t *node;
