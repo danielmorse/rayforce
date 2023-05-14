@@ -98,3 +98,14 @@ rf_object_t rf_sum_I64(rf_object_t *x)
 
     return i64(sum);
 }
+
+rf_object_t rf_avg_I64(rf_object_t *x)
+{
+    i32_t i;
+    i64_t l = x->adt->len, sum = 0, *v = as_vector_i64(x);
+
+    for (i = 0; i < l; i++)
+        sum += v[i];
+
+    return f64((f64_t)sum / l);
+}
