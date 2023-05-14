@@ -56,6 +56,8 @@ null_t init_functions(rf_object_t *records)
     REC(records, 1, "distinct",  TYPE_I64,        rf_distinct_i64,         { TYPE_I64                 });
     REC(records, 1, "sum",      -TYPE_I64,        rf_sum_I64,              { TYPE_I64                 });
     REC(records, 1, "avg",      -TYPE_F64,        rf_avg_I64,              { TYPE_I64                 });
+    REC(records, 1, "min",      -TYPE_I64,        rf_min_I64,              { TYPE_I64                 });
+    REC(records, 1, "max",      -TYPE_I64,        rf_max_I64,              { TYPE_I64                 });
 
     // Binary
     REC(records, 2, "==",       -TYPE_BOOL,       OP_EQ,                   { TYPE_NULL,    TYPE_NULL  });
