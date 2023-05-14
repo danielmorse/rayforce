@@ -31,14 +31,10 @@
 
 #define REC_SIZE (MAX_ARITY + 2)
 
-#define REC(records, arity, name, ret, op, ...)                        \
-    {                                                                  \
-        i8_t _args[4] = __VA_ARGS__;                                   \
-        i32_t _pargs = 0;                                              \
-        for (i32_t i = 0; i < MAX_ARITY; i++)                          \
-            _pargs |= (u8_t)_args[i] << (MAX_ARITY - 1 - i) * 8;       \
-        env_record_t rec = {symbol(name).i64, (i64_t)op, _pargs, ret}; \
-        push(&as_list(records)[arity], env_record_t, rec);             \
+#define REC(records, arity, name, ret, op, ...)                             \
+    {                                                                       \
+        env_record_t rec = {symbol(name).i64, (i64_t)op, __VA_ARGS__, ret}; \
+        push(&as_list(records)[arity], env_record_t, rec);                  \
     }
 
 // clang-format off
@@ -50,25 +46,31 @@ null_t init_functions(rf_object_t *records)
     REC(records, 0, "memstat",   TYPE_DICT,       rf_memstat,              { 0                        });
 
     // Unary  
-    REC(records, 1, "type",     -TYPE_SYMBOL,     OP_TYPE,                 { TYPE_NULL                });
+    REC(records, 1, "type",     -TYPE_SYMBOL,     OP_TYPE,                 { TYPE_ANY                 });
     REC(records, 1, "til" ,      TYPE_I64,        rf_til_i64,              {-TYPE_I64                 });
-    REC(records, 1, "trace" ,    TYPE_I64,        OP_TRACE,                { TYPE_NULL                });
+    REC(records, 1, "trace" ,    TYPE_I64,        OP_TRACE,                { TYPE_ANY                 });
     REC(records, 1, "distinct",  TYPE_I64,        rf_distinct_i64,         { TYPE_I64                 });
     REC(records, 1, "sum",      -TYPE_I64,        rf_sum_I64,              { TYPE_I64                 });
+    REC(records, 1, "sum",      -TYPE_F64,        rf_sum_F64,              { TYPE_F64                 });
     REC(records, 1, "avg",      -TYPE_F64,        rf_avg_I64,              { TYPE_I64                 });
+    REC(records, 1, "avg",      -TYPE_F64,        rf_avg_F64,              { TYPE_F64                 });
     REC(records, 1, "min",      -TYPE_I64,        rf_min_I64,              { TYPE_I64                 });
+    REC(records, 1, "min",      -TYPE_F64,        rf_min_F64,              { TYPE_F64                 });
     REC(records, 1, "max",      -TYPE_I64,        rf_max_I64,              { TYPE_I64                 });
+    REC(records, 1, "max",      -TYPE_F64,        rf_max_F64,              { TYPE_F64                 });
+    REC(records, 1, "count",    -TYPE_I64,        rf_count,                { TYPE_ANY                 });
 
     // Binary
-    REC(records, 2, "==",       -TYPE_BOOL,       OP_EQ,                   { TYPE_NULL,    TYPE_NULL  });
-    // REC(records, 2, "!=",       -TYPE_BOOL,       OP_NEQ,               { TYPE_NULL,    TYPE_NULL  });
-    REC(records, 2, "<",        -TYPE_BOOL,       OP_LT,                   { TYPE_NULL,    TYPE_NULL  });
-    // REC(records, 2, ">",        -TYPE_BOOL,       OP_GT,                { TYPE_NULL,    TYPE_NULL  });
-    // REC(records, 2, "<=",       -TYPE_BOOL,       OP_LE,                { TYPE_NULL,    TYPE_NULL  });
-    // REC(records, 2, ">=",       -TYPE_BOOL,       OP_GE,                { TYPE_NULL,    TYPE_NULL  });
+    REC(records, 2, "==",       -TYPE_BOOL,       OP_EQ,                   { TYPE_ANY,    TYPE_ANY  });
+    // REC(records, 2, "!=",       -TYPE_BOOL,       OP_NEQ,               { TYPE_ANY,    TYPE_ANY  });
+    REC(records, 2, "<",        -TYPE_BOOL,       OP_LT,                   { TYPE_ANY,    TYPE_ANY  });
+    // REC(records, 2, ">",        -TYPE_BOOL,       OP_GT,                { TYPE_ANY,    TYPE_ANY  });
+    // REC(records, 2, "<=",       -TYPE_BOOL,       OP_LE,                { TYPE_ANY,    TYPE_ANY  });
+    // REC(records, 2, ">=",       -TYPE_BOOL,       OP_GE,                { TYPE_ANY,    TYPE_ANY  });
     REC(records, 2, "+",        -TYPE_I64,        OP_ADDI,                 {-TYPE_I64,   -TYPE_I64   });
     REC(records, 2, "+",        -TYPE_F64,        OP_ADDF,                 {-TYPE_F64,   -TYPE_F64   });
     REC(records, 2, "+",         TYPE_I64,        rf_add_I64_i64,          { TYPE_I64,   -TYPE_I64   });
+    REC(records, 2, "+",         TYPE_F64,        rf_add_F64_f64,          { TYPE_F64,   -TYPE_F64   });
     REC(records, 2, "-",        -TYPE_I64,        OP_SUBI,                 {-TYPE_I64,   -TYPE_I64   });
     REC(records, 2, "-",        -TYPE_F64,        OP_SUBF,                 {-TYPE_F64,   -TYPE_F64   });
     REC(records, 2, "*",        -TYPE_I64,        OP_MULI,                 {-TYPE_I64,   -TYPE_I64   });
@@ -76,7 +78,7 @@ null_t init_functions(rf_object_t *records)
     REC(records, 2, "/",        -TYPE_F64,        OP_DIVI,                 {-TYPE_I64,   -TYPE_I64   });
     REC(records, 2, "/",        -TYPE_F64,        OP_DIVF,                 {-TYPE_F64,   -TYPE_F64   });
     REC(records, 2, "like",     -TYPE_BOOL,       rf_like_String_String,   { TYPE_STRING, TYPE_STRING});
-    REC(records, 2, "dict",      TYPE_DICT,       rf_dict,                 { TYPE_NULL,    TYPE_NULL });
+    REC(records, 2, "dict",      TYPE_DICT,       rf_dict,                 { TYPE_ANY,    TYPE_ANY });
     // Ternary  
     // Quaternary  
     // Nary  

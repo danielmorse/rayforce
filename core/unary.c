@@ -133,3 +133,67 @@ rf_object_t rf_max_I64(rf_object_t *x)
 
     return i64(max);
 }
+
+rf_object_t rf_sum_F64(rf_object_t *x)
+{
+    i32_t i;
+    i64_t l = x->adt->len;
+    f64_t sum = 0, *v = as_vector_f64(x);
+
+    for (i = 0; i < l; i++)
+        sum += v[i];
+
+    return f64(sum);
+}
+
+rf_object_t rf_avg_F64(rf_object_t *x)
+{
+    i32_t i;
+    i64_t l = x->adt->len;
+    f64_t sum = 0, *v = as_vector_f64(x);
+
+    for (i = 0; i < l; i++)
+        sum += v[i];
+
+    return f64(sum / l);
+}
+
+rf_object_t rf_min_F64(rf_object_t *x)
+{
+    i32_t i;
+    i64_t l = x->adt->len;
+    f64_t min = x->adt->len ? as_vector_f64(x)[0] : 0, *v = as_vector_f64(x);
+
+    for (i = 0; i < l; i++)
+        if (v[i] < min)
+            min = v[i];
+
+    return f64(min);
+}
+
+rf_object_t rf_max_F64(rf_object_t *x)
+{
+    i32_t i;
+    i64_t l = x->adt->len;
+    f64_t max = x->adt->len ? as_vector_f64(x)[0] : 0, *v = as_vector_f64(x);
+
+    for (i = 0; i < l; i++)
+        if (v[i] > max)
+            max = v[i];
+
+    return f64(max);
+}
+
+rf_object_t rf_count(rf_object_t *x)
+{
+    if (x->type < TYPE_NULL)
+        return i64(1);
+
+    switch (x->type)
+    {
+    case TYPE_FUNCTION:
+        return i64(1);
+    default:
+        return i64(x->adt->len);
+    }
+}

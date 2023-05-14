@@ -25,10 +25,11 @@
 #include "dict.h"
 #include "util.h"
 #include "ops.h"
+#include "util.h"
+#include "format.h"
 
 rf_object_t rf_dict(rf_object_t *x, rf_object_t *y)
 {
-
     return dict(list_flatten(rf_object_clone(x)), list_flatten(rf_object_clone(y)));
 }
 
@@ -36,11 +37,24 @@ rf_object_t rf_add_I64_i64(rf_object_t *x, rf_object_t *y)
 {
     i32_t i;
     i64_t l = x->adt->len;
-    rf_object_t vec = rf_object_cow(x);
-    i64_t *v = as_vector_i64(&vec);
+    rf_object_t vec = vector_i64(l);
+    i64_t *iv = as_vector_i64(x), *ov = as_vector_i64(&vec);
 
     for (i = 0; i < l; i++)
-        v[i] = ADDI64(v[i], y->i64);
+        ov[i] = ADDI64(iv[i], y->i64);
+
+    return vec;
+}
+
+rf_object_t rf_add_F64_f64(rf_object_t *x, rf_object_t *y)
+{
+    i32_t i;
+    i64_t l = x->adt->len;
+    rf_object_t vec = vector_f64(l);
+    f64_t *iv = as_vector_f64(x), *ov = as_vector_f64(&vec);
+
+    for (i = 0; i < l; i++)
+        ov[i] = ADDF64(iv[i], y->f64);
 
     return vec;
 }

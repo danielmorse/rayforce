@@ -50,6 +50,7 @@ extern "C"
 #define TYPE_TABLE 8
 #define TYPE_FUNCTION 9
 #define TYPE_ERROR 10
+#define TYPE_ANY 127
 
 // Result constants
 #define OK 0

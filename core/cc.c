@@ -73,9 +73,28 @@ rf_object_t cc_compile_function(bool_t top, str_t name, i8_t rettype, rf_object_
         return TYPE_ERROR;                                            \
     }
 
-env_record_t *find_record(rf_object_t *records, rf_object_t *car, i32_t args, u32_t *arity)
+null_t bin(u32_t i)
 {
-    u32_t i = 0, records_len;
+    u32_t mask = 1 << 31;
+
+    while (mask)
+    {
+        printf("%s ", (i & mask) ? "++" : "--");
+        mask = mask >> 1;
+    }
+
+    printf("\n");
+
+    for (i32_t i = 0; i < 32; i++)
+        printf("%0.2d ", 31 - i);
+
+    printf("\n");
+}
+
+env_record_t *find_record(rf_object_t *records, rf_object_t *car, i8_t *args, u32_t *arity)
+{
+    u8_t match = 0;
+    u32_t i, j, records_len;
     env_record_t *rec;
 
     *arity = *arity > MAX_ARITY ? MAX_ARITY + 1 : *arity;
@@ -86,8 +105,23 @@ env_record_t *find_record(rf_object_t *records, rf_object_t *car, i32_t args, u3
     {
         rec = get_record(records, *arity, i);
 
-        if ((car->i64 == rec->id) && (rec->args == (args & rec->args)))
+        if (car->i64 == rec->id)
+        {
+            for (j = 0; j < *arity; j++)
+            {
+                if (rec->args[j] == TYPE_ANY)
+                    match++;
+                else if (rec->args[j] == args[j])
+                    match++;
+                else
+                    break;
+            }
+        }
+
+        if (match == *arity)
             return rec;
+
+        match = 0;
     }
 
     // Try to find in nary functions
@@ -461,6 +495,45 @@ i8_t cc_compile_catch(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t 
     return TYPE_NONE;
 }
 
+// i8_t cc_compile_map(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+// {
+//     i8_t type;
+//     rf_object_t *car = &as_list(object)[0];
+//     function_t *func = as_function(&cc->function);
+//     rf_object_t *code = &func->code;
+//     env_t *env = &runtime_get()->env;
+
+//     if (car->i64 == symbol("map").i64)
+//     {
+//         if (arity != 2)
+//             cerr(cc, car->id, ERR_LENGTH, "'map' takes two arguments");
+
+//         type = compile_expr(true, cc, &as_list(object)[1]);
+
+//         if (as_list(object)[1].type != -TYPE_SYMBOL)
+//             cerr(cc, car->id, ERR_LENGTH, "'as' takes symbol as first argument");
+
+//         type = env_get_type_by_typename(env, as_list(object)[1].i64);
+
+//         if (type == TYPE_NONE)
+//             ccerr(cc, as_list(object)[1].id, ERR_TYPE,
+//                   str_fmt(0, "'as': unknown type '%s", symbols_get(as_list(object)[1].i64)));
+
+//         if (cc_compile_expr(true, cc, &as_list(object)[2]) == TYPE_ERROR)
+//             return TYPE_ERROR;
+
+//         push_opcode(cc, car->id, code, OP_CAST);
+//         push_opcode(cc, car->id, code, type);
+
+//         if (!has_consumer)
+//             push_opcode(cc, car->id, code, OP_POP);
+
+//         return type;
+//     }
+
+//     return TYPE_NONE;
+// }
+
 /*
  * Special forms are those that are not in a table of functions because of their special nature.
  * return TYPE_ERROR if there is an error
@@ -514,7 +587,7 @@ i8_t cc_compile_special_forms(bool_t has_consumer, cc_t *cc, rf_object_t *object
     return type;
 }
 
-i8_t cc_compile_call(cc_t *cc, rf_object_t *car, i32_t args, u32_t arity)
+i8_t cc_compile_call(cc_t *cc, rf_object_t *car, i8_t *args, u32_t arity)
 {
     rf_object_t fn;
     u32_t found_arity = arity;
@@ -565,7 +638,7 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
     rf_object_t *car, *addr, *arg_keys, *arg_vals, lst;
     i8_t type = TYPE_NULL;
     u32_t i, arity;
-    i32_t args = 0;
+    i8_t args[MAX_ARITY] = {0};
     i64_t id, sym;
     env_t *env = &runtime_get()->env;
     function_t *func = as_function(&cc->function);
@@ -729,7 +802,7 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
 
             // pack arguments only if function is not nary
             if (arity <= MAX_ARITY)
-                args |= (u8_t)type << (MAX_ARITY - i) * 8;
+                args[i - 1] = type;
         }
 
         type = cc_compile_call(cc, car, args, arity);

@@ -32,5 +32,10 @@ rf_object_t rf_sum_I64(rf_object_t *x);
 rf_object_t rf_avg_I64(rf_object_t *x);
 rf_object_t rf_min_I64(rf_object_t *x);
 rf_object_t rf_max_I64(rf_object_t *x);
+rf_object_t rf_sum_F64(rf_object_t *x);
+rf_object_t rf_avg_F64(rf_object_t *x);
+rf_object_t rf_min_F64(rf_object_t *x);
+rf_object_t rf_max_F64(rf_object_t *x);
+rf_object_t rf_count(rf_object_t *x);
 
 #endif
