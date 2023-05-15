@@ -439,6 +439,8 @@ i32_t table_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t 
         }
     }
 
+    rf_object_free(&column_widths);
+
     return n;
 }
 
