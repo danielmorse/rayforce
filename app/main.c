@@ -270,7 +270,7 @@ rf_object_t parse_cmdline(i32_t argc, str_t argv[])
 null_t repl(str_t name, parser_t *parser, vm_t *vm, str_t buf, i32_t len)
 {
     rf_object_t parsed, compiled, executed;
-    str_t formatted;
+    str_t formatted = NULL;
 
     parsed = parse(parser, name, buf);
     // printf("%s\n", rf_object_fmt(&parsed));
