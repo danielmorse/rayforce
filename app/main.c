@@ -136,10 +136,11 @@ null_t print_logo()
 
 null_t print_error(rf_object_t *error, str_t filename, str_t source, u32_t len)
 {
-    u16_t line_number = 0, i;
+    const str_t PADDING = "                                                                                                   ";
+    u16_t line_number = 0, i, l;
     str_t start = source;
     str_t end = NULL;
-    str_t error_desc, lf = "";
+    str_t error_desc, lf = "", msg, p;
     span_t span = error->adt->span;
 
     switch (error->adt->code)
@@ -194,7 +195,18 @@ null_t print_error(rf_object_t *error, str_t filename, str_t source, u32_t len)
                 for (i = span.start_column; i <= span.end_column; i++)
                     printf("%s^%s", TOMATO, RESET);
 
-                printf(" %s%s%s\n", TOMATO, as_string(error), RESET);
+                l = 0;
+                msg = as_string(error);
+                p = strtok(msg, "\n");
+                while (p != NULL)
+                {
+                    if (!l)
+                        printf("%*.*s %s%s%s\n", l, l, PADDING, TOMATO, p, RESET);
+                    else
+                        printf("%*.*s %s%s%s\n", l, l, PADDING, YELLOW, p, RESET);
+                    p = strtok(NULL, "\n");
+                    l = span.end_column - span.start_column + 8;
+                }
             }
             else
             {
