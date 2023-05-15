@@ -27,8 +27,30 @@
 #include "rayforce.h"
 
 rf_object_t rf_dict(rf_object_t *x, rf_object_t *y);
+rf_object_t rf_add_i64_i64(rf_object_t *x, rf_object_t *y);
+rf_object_t rf_add_f64_f64(rf_object_t *x, rf_object_t *y);
 rf_object_t rf_add_I64_i64(rf_object_t *x, rf_object_t *y);
+rf_object_t rf_add_I64_I64(rf_object_t *x, rf_object_t *y);
 rf_object_t rf_add_F64_f64(rf_object_t *x, rf_object_t *y);
+rf_object_t rf_add_F64_F64(rf_object_t *x, rf_object_t *y);
+rf_object_t rf_sub_i64_i64(rf_object_t *x, rf_object_t *y);
+rf_object_t rf_sub_f64_f64(rf_object_t *x, rf_object_t *y);
+rf_object_t rf_sub_I64_i64(rf_object_t *x, rf_object_t *y);
+rf_object_t rf_sub_I64_I64(rf_object_t *x, rf_object_t *y);
+rf_object_t rf_sub_F64_f64(rf_object_t *x, rf_object_t *y);
+rf_object_t rf_sub_F64_F64(rf_object_t *x, rf_object_t *y);
+rf_object_t rf_mul_i64_i64(rf_object_t *x, rf_object_t *y);
+rf_object_t rf_mul_f64_f64(rf_object_t *x, rf_object_t *y);
+rf_object_t rf_mul_I64_i64(rf_object_t *x, rf_object_t *y);
+rf_object_t rf_mul_I64_I64(rf_object_t *x, rf_object_t *y);
+rf_object_t rf_mul_F64_f64(rf_object_t *x, rf_object_t *y);
+rf_object_t rf_mul_F64_F64(rf_object_t *x, rf_object_t *y);
+rf_object_t rf_div_i64_i64(rf_object_t *x, rf_object_t *y);
+rf_object_t rf_div_f64_f64(rf_object_t *x, rf_object_t *y);
+rf_object_t rf_div_I64_i64(rf_object_t *x, rf_object_t *y);
+rf_object_t rf_div_I64_I64(rf_object_t *x, rf_object_t *y);
+rf_object_t rf_div_F64_f64(rf_object_t *x, rf_object_t *y);
+rf_object_t rf_div_F64_F64(rf_object_t *x, rf_object_t *y);
 rf_object_t rf_like_String_String(rf_object_t *x, rf_object_t *y);
 rf_object_t rf_eq_i64_i64(rf_object_t *x, rf_object_t *y);
 rf_object_t rf_eq_f64_f64(rf_object_t *x, rf_object_t *y);

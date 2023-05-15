@@ -44,7 +44,7 @@ null_t init_functions(rf_object_t *records)
     REC(records, 0, "halt",      TYPE_LIST,       OP_HALT,                 { 0                        });
     REC(records, 0, "env",       TYPE_DICT,       rf_env,                  { 0                        });
     REC(records, 0, "memstat",   TYPE_DICT,       rf_memstat,              { 0                        });
-
+ 
     // Unary  
     REC(records, 1, "type",     -TYPE_SYMBOL,     OP_TYPE,                 { TYPE_ANY                 });
     REC(records, 1, "til" ,      TYPE_I64,        rf_til_i64,              {-TYPE_I64                 });
@@ -61,53 +61,67 @@ null_t init_functions(rf_object_t *records)
     REC(records, 1, "count",    -TYPE_I64,        rf_count,                { TYPE_ANY                 });
     REC(records, 1, "not",      -TYPE_BOOL,       rf_not_bool,             {-TYPE_BOOL                });
     REC(records, 1, "not",       TYPE_BOOL,       rf_not_Bool,             { TYPE_BOOL                });
-
-    // Binary
-    REC(records, 2, "==",       -TYPE_BOOL,       rf_eq_i64_i64,           {-TYPE_I64,    -TYPE_I64  });
-    REC(records, 2, "==",       -TYPE_BOOL,       rf_eq_f64_f64,           {-TYPE_F64,    -TYPE_F64  });
-    REC(records, 2, "==",        TYPE_BOOL,       rf_eq_I64_i64,           { TYPE_I64,    -TYPE_I64  });
-    REC(records, 2, "==",        TYPE_BOOL,       rf_eq_I64_I64,           { TYPE_I64,     TYPE_I64  });
-    REC(records, 2, "<",        -TYPE_BOOL,       rf_lt_i64_i64,           {-TYPE_I64,    -TYPE_I64  });
-    REC(records, 2, "<",        -TYPE_BOOL,       rf_lt_f64_f64,           {-TYPE_F64,    -TYPE_F64  });
-    REC(records, 2, "<",         TYPE_BOOL,       rf_lt_I64_i64,           { TYPE_I64,    -TYPE_I64  });
-    REC(records, 2, "<",         TYPE_BOOL,       rf_lt_I64_I64,           { TYPE_I64,     TYPE_I64  });
-    REC(records, 2, ">",        -TYPE_BOOL,       rf_gt_i64_i64,           {-TYPE_I64,    -TYPE_I64  });
-    REC(records, 2, ">",        -TYPE_BOOL,       rf_gt_f64_f64,           {-TYPE_F64,    -TYPE_F64  });
-    REC(records, 2, ">",         TYPE_BOOL,       rf_gt_I64_i64,           { TYPE_I64,    -TYPE_I64  });
-    REC(records, 2, ">",         TYPE_BOOL,       rf_gt_I64_I64,           { TYPE_I64,     TYPE_I64  });
-    REC(records, 2, "<=",       -TYPE_BOOL,       rf_le_i64_i64,           {-TYPE_I64,    -TYPE_I64  });
-    REC(records, 2, "<=",       -TYPE_BOOL,       rf_le_f64_f64,           {-TYPE_F64,    -TYPE_F64  });
-    REC(records, 2, "<=",        TYPE_BOOL,       rf_le_I64_i64,           { TYPE_I64,    -TYPE_I64  });
-    REC(records, 2, "<=",        TYPE_BOOL,       rf_le_I64_I64,           { TYPE_I64,     TYPE_I64  });
-    REC(records, 2, ">=",       -TYPE_BOOL,       rf_ge_i64_i64,           {-TYPE_I64,    -TYPE_I64  });
-    REC(records, 2, ">=",       -TYPE_BOOL,       rf_ge_f64_f64,           {-TYPE_F64,    -TYPE_F64  });
-    REC(records, 2, ">=",        TYPE_BOOL,       rf_ge_I64_i64,           { TYPE_I64,    -TYPE_I64  });
-    REC(records, 2, ">=",        TYPE_BOOL,       rf_ge_I64_I64,           { TYPE_I64,     TYPE_I64  });
-    REC(records, 2, "!=",        TYPE_BOOL,       rf_ne_i64_i64,           {-TYPE_I64,    -TYPE_I64  });
-    REC(records, 2, "!=",        TYPE_BOOL,       rf_ne_f64_f64,           {-TYPE_F64,    -TYPE_F64  });
-    REC(records, 2, "!=",       -TYPE_BOOL,       rf_ne_I64_i64,           { TYPE_I64,    -TYPE_I64  });
-    REC(records, 2, "!=",       -TYPE_BOOL,       rf_ne_I64_I64,           { TYPE_I64,     TYPE_I64  });
-    REC(records, 2, "and",       TYPE_BOOL,       rf_and_Bool_Bool,        { TYPE_BOOL,    TYPE_BOOL });
-    REC(records, 2, "or",        TYPE_BOOL,       rf_or_Bool_Bool,         { TYPE_BOOL,    TYPE_BOOL });
-    REC(records, 2, "+",        -TYPE_I64,        OP_ADDI,                 {-TYPE_I64,   -TYPE_I64   });
-    REC(records, 2, "+",        -TYPE_F64,        OP_ADDF,                 {-TYPE_F64,   -TYPE_F64   });
-    REC(records, 2, "+",         TYPE_I64,        rf_add_I64_i64,          { TYPE_I64,   -TYPE_I64   });
-    REC(records, 2, "+",         TYPE_F64,        rf_add_F64_f64,          { TYPE_F64,   -TYPE_F64   });
-    REC(records, 2, "-",        -TYPE_I64,        OP_SUBI,                 {-TYPE_I64,   -TYPE_I64   });
-    REC(records, 2, "-",        -TYPE_F64,        OP_SUBF,                 {-TYPE_F64,   -TYPE_F64   });
-    REC(records, 2, "*",        -TYPE_I64,        OP_MULI,                 {-TYPE_I64,   -TYPE_I64   });
-    REC(records, 2, "*",        -TYPE_F64,        OP_MULF,                 {-TYPE_F64,   -TYPE_F64   });
-    REC(records, 2, "/",        -TYPE_F64,        OP_DIVI,                 {-TYPE_I64,   -TYPE_I64   });
-    REC(records, 2, "/",        -TYPE_F64,        OP_DIVF,                 {-TYPE_F64,   -TYPE_F64   });
-    REC(records, 2, "like",     -TYPE_BOOL,       rf_like_String_String,   { TYPE_STRING, TYPE_STRING});
-    REC(records, 2, "dict",      TYPE_DICT,       rf_dict,                 { TYPE_ANY,    TYPE_ANY });
+ 
+    // Binary 
+    REC(records, 2, "==",       -TYPE_BOOL,       rf_eq_i64_i64,           {-TYPE_I64,   -TYPE_I64    });
+    REC(records, 2, "==",       -TYPE_BOOL,       rf_eq_f64_f64,           {-TYPE_F64,   -TYPE_F64    });
+    REC(records, 2, "==",        TYPE_BOOL,       rf_eq_I64_i64,           { TYPE_I64,   -TYPE_I64    });
+    REC(records, 2, "==",        TYPE_BOOL,       rf_eq_I64_I64,           { TYPE_I64,    TYPE_I64    });
+    REC(records, 2, "<",        -TYPE_BOOL,       rf_lt_i64_i64,           {-TYPE_I64,   -TYPE_I64    });
+    REC(records, 2, "<",        -TYPE_BOOL,       rf_lt_f64_f64,           {-TYPE_F64,   -TYPE_F64    });
+    REC(records, 2, "<",         TYPE_BOOL,       rf_lt_I64_i64,           { TYPE_I64,   -TYPE_I64    });
+    REC(records, 2, "<",         TYPE_BOOL,       rf_lt_I64_I64,           { TYPE_I64,    TYPE_I64    });
+    REC(records, 2, ">",        -TYPE_BOOL,       rf_gt_i64_i64,           {-TYPE_I64,   -TYPE_I64    });
+    REC(records, 2, ">",        -TYPE_BOOL,       rf_gt_f64_f64,           {-TYPE_F64,   -TYPE_F64    });
+    REC(records, 2, ">",         TYPE_BOOL,       rf_gt_I64_i64,           { TYPE_I64,   -TYPE_I64    });
+    REC(records, 2, ">",         TYPE_BOOL,       rf_gt_I64_I64,           { TYPE_I64,    TYPE_I64    });
+    REC(records, 2, "<=",       -TYPE_BOOL,       rf_le_i64_i64,           {-TYPE_I64,   -TYPE_I64    });
+    REC(records, 2, "<=",       -TYPE_BOOL,       rf_le_f64_f64,           {-TYPE_F64,   -TYPE_F64    });
+    REC(records, 2, "<=",        TYPE_BOOL,       rf_le_I64_i64,           { TYPE_I64,   -TYPE_I64    });
+    REC(records, 2, "<=",        TYPE_BOOL,       rf_le_I64_I64,           { TYPE_I64,    TYPE_I64    });
+    REC(records, 2, ">=",       -TYPE_BOOL,       rf_ge_i64_i64,           {-TYPE_I64,   -TYPE_I64    });
+    REC(records, 2, ">=",       -TYPE_BOOL,       rf_ge_f64_f64,           {-TYPE_F64,   -TYPE_F64    });
+    REC(records, 2, ">=",        TYPE_BOOL,       rf_ge_I64_i64,           { TYPE_I64,   -TYPE_I64    });
+    REC(records, 2, ">=",        TYPE_BOOL,       rf_ge_I64_I64,           { TYPE_I64,    TYPE_I64    });
+    REC(records, 2, "!=",        TYPE_BOOL,       rf_ne_i64_i64,           {-TYPE_I64,   -TYPE_I64    });
+    REC(records, 2, "!=",        TYPE_BOOL,       rf_ne_f64_f64,           {-TYPE_F64,   -TYPE_F64    });
+    REC(records, 2, "!=",       -TYPE_BOOL,       rf_ne_I64_i64,           { TYPE_I64,   -TYPE_I64    });
+    REC(records, 2, "!=",       -TYPE_BOOL,       rf_ne_I64_I64,           { TYPE_I64,    TYPE_I64    });
+    REC(records, 2, "and",       TYPE_BOOL,       rf_and_Bool_Bool,        { TYPE_BOOL,   TYPE_BOOL   });
+    REC(records, 2, "or",        TYPE_BOOL,       rf_or_Bool_Bool,         { TYPE_BOOL,   TYPE_BOOL   });
+    REC(records, 2, "+",        -TYPE_I64,        rf_add_i64_i64,          {-TYPE_I64,   -TYPE_I64    });
+    REC(records, 2, "+",        -TYPE_F64,        rf_add_f64_f64,          {-TYPE_F64,   -TYPE_F64    });
+    REC(records, 2, "+",         TYPE_I64,        rf_add_I64_i64,          { TYPE_I64,   -TYPE_I64    });
+    REC(records, 2, "+",         TYPE_I64,        rf_add_I64_I64,          { TYPE_I64,    TYPE_I64    });
+    REC(records, 2, "+",         TYPE_F64,        rf_add_F64_f64,          { TYPE_F64,   -TYPE_F64    });
+    REC(records, 2, "+",         TYPE_F64,        rf_add_F64_F64,          { TYPE_F64,    TYPE_F64    });
+    REC(records, 2, "-",        -TYPE_I64,        rf_sub_i64_i64,          {-TYPE_I64,   -TYPE_I64    });
+    REC(records, 2, "-",        -TYPE_F64,        rf_sub_f64_f64,          {-TYPE_F64,   -TYPE_F64    });
+    REC(records, 2, "-",         TYPE_I64,        rf_sub_I64_i64,          { TYPE_I64,   -TYPE_I64    });
+    REC(records, 2, "-",         TYPE_I64,        rf_sub_I64_I64,          { TYPE_I64,    TYPE_I64    });
+    REC(records, 2, "-",         TYPE_F64,        rf_sub_F64_f64,          { TYPE_F64,   -TYPE_F64    });
+    REC(records, 2, "-",         TYPE_F64,        rf_sub_F64_F64,          { TYPE_F64,    TYPE_F64    });
+    REC(records, 2, "*",        -TYPE_I64,        rf_mul_i64_i64,          {-TYPE_I64,   -TYPE_I64    });
+    REC(records, 2, "*",        -TYPE_F64,        rf_mul_f64_f64,          {-TYPE_F64,   -TYPE_F64    });
+    REC(records, 2, "*",         TYPE_I64,        rf_mul_I64_i64,          { TYPE_I64,   -TYPE_I64    });
+    REC(records, 2, "*",         TYPE_I64,        rf_mul_I64_I64,          { TYPE_I64,    TYPE_I64    });
+    REC(records, 2, "*",         TYPE_F64,        rf_mul_F64_f64,          { TYPE_F64,   -TYPE_F64    });
+    REC(records, 2, "*",         TYPE_F64,        rf_mul_F64_F64,          { TYPE_F64,    TYPE_F64    });
+    REC(records, 2, "/",        -TYPE_I64,        rf_div_i64_i64,          {-TYPE_I64,   -TYPE_I64    });
+    REC(records, 2, "/",        -TYPE_F64,        rf_div_f64_f64,          {-TYPE_F64,   -TYPE_F64    });
+    REC(records, 2, "/",         TYPE_I64,        rf_div_I64_i64,          { TYPE_I64,   -TYPE_I64    });
+    REC(records, 2, "/",         TYPE_I64,        rf_div_I64_I64,          { TYPE_I64,    TYPE_I64    });
+    REC(records, 2, "/",         TYPE_F64,        rf_div_F64_f64,          { TYPE_F64,   -TYPE_F64    });
+    REC(records, 2, "/",         TYPE_F64,        rf_div_F64_F64,          { TYPE_F64,    TYPE_F64    });
+    REC(records, 2, "like",     -TYPE_BOOL,       rf_like_String_String,   { TYPE_STRING, TYPE_STRING });
+    REC(records, 2, "dict",      TYPE_DICT,       rf_dict,                 { TYPE_ANY,    TYPE_ANY    });
     // Ternary  
     // Quaternary  
     // Nary  
-    REC(records, 5, "list",      TYPE_LIST,       rf_list,                 { 0                       });
-    REC(records, 5, "format",    TYPE_STRING,     rf_format,               { 0                       });
-    REC(records, 5, "print",     TYPE_NULL,       rf_print,                { 0                       });
-    REC(records, 5, "println",   TYPE_NULL,       rf_println,              { 0                       });
+    REC(records, 5, "list",      TYPE_LIST,       rf_list,                 { 0                        });
+    REC(records, 5, "format",    TYPE_STRING,     rf_format,               { 0                        });
+    REC(records, 5, "print",     TYPE_NULL,       rf_print,                { 0                        });
+    REC(records, 5, "println",   TYPE_NULL,       rf_println,              { 0                        });
 }
 
 null_t init_typenames(i64_t *typenames)

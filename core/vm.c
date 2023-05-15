@@ -97,10 +97,8 @@ rf_object_t vm_exec(vm_t *vm, rf_object_t *fun)
 
     // The indices of labels in the dispatch_table are the relevant opcodes
     static null_t *dispatch_table[] = {
-        &&op_halt, &&op_ret, &&op_push, &&op_pop, &&op_jne,
-        &&op_jmp, &&op_addi, &&op_addf, &&op_subi, &&op_subf, &&op_muli, &&op_mulf, &&op_divi, &&op_divf,
-        &&op_type, &&op_timer_set, &&op_timer_get, &&op_call0,
-        &&op_call1, &&op_call2, &&op_call3, &&op_call4, &&op_calln, &&op_callf, &&op_lset, &&op_gset,
+        &&op_halt, &&op_ret, &&op_push, &&op_pop, &&op_jne, &&op_jmp, &&op_type, &&op_timer_set, &&op_timer_get,
+        &&op_call0, &&op_call1, &&op_call2, &&op_call3, &&op_call4, &&op_calln, &&op_callf, &&op_lset, &&op_gset,
         &&op_lload, &&op_gload, &&op_cast, &&op_try, &&op_catch, &&op_throw, &&op_trace};
 
 #define dispatch() goto *dispatch_table[(i32_t)code[vm->ip]]
@@ -200,56 +198,6 @@ op_jmp:
     vm->ip++;
     x1 = *(rf_object_t *)(code + vm->ip);
     vm->ip = (i32_t)x1.i64;
-    dispatch();
-op_addi:
-    vm->ip++;
-    x3 = stack_pop(vm);
-    x2 = stack_pop(vm);
-    x1 = i64(ADDI64(x2.i64, x3.i64));
-    stack_push(vm, x1);
-    dispatch();
-op_addf:
-    vm->ip++;
-    x1 = stack_pop(vm);
-    stack_peek(vm)->f64 += x1.f64;
-    dispatch();
-op_subi:
-    vm->ip++;
-    x3 = stack_pop(vm);
-    x2 = stack_pop(vm);
-    x1 = i64(SUBI64(x2.i64, x3.i64));
-    stack_push(vm, x1);
-    dispatch();
-op_subf:
-    vm->ip++;
-    x1 = stack_pop(vm);
-    stack_peek(vm)->f64 -= x1.f64;
-    dispatch();
-op_muli:
-    vm->ip++;
-    x3 = stack_pop(vm);
-    x2 = stack_pop(vm);
-    x1 = i64(MULI64(x2.i64, x3.i64));
-    stack_push(vm, x1);
-    dispatch();
-op_mulf:
-    vm->ip++;
-    x1 = stack_pop(vm);
-    stack_peek(vm)->f64 *= x1.f64;
-    dispatch();
-op_divi:
-    vm->ip++;
-    x3 = stack_pop(vm);
-    x2 = stack_pop(vm);
-    x1 = f64(DIVI64(x2.i64, x3.i64));
-    stack_push(vm, x1);
-    dispatch();
-op_divf:
-    vm->ip++;
-    x3 = stack_pop(vm);
-    x2 = stack_pop(vm);
-    x1 = f64(DIVF64(x2.f64, x3.f64));
-    stack_push(vm, x1);
     dispatch();
 op_type:
     vm->ip++;
