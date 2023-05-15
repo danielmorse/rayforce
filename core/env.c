@@ -198,7 +198,8 @@ null_t free_env(env_t *env)
 rf_object_t *env_get_variable(env_t *env, rf_object_t *name)
 {
     rf_object_t addr = dict_get(&env->variables, name);
-    if (is_null(&addr))
+
+    if (addr.i64 == NULL_I64)
         return NULL;
 
     return (rf_object_t *)addr.i64;

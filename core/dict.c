@@ -27,7 +27,7 @@
 #include "format.h"
 #include "util.h"
 
-extern rf_object_t dict(rf_object_t keys, rf_object_t vals)
+rf_object_t dict(rf_object_t keys, rf_object_t vals)
 {
     if (keys.type < 0 || vals.type < 0)
         return error(ERR_TYPE, "Keys and rf_objects must be lists");
@@ -45,44 +45,19 @@ extern rf_object_t dict(rf_object_t keys, rf_object_t vals)
     return dict;
 }
 
-extern rf_object_t dict_get(rf_object_t *dict, rf_object_t *key)
+rf_object_t dict_get(rf_object_t *dict, rf_object_t *key)
 {
-    if (dict->type != TYPE_DICT)
-        return error(ERR_TYPE, "Expected dict");
+    rf_object_t *keys = &as_list(dict)[0], *vals = &as_list(dict)[1], index;
+    i64_t i;
 
-    rf_object_t *keys = &as_list(dict)[0];
-    rf_object_t *vals = &as_list(dict)[1];
-    rf_object_t val = null();
-    i64_t index = vector_find(keys, key);
+    i = vector_find(keys, key);
+    index = i64(i);
 
-    if (index == keys->adt->len)
-        return null();
-
-    switch (vals->type)
-    {
-    case TYPE_I64:
-        val = i64(as_vector_i64(vals)[index]);
-        break;
-    case TYPE_F64:
-        val = f64(as_vector_f64(vals)[index]);
-        break;
-    case TYPE_SYMBOL:
-        val = i64(as_vector_i64(vals)[index]);
-        val.type = -TYPE_SYMBOL;
-        break;
-    case TYPE_LIST:
-        val = rf_object_clone(&as_list(vals)[index]);
-        break;
-    }
-
-    return val;
+    return vector_get(vals, &index);
 }
 
-extern rf_object_t dict_set(rf_object_t *dict, rf_object_t *key, rf_object_t val)
+rf_object_t dict_set(rf_object_t *dict, rf_object_t *key, rf_object_t val)
 {
-    if (dict->type != TYPE_DICT)
-        return error(ERR_TYPE, "Expected dict");
-
     rf_object_t *keys = &as_list(dict)[0];
     rf_object_t *vals = &as_list(dict)[1];
     i64_t index = vector_find(keys, key);

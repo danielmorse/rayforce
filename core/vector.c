@@ -245,29 +245,29 @@ rf_object_t vector_get(rf_object_t *vector, rf_object_t *key)
     goto *types_table[(i32_t)type];
 
 type_bool:
-    if (l < i)
-        return bool(false);
-    return bool(as_vector_bool(vector)[i]);
+    if (i < l)
+        return bool(as_vector_bool(vector)[i]);
+    return bool(false);
 type_i64:
-    if (l < i)
-        return i64(NULL_I64);
-    return i64(as_vector_i64(vector)[i]);
+    if (i < l)
+        return i64(as_vector_i64(vector)[i]);
+    return i64(NULL_I64);
 type_f64:
-    if (l < i)
-        return f64(NULL_F64);
-    return f64(as_vector_f64(vector)[i]);
+    if (i < l)
+        return f64(as_vector_f64(vector)[i]);
+    return f64(NULL_F64);
 type_symbol:
-    if (l < i)
-        return i64(NULL_I64);
-    return i64(as_vector_i64(vector)[i]);
+    if (i < l)
+        return i64(as_vector_i64(vector)[i]);
+    return i64(NULL_I64);
 type_char:
-    if (l < i)
-        return schar(0);
-    return schar(as_string(vector)[i]);
+    if (i < l)
+        return schar(as_string(vector)[i]);
+    return schar(0);
 type_list:
-    if (l < i)
-        return null();
-    return rf_object_clone(&as_list(vector)[i]);
+    if (i < l)
+        return rf_object_clone(&as_list(vector)[i]);
+    return null();
 }
 
 /*
