@@ -847,10 +847,12 @@ rf_object_t rf_find_I64_i64(rf_object_t *x, rf_object_t *y)
 
 rf_object_t rf_find_I64_I64(rf_object_t *x, rf_object_t *y)
 {
-    i64_t xl = x->adt->len, yl = y->adt->len, i, max = 0, min = 0, offset = 0, size = 0;
-    rf_object_t vec = vector_i64(yl);
+    u64_t i, n, range, xl = x->adt->len, yl = y->adt->len;
+    i64_t max = 0, min = 0;
+    rf_object_t vec = vector_i64(yl), found;
     i64_t *iv1 = as_vector_i64(x), *iv2 = as_vector_i64(y),
-          *ov = as_vector_i64(&vec), v;
+          *ov = as_vector_i64(&vec), *fv, v;
+    hash_table_t *ht;
 
     for (i = 0; i < xl; i++)
     {
@@ -860,22 +862,49 @@ rf_object_t rf_find_I64_I64(rf_object_t *x, rf_object_t *y)
             min = iv1[i];
     }
 
-    if (xl < 1000)
-        size = xl;
-    else
+#define mask -1ll
+#define normalize(k) ((u64_t)(k - min))
+
+    // if range fits in 1 mb, use vector positions instead of hash table
+    range = max - min + 1;
+    if (range < 1024 * 1024)
     {
-        size = max - min + 1;
-        offset = min < 0 ? -min : min;
+        found = vector_i64(range);
+        fv = as_vector_i64(&found);
+        memset(fv, 255, sizeof(i64_t) * range);
+
+        for (i = 0; i < xl; i++)
+        {
+            n = normalize(iv1[i]);
+            if (fv[n] == mask)
+                fv[n] = i;
+        }
+
+        for (i = 0; i < yl; i++)
+        {
+            n = normalize(iv2[i]);
+            if (iv2[i] < min || iv2[i] > max || fv[n] == mask)
+                ov[i] = NULL_I64;
+            else
+                ov[i] = fv[n];
+        }
+
+        rf_object_free(&found);
+
+        return vec;
     }
 
-    hash_table_t *ht = ht_new(size, i64_hash, i64_cmp);
+    range = xl;
+
+    // otherwise, use a hash table
+    ht = ht_new(range, i64_hash, i64_cmp);
 
     for (i = 0; i < xl; i++)
-        ht_insert(ht, (null_t *)(iv1[i] + offset), (null_t *)i);
+        ht_insert(ht, (null_t *)(normalize(iv1[i])), (null_t *)i);
 
     for (i = 0; i < yl; i++)
     {
-        v = (i64_t)ht_get(ht, (null_t *)(iv2[i] + offset));
+        v = (i64_t)ht_get(ht, (null_t *)(normalize(iv2[i])));
         if (v < 0)
             ov[i] = NULL_I64;
         else

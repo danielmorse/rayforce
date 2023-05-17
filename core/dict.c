@@ -61,6 +61,7 @@ rf_object_t dict_set(rf_object_t *dict, rf_object_t *key, rf_object_t val)
     rf_object_t *keys = &as_list(dict)[0];
     rf_object_t *vals = &as_list(dict)[1];
     i64_t index = vector_find(keys, key);
+    debug("dict_set: %lld INDEX: %lld", key->i64, index);
 
     if (index == keys->adt->len)
     {

@@ -118,7 +118,7 @@ null_t *str_dup(null_t *key, null_t *val, bucket_t *bucket)
     i64_t len = string->len;
 
     // Allocate new pool node
-    if ((i64_t)symbols->strings_pool + len - (i64_t)symbols->pool_node > STRINGS_POOL_SIZE)
+    if ((i64_t)symbols->strings_pool + len - (i64_t)symbols->pool_node + 1 >= STRINGS_POOL_SIZE)
     {
         pool_node_t *node = pool_node_new();
         symbols->pool_node->next = node;
@@ -169,10 +169,10 @@ null_t symbols_free(symbols_t *symbols)
 i64_t symbols_intern(str_t s, i64_t len)
 {
     symbols_t *symbols = runtime_get()->symbols;
-    i64_t id = symbols->str_to_id->size;
+    i64_t id = symbols->str_to_id->count;
     str_slice_t str_slice = {s, len};
     i64_t id_or_str = (i64_t)ht_insert_with(symbols->str_to_id, &str_slice, (null_t *)id, &str_dup);
-    if (symbols->str_to_id->size == id)
+    if (symbols->str_to_id->count == (u64_t)id)
         return id_or_str;
 
     ht_insert(symbols->id_to_str, (null_t *)id, (str_t)id_or_str);
