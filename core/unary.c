@@ -287,6 +287,8 @@ rf_object_t rf_asc_I64(rf_object_t *x)
     for (i = 0; i < len; i++)
         ov[i] = iv[ov[i]];
 
+    idx.adt->attrs |= VEC_ATTR_ASC;
+
     return idx;
 }
 
@@ -298,6 +300,8 @@ rf_object_t rf_desc_I64(rf_object_t *x)
 
     for (i = 0; i < len; i++)
         ov[i] = iv[ov[i]];
+
+    idx.adt->attrs |= VEC_ATTR_DESC;
 
     return idx;
 }

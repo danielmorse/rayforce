@@ -27,6 +27,7 @@
 #include "nilary.h"
 #include "unary.h"
 #include "binary.h"
+#include "ternary.h"
 #include "nary.h"
 
 #define REC_SIZE (MAX_ARITY + 2)
@@ -131,9 +132,10 @@ null_t init_functions(rf_object_t *records)
     REC(records, 2, "find",     -TYPE_I64,        rf_find_F64_f64,         { TYPE_F64,    -TYPE_F64    });
     REC(records, 2, "find",      TYPE_I64,        rf_find_I64_I64,         { TYPE_I64,     TYPE_I64    });
     REC(records, 2, "find",      TYPE_I64,        rf_find_F64_F64,         { TYPE_F64,     TYPE_F64    });
-    REC(records, 2, "rand",      TYPE_I64,        rf_rand_i64_i64,         {-TYPE_I64,    -TYPE_I64    });
 
     // Ternary  
+    REC(records, 3, "rand",      TYPE_I64,        rf_rand_i64_i64_i64,     {-TYPE_I64,    -TYPE_I64, -TYPE_I64 });
+    
     // Quaternary  
     // Nary  
     REC(records, 5, "list",      TYPE_LIST,       rf_list,                 { 0                         });

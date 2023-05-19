@@ -108,6 +108,5 @@ rf_object_t rf_find_Char_char(rf_object_t *x, rf_object_t *y);
 rf_object_t rf_find_Char_Char(rf_object_t *x, rf_object_t *y);
 rf_object_t rf_find_F64_f64(rf_object_t *x, rf_object_t *y);
 rf_object_t rf_find_F64_F64(rf_object_t *x, rf_object_t *y);
-rf_object_t rf_rand_i64_i64(rf_object_t *x, rf_object_t *y);
 
 #endif
