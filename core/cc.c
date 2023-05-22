@@ -55,6 +55,8 @@ rf_object_t cc_compile_function(bool_t top, str_t name, i8_t rettype, rf_object_
         (c)->adt->len += sizeof(rf_object_t);               \
     }
 
+#define peek_rf_object(c) (rf_object_t *)(as_string(c) + (c)->adt->len - sizeof(rf_object_t))
+
 #define cerr(c, i, t, e)                                              \
     {                                                                 \
         rf_object_free(&(c)->function);                               \
@@ -302,11 +304,11 @@ i8_t cc_compile_fn(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t ari
             return TYPE_ERROR;
         }
 
-        // printf("%s\n", vm_code_fmt(&fun));
         push_opcode(cc, object->id, code, OP_PUSH);
         vector_i64_push(&func->const_addrs, code->adt->len);
         push_rf_object(code, fun);
         func->stack_size++;
+
         return TYPE_FUNCTION;
     }
 
@@ -644,9 +646,8 @@ i8_t cc_compile_call(cc_t *cc, rf_object_t *car, i8_t *args, u32_t arity)
 i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
 {
     rf_object_t *car, *addr, *arg_keys, *arg_vals, lst;
-    i8_t type = TYPE_NULL;
-    u32_t i, arity;
-    i8_t args[MAX_ARITY] = {0};
+    i8_t *args, type = TYPE_NULL;
+    u32_t l, i, arity;
     i64_t id, sym;
     env_t *env = &runtime_get()->env;
     function_t *func = as_function(&cc->function);
@@ -688,7 +689,7 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
         if (id < arg_vals->adt->len)
         {
             sym = as_vector_i64(arg_vals)[id];
-            type = env_get_type_by_typename(&runtime_get()->env, sym);
+            type = env_get_type_by_typename(env, sym);
             push_opcode(cc, object->id, code, OP_LLOAD);
             push_rf_object(code, i64(1 + id));
             func->stack_size++;
@@ -704,7 +705,7 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
         if (id < arg_vals->adt->len)
         {
             sym = as_vector_i64(arg_vals)[id];
-            type = env_get_type_by_typename(&runtime_get()->env, sym);
+            type = env_get_type_by_typename(env, sym);
             push_opcode(cc, object->id, code, OP_LLOAD);
             push_rf_object(code, i64(-(arg_keys->adt->len - id)));
             func->stack_size++;
@@ -738,11 +739,10 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
         }
 
         car = &as_list(object)[0];
-        if (car->type != -TYPE_SYMBOL)
-            cerr(cc, car->id, ERR_LENGTH, "expected symbol as first argument");
-
         arity = object->adt->len - 1;
+        args = (i8_t *)calloc(arity, sizeof(i8_t));
 
+        // special forms compilation need to be done before arguments compilation
         type = cc_compile_special_forms(has_consumer, cc, object, arity);
 
         if (type == TYPE_ERROR)
@@ -750,78 +750,149 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
 
         if (type != TYPE_NONE)
             return type;
-
-        // Compile user function call
-        if (car->i64 == symbol("self").i64)
-        {
-            if (cc->top_level)
-                cerr(cc, car->id, ERR_TYPE, "'self' has no meaning at top level");
-
-            addr = &cc->function;
-        }
-        else
-            addr = env_get_variable(&runtime_get()->env, car);
-
-        if (addr && addr->type == TYPE_FUNCTION)
-        {
-            func = as_function(addr);
-
-            if (func->args.type != TYPE_DICT)
-                cerr(cc, car->id, ERR_TYPE, "expected dict as function arguments");
-
-            arg_keys = &as_list(&func->args)[0];
-            arg_vals = &as_list(&func->args)[1];
-
-            if (arg_keys->adt->len != arity)
-                ccerr(cc, car->id, ERR_LENGTH,
-                      str_fmt(0, "arguments length mismatch: expected %d, got %d", arg_keys->adt->len, arity));
-
-            // compile arguments
-            for (i = 1; i <= arity; i++)
-            {
-                type = cc_compile_expr(true, cc, &as_list(object)[i]);
-
-                if (type == TYPE_ERROR)
-                    return TYPE_ERROR;
-
-                if (type != env_get_type_by_typename(env, as_vector_symbol(arg_vals)[i - 1]))
-                    ccerr(cc, car->id, ERR_TYPE,
-                          str_fmt(0, "argument type mismatch: expected %s, got %s",
-                                  symbols_get(as_vector_symbol(arg_vals)[i - 1]),
-                                  symbols_get(env_get_typename_by_type(env, type))));
-            }
-
-            push_opcode(cc, car->id, code, OP_CALLF);
-            push_rf_object(code, *addr);
-
-            // additional one for ctx
-            func->stack_size += 2;
-
-            return func->rettype;
-        }
+        // --
 
         // compile arguments
-        for (i = 1; i <= arity; i++)
+        for (i = 0; i < arity; i++)
         {
-            type = cc_compile_expr(true, cc, &as_list(object)[i]);
+            type = cc_compile_expr(true, cc, &as_list(object)[i + 1]);
 
             if (type == TYPE_ERROR)
                 return TYPE_ERROR;
 
-            // pack arguments only if function is not nary
-            if (arity <= MAX_ARITY)
-                args[i - 1] = type;
+            args[i] = type;
         }
 
-        type = cc_compile_call(cc, car, args, arity);
+        // no need for compilation of car, just try to dereference it
+        if (car->type == -TYPE_SYMBOL)
+        {
+            if (car->i64 == symbol("self").i64)
+            {
+                if (cc->top_level)
+                    cerr(cc, car->id, ERR_TYPE, "'self' has no meaning at top level");
+
+                addr = &cc->function;
+                func = as_function(addr);
+
+                // check args
+                arg_vals = &as_list(&func->args)[1];
+                l = arg_vals->adt->len;
+
+                if (l != arity)
+                    if (l != arity)
+                        ccerr(cc, car->id, ERR_LENGTH,
+                              str_fmt(0, "arguments length mismatch: expected %d, got %d", l, arity));
+
+                for (i = 0; i < arity; i++)
+                {
+                    sym = as_vector_i64(arg_vals)[i];
+                    type = env_get_type_by_typename(env, sym);
+
+                    if (args[i] != type)
+                        ccerr(cc, as_list(object)[i + 1].id, ERR_TYPE,
+                              str_fmt(0, "argument type mismatch: expected %s, got %s",
+                                      symbols_get(env_get_typename_by_type(env, type)), symbols_get(env_get_typename_by_type(env, args[i]))));
+                }
+
+                push_opcode(cc, car->id, code, OP_PUSH);
+                push_rf_object(code, rf_object_clone(addr));
+                push_opcode(cc, car->id, code, OP_CALLF);
+
+                // additional one for ctx
+                func->stack_size += 2;
+
+                return type;
+            }
+            else
+            {
+                // try to find function in a global env
+                addr = env_get_variable(env, car);
+
+                // try to find function in a functions table
+                if (addr == NULL)
+                {
+                    type = cc_compile_call(cc, car, args, arity);
+
+                    if (type == TYPE_ERROR)
+                        return type;
+
+                    if (!has_consumer)
+                        push_opcode(cc, car->id, code, OP_POP);
+
+                    return type;
+                }
+
+                if (addr->type != TYPE_FUNCTION)
+                    cerr(cc, car->id, ERR_TYPE, "expected function/symbol as first argument");
+
+                func = as_function(addr);
+                arg_vals = &as_list(&func->args)[1];
+                l = arg_vals->adt->len;
+
+                if (l != arity)
+                    if (l != arity)
+                        ccerr(cc, car->id, ERR_LENGTH,
+                              str_fmt(0, "arguments length mismatch: expected %d, got %d", l, arity));
+
+                for (i = 0; i < arity; i++)
+                {
+                    sym = as_vector_i64(arg_vals)[i];
+                    type = env_get_type_by_typename(env, sym);
+
+                    if (args[i] != type)
+                        ccerr(cc, as_list(object)[i + 1].id, ERR_TYPE,
+                              str_fmt(0, "argument type mismatch: expected %s, got %s",
+                                      symbols_get(env_get_typename_by_type(env, type)), symbols_get(env_get_typename_by_type(env, args[i]))));
+                }
+
+                push_opcode(cc, car->id, code, OP_GLOAD);
+                push_rf_object(code, i64((i64_t)addr));
+                push_opcode(cc, car->id, code, OP_CALLF);
+
+                // additional one for ctx
+                func->stack_size += 2;
+
+                return func->rettype;
+            }
+        }
+
+        // compile car
+        type = cc_compile_expr(true, cc, car);
 
         if (type == TYPE_ERROR)
-            return type;
+            return TYPE_ERROR;
 
-        if (!has_consumer)
-            push_opcode(cc, car->id, code, OP_POP);
+        if (type != TYPE_FUNCTION)
+            cerr(cc, car->id, ERR_TYPE, "expected function/symbol as first argument");
 
-        return type;
+        addr = peek_rf_object(code);
+        func = as_function(addr);
+
+        arg_keys = &as_list(&func->args)[0];
+        arg_vals = &as_list(&func->args)[1];
+        l = arg_vals->adt->len;
+
+        if (l != arity)
+            ccerr(cc, car->id, ERR_LENGTH,
+                  str_fmt(0, "arguments length mismatch: expected %d, got %d", l, arity));
+
+        for (i = 0; i < arity; i++)
+        {
+            sym = as_vector_i64(arg_vals)[i];
+            type = env_get_type_by_typename(env, sym);
+
+            if (args[i] != type)
+                ccerr(cc, as_list(object)[i + 1].id, ERR_TYPE,
+                      str_fmt(0, "argument type mismatch: expected %s, got %s",
+                              symbols_get(env_get_typename_by_type(env, type)), symbols_get(env_get_typename_by_type(env, args[i]))));
+        }
+
+        push_opcode(cc, car->id, code, OP_CALLF);
+
+        // additional one for ctx
+        func->stack_size += 2;
+
+        return func->rettype;
 
     default:
         push_opcode(cc, object->id, code, OP_PUSH);

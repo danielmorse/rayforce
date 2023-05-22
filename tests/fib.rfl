@@ -1,14 +1,12 @@
 ;; Author: 0x0L
-(set fib (fn 'i64 {x: 'i64} 
-    (if (< x 2) 
-        1 
-        (+ (self (- x 1))  (self (- x 2)) )  )))
+(set fib (fn i64 {x: i64} 
+    (if (< x 1) 
+        0 
+        (if (< x 2)
+            1
+            (+ (self (- x 1))  (self (- x 2)))))))
 
 ;; (try (fib 6)
 ;;     (catch e 
 ;;         (print "E:%", e)))
 
-
-
-
-(set f (fn {x:i64} (as 'Symbol x)))

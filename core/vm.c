@@ -311,10 +311,9 @@ op_callf:
      * +-------------------+
      */
     b = vm->ip++;
-    x2 = *(rf_object_t *)(code + vm->ip);
-    vm->ip += sizeof(rf_object_t);
     if ((vm->sp + f->stack_size) * sizeof(rf_object_t) > VM_STACK_SIZE)
         unwrap(error(ERR_STACK_OVERFLOW, "stack overflow"), b);
+    x2 = stack_pop(vm); // function
     // save ctx
     ctx = (ctx_t){.addr = f, .ip = vm->ip, .bp = vm->bp};
     memcpy(&x1, &ctx, sizeof(ctx_t));
