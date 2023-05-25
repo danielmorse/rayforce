@@ -147,6 +147,16 @@ rf_object_t schar(char_t c)
     return ch;
 }
 
+rf_object_t timestamp(i64_t val)
+{
+    rf_object_t scalar = {
+        .type = -TYPE_TIMESTAMP,
+        .i64 = val,
+    };
+
+    return scalar;
+}
+
 rf_object_t table(rf_object_t keys, rf_object_t vals)
 {
     if (keys.type != TYPE_SYMBOL || vals.type != 0)
@@ -233,8 +243,8 @@ rf_object_t rf_object_clone(rf_object_t *object)
     rc_inc(object);
 
     static null_t *types_table[] = {
-        &&type_any, &&type_bool, &&type_i64, &&type_f64, &&type_symbol, &&type_char,
-        &&type_list, &&type_dict, &&type_table, &&type_function, &&type_error};
+        &&type_any, &&type_bool, &&type_i64, &&type_f64, &&type_symbol, &&type_timestamp,
+        &&type_char, &&type_list, &&type_dict, &&type_table, &&type_function, &&type_error};
 
     goto *types_table[(i32_t)object->type];
 
@@ -247,6 +257,8 @@ type_i64:
 type_f64:
     return *object;
 type_symbol:
+    return *object;
+type_timestamp:
     return *object;
 type_char:
     return *object;
@@ -283,8 +295,8 @@ null_t rf_object_free(rf_object_t *object)
     rc_dec(rc, object);
 
     static null_t *types_table[] = {
-        &&type_any, &&type_bool, &&type_i64, &&type_f64, &&type_symbol, &&type_char,
-        &&type_list, &&type_dict, &&type_table, &&type_function, &&type_error};
+        &&type_any, &&type_bool, &&type_i64, &&type_f64, &&type_symbol, &&type_timestamp,
+        &&type_char, &&type_list, &&type_dict, &&type_table, &&type_function, &&type_error};
 
     goto *types_table[(i32_t)object->type];
 
@@ -303,6 +315,10 @@ type_f64:
         vector_free(object);
     return;
 type_symbol:
+    if (rc == 0)
+        vector_free(object);
+    return;
+type_timestamp:
     if (rc == 0)
         vector_free(object);
     return;
@@ -369,8 +385,8 @@ rf_object_t rf_object_cow(rf_object_t *object)
         return rf_object_clone(object);
 
     static null_t *types_table[] = {
-        &&type_any, &&type_bool, &&type_i64, &&type_f64, &&type_symbol, &&type_char,
-        &&type_list, &&type_dict, &&type_table, &&type_function, &&type_error};
+        &&type_any, &&type_bool, &&type_i64, &&type_f64, &&type_symbol, &&type_timestamp,
+        &&type_char, &&type_list, &&type_dict, &&type_table, &&type_function, &&type_error};
 
     goto *types_table[(i32_t)object->type];
 
@@ -395,6 +411,11 @@ type_symbol:
     new = vector_symbol(object->adt->len);
     new.adt->attrs = object->adt->attrs;
     memcpy(as_vector_symbol(&new), as_vector_symbol(object), object->adt->len * sizeof(i64_t));
+    return new;
+type_timestamp:
+    new = vector_timestamp(object->adt->len);
+    new.adt->attrs = object->adt->attrs;
+    memcpy(as_vector_timestamp(&new), as_vector_timestamp(object), object->adt->len * sizeof(i64_t));
     return new;
 type_char:
     new = string(object->adt->len);

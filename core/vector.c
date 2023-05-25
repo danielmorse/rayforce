@@ -177,7 +177,7 @@ i64_t vector_find(rf_object_t *vector, rf_object_t *key)
     i8_t type = vector->type - TYPE_BOOL;
 
     static null_t *types_table[] = {&&type_bool, &&type_i64, &&type_f64, &&type_symbol,
-                                    &&type_char, &&type_list};
+                                    &&type_timestamp, &&type_char, &&type_list};
 
     if (type > TYPE_LIST)
         panic("vector_get: non-gettable type");
@@ -214,6 +214,13 @@ type_symbol:
         if (vi[i] == ki)
             return i;
     return l;
+type_timestamp:
+    vi = as_vector_timestamp(vector);
+    ki = key->i64;
+    for (i = 0; i < l; i++)
+        if (vi[i] == ki)
+            return i;
+    return l;
 type_char:
     vc = as_string(vector);
     kc = key->schar;
@@ -236,7 +243,7 @@ rf_object_t vector_get(rf_object_t *vector, i64_t index)
     i8_t type = vector->type - TYPE_BOOL;
 
     static null_t *types_table[] = {&&type_bool, &&type_i64, &&type_f64, &&type_symbol,
-                                    &&type_char, &&type_list};
+                                    &&type_timestamp, &&type_char, &&type_list};
 
     // if (type > TYPE_LIST)
     //     panic("vector_get: non-gettable type");
@@ -261,6 +268,10 @@ type_symbol:
     if (index < l)
         return i64(as_vector_i64(vector)[index]);
     return i64(NULL_I64);
+type_timestamp:
+    if (index < l)
+        return i64(as_vector_i64(vector)[index]);
+    return i64(NULL_I64);
 type_char:
     if (index < l)
         return schar(as_string(vector)[index]);
@@ -276,7 +287,7 @@ null_t vector_set(rf_object_t *vector, i64_t index, rf_object_t value)
     i8_t type = vector->type - TYPE_BOOL;
 
     static null_t *types_table[] = {&&type_bool, &&type_i64, &&type_f64, &&type_symbol,
-                                    &&type_char, &&type_list};
+                                    &&type_timestamp, &&type_char, &&type_list};
 
     // if (type > TYPE_LIST)
     // panic("vector_set: non-settable type");
@@ -296,6 +307,9 @@ type_f64:
     as_vector_f64(vector)[index] = value.f64;
     return;
 type_symbol:
+    as_vector_i64(vector)[index] = value.i64;
+    return;
+type_timestamp:
     as_vector_i64(vector)[index] = value.i64;
     return;
 type_char:

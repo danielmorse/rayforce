@@ -297,6 +297,7 @@ null_t repl(str_t name, parser_t *parser, vm_t *vm, str_t buf, i32_t len)
     rf_object_free(&parsed);
 
     executed = vm_exec(vm, &compiled);
+    rf_object_free(&compiled);
 
     if (is_error(&executed))
         print_error(&executed, name, buf, len);
@@ -311,7 +312,6 @@ null_t repl(str_t name, parser_t *parser, vm_t *vm, str_t buf, i32_t len)
     }
 
     rf_object_free(&executed);
-    rf_object_free(&compiled);
 
     return;
 }
@@ -348,7 +348,6 @@ i32_t main(i32_t argc, str_t argv[])
 
     line = (str_t)mmap_malloc(LINE_SIZE);
     vm = vm_new();
-
     // load file
     filename = dict_get(&args, &symfile);
     if (!is_null(&filename))

@@ -275,6 +275,13 @@ i32_t string_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t
     return n;
 }
 
+i32_t ts_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t limit, rf_object_t *rf_object)
+{
+    i32_t n = str_fmt_into(dst, len, offset, limit, "timestamp");
+
+    return n;
+}
+
 i32_t dict_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t limit, rf_object_t *rf_object)
 {
     rf_object_t *keys = &as_list(rf_object)[0], *vals = &as_list(rf_object)[1];
@@ -477,6 +484,8 @@ i32_t rf_object_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i3
         return f64_fmt_into(dst, len, offset, indent, limit, object->f64);
     case -TYPE_SYMBOL:
         return symbol_fmt_into(dst, len, offset, indent, limit, object->i64);
+    case -TYPE_TIMESTAMP:
+        return ts_fmt_into(dst, len, offset, indent, limit, object);
     case -TYPE_CHAR:
         return str_fmt_into(dst, len, offset, limit, "'%c'", object->schar ? object->schar : 1);
     case TYPE_BOOL:

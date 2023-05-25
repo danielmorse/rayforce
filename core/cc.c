@@ -745,6 +745,8 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
     switch (object->type)
     {
     case -TYPE_I64:
+        if (!has_consumer)
+            return TYPE_NONE;
         push_opcode(cc, object->id, code, OP_PUSH);
         push_rf_object(code, *object);
         func->stack_size++;
@@ -815,6 +817,8 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
         return addr->type;
 
     case TYPE_LIST:
+        if (!has_consumer)
+            return TYPE_NONE;
         if (object->adt->len == 0 || object->flags == 1)
         {
             lst = rf_object_clone(object);
@@ -984,6 +988,8 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
         return func->rettype;
 
     default:
+        if (!has_consumer)
+            return TYPE_NONE;
         push_opcode(cc, object->id, code, OP_PUSH);
         vector_i64_push(&func->const_addrs, code->adt->len);
         push_rf_object(code, rf_object_clone(object));

@@ -44,12 +44,13 @@ extern "C"
 #define TYPE_I64 2
 #define TYPE_F64 3
 #define TYPE_SYMBOL 4
-#define TYPE_CHAR 5
-#define TYPE_LIST 6
-#define TYPE_DICT 7
-#define TYPE_TABLE 8
-#define TYPE_FUNCTION 9
-#define TYPE_ERROR 10
+#define TYPE_TIMESTAMP 5
+#define TYPE_CHAR 6
+#define TYPE_LIST 7
+#define TYPE_DICT 8
+#define TYPE_TABLE 9
+#define TYPE_FUNCTION 10
+#define TYPE_ERROR 11
 #define TYPE_ANY 127
 
 // Result constants
@@ -139,29 +140,31 @@ typedef struct rf_object_t
 CASSERT(sizeof(struct rf_object_t) == 16, rayforce_h)
 
 // Constructors
-extern rf_object_t bool(bool_t val);                                     // bool scalar
-extern rf_object_t i64(i64_t val);                                       // i64 scalar
-extern rf_object_t f64(f64_t val);                                       // f64 scalar
-extern rf_object_t symbol(str_t ptr);                                    // symbol
-extern rf_object_t symboli64(i64_t id);                                  // symbol from i64
-extern rf_object_t schar(char_t c);                                      // char
-extern rf_object_t vector(i8_t type, i8_t size_of_val, i64_t len);       // vector of type
-extern rf_object_t string(i64_t len);                                    // string 
+extern rf_object_t bool(bool_t val);                                        // bool scalar
+extern rf_object_t i64(i64_t val);                                          // i64 scalar
+extern rf_object_t f64(f64_t val);                                          // f64 scalar
+extern rf_object_t symbol(str_t ptr);                                       // symbol
+extern rf_object_t symboli64(i64_t id);                                     // symbol from i64
+extern rf_object_t timestamp(i64_t val);                                    // timestamp
+extern rf_object_t schar(char_t c);                                         // char
+extern rf_object_t vector(i8_t type, i8_t size_of_val, i64_t len);          // vector of type
+extern rf_object_t string(i64_t len);                                       // string 
 
-#define null()             ((rf_object_t){.type = TYPE_NULL})            // null
-#define vector_bool(len)   (vector(TYPE_BOOL, sizeof(bool_t), len))      // bool vector
-#define vector_i64(len)    (vector(TYPE_I64, sizeof(i64_t), len))        // i64 vector
-#define vector_f64(len)    (vector(TYPE_F64, sizeof(f64_t), len))        // f64 vector
-#define vector_symbol(len) (vector(TYPE_SYMBOL, sizeof(i64_t), len))     // symbol vector
-#define list(len)          (vector(TYPE_LIST, sizeof(rf_object_t), len)) // list
+#define null()                ((rf_object_t){.type = TYPE_NULL})            // null
+#define vector_bool(len)      (vector(TYPE_BOOL, sizeof(bool_t), len))      // bool vector
+#define vector_i64(len)       (vector(TYPE_I64, sizeof(i64_t), len))        // i64 vector
+#define vector_f64(len)       (vector(TYPE_F64, sizeof(f64_t), len))        // f64 vector
+#define vector_symbol(len)    (vector(TYPE_SYMBOL, sizeof(i64_t), len))     // symbol vector
+#define vector_timestamp(len) (vector(TYPE_TIMESTAMP, sizeof(i64_t), len))  // char vector
+#define list(len)             (vector(TYPE_LIST, sizeof(rf_object_t), len)) // list
 
-extern rf_object_t table(rf_object_t keys, rf_object_t vals);            // table
-extern rf_object_t dict(rf_object_t keys, rf_object_t vals);             // dict
+extern rf_object_t table(rf_object_t keys, rf_object_t vals);               // table
+extern rf_object_t dict(rf_object_t keys, rf_object_t vals);                // dict
 
-// Reference counting
-extern rf_object_t rf_object_clone(rf_object_t *rf_object);              // clone
-extern rf_object_t rf_object_cow(rf_object_t *rf_object);                // clone if refcount > 1
-extern i64_t       rf_object_rc(rf_object_t *rf_object);                 // get refcount
+// Reference counting   
+extern rf_object_t rf_object_clone(rf_object_t *rf_object);                 // clone
+extern rf_object_t rf_object_cow(rf_object_t *rf_object);                   // clone if refcount > 1
+extern i64_t       rf_object_rc(rf_object_t *rf_object);                    // get refcount
 
 // Error
 extern rf_object_t error(i8_t code, str_t message);
@@ -170,12 +173,13 @@ extern rf_object_t error(i8_t code, str_t message);
 extern null_t rf_object_free(rf_object_t *rf_object);
 
 // Accessors
-#define as_string(object)        ((str_t)((object)->adt + 1))
-#define as_vector_bool(object)   ((bool_t *)(as_string(object)))
-#define as_vector_i64(object)    ((i64_t *)(as_string(object)))
-#define as_vector_f64(object)    ((f64_t *)(as_string(object)))
-#define as_vector_symbol(object) ((i64_t *)(as_string(object)))
-#define as_list(object)          ((rf_object_t *)(as_string(object)))
+#define as_string(object)           ((str_t)((object)->adt + 1))
+#define as_vector_bool(object)      ((bool_t *)(as_string(object)))
+#define as_vector_i64(object)       ((i64_t *)(as_string(object)))
+#define as_vector_f64(object)       ((f64_t *)(as_string(object)))
+#define as_vector_symbol(object)    ((i64_t *)(as_string(object)))
+#define as_vector_timestamp(object) ((i64_t *)(as_string(object)))
+#define as_list(object)             ((rf_object_t *)(as_string(object)))
 
 // Checkers
 #define is_null(object)   ((object)->type == TYPE_NULL)
