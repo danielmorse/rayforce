@@ -262,8 +262,7 @@ rf_object_t parse_timestamp(parser_t *parser)
         return null();
 
     ts.nanos = nanos;
-    shift(parser, parser->current - current);
-
+    shift(parser, end - parser->current);
     res = timestamp(rf_timestamp_into_i64(ts));
 
     span_extend(parser, &span);

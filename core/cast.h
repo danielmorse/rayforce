@@ -54,7 +54,7 @@ static inline __attribute__((always_inline)) rf_object_t rf_cast(i8_t type, rf_o
 
     rf_object_t x, err;
     i16_t mask = m(type, y->type);
-    i32_t i;
+    i64_t i, l;
     str_t msg;
 
     switch (mask)
@@ -146,6 +146,24 @@ static inline __attribute__((always_inline)) rf_object_t rf_cast(i8_t type, rf_o
             x = guid(NULL);
         }
 
+        break;
+    case m(-TYPE_I64, -TYPE_TIMESTAMP):
+        x = timestamp(y->i64);
+        break;
+    case m(-TYPE_TIMESTAMP, -TYPE_I64):
+        x = i64(y->i64);
+        break;
+    case m(TYPE_I64, TYPE_TIMESTAMP):
+        l = y->adt->len;
+        x = vector_i64(l);
+        for (i = 0; i < l; i++)
+            as_vector_i64(&x)[i] = as_vector_timestamp(y)[i];
+        break;
+    case m(TYPE_TIMESTAMP, TYPE_I64):
+        l = y->adt->len;
+        x = vector_timestamp(l);
+        for (i = 0; i < l; i++)
+            as_vector_timestamp(&x)[i] = as_vector_i64(y)[i];
         break;
     default:
         msg = str_fmt(0, "invalid conversion from '%s' to '%s'",

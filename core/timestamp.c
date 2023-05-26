@@ -76,13 +76,13 @@ u8_t days_in_month(u16_t year, u8_t month)
 date_t date_from_days(i64_t v)
 {
     v += years_by_days(EPOCH - 1);
-    u16_t years = (u16_t)round_f64(((f64_t)v / 365.2425));
-    // debug("YEARS: %d %d", v, ((f64_t)v / 365.2425));
+    i64_t years = round_f64(((f64_t)v / 365.2425));
+
     if (years_by_days(years) > v)
         years -= 1;
 
     i64_t days = v - years_by_days(years);
-    u16_t yy = years + 1;
+    i64_t yy = years + 1;
     u8_t leap = leap_year(yy);
     u8_t mid = 0;
 
@@ -93,9 +93,8 @@ date_t date_from_days(i64_t v)
     if (mid == 12)
         mid = 0;
 
-    // debug("MID: %d DAYS: %d", mid, days);
-    u8_t mm = (1 + mid % 12);
-    u8_t dd = (1 + days - MONTHDAYS_FWD[leap][mid]);
+    i64_t mm = (1 + mid % 12);
+    i64_t dd = (1 + days - MONTHDAYS_FWD[leap][mid]);
 
     return (date_t){
         .year = yy,
@@ -106,12 +105,12 @@ date_t date_from_days(i64_t v)
 
 timespan_t timespan_from_nanos(i64_t nanos)
 {
-    u8_t secs = nanos / 1000000000;
-    u32_t ns = nanos % 1000000000;
-    u8_t hh = secs / 3600;
-    u8_t mins = secs % 3600;
-    u8_t mm = mins / 60;
-    u8_t ss = mins % 60;
+    i64_t secs = nanos / 1000000000;
+    i64_t ns = nanos % 1000000000;
+    i64_t hh = secs / 3600;
+    i64_t mins = secs % 3600;
+    i64_t mm = mins / 60;
+    i64_t ss = mins % 60;
 
     return (timespan_t){
         .hours = hh,
@@ -133,14 +132,13 @@ i64_t date_into_days(date_t dt)
     i64_t ydays = years_by_days(dt.year > 0 ? dt.year - 1 : dt.year);
     u8_t leap = leap_year(dt.year);
     u32_t mdays = MONTHDAYS_FWD[leap][dt.month > 0 ? dt.month - 1 : 0];
-    // debug("mdays: %d\n", dt.month);
     return (ydays - years_by_days(EPOCH - 1) + mdays + dt.day - 1);
 }
 
 //
 timestamp_t rf_timestamp_from_i64(i64_t offset)
 {
-    u8_t days = offset / NSECS_IN_DAY;
+    i64_t days = offset / NSECS_IN_DAY;
     i64_t span = offset % NSECS_IN_DAY;
 
     if (span < 0)
@@ -162,10 +160,6 @@ timestamp_t rf_timestamp_from_i64(i64_t offset)
         .secs = sp.secs,
         .nanos = sp.nanos,
     };
-
-    // debug("timestamp: %d-%d-%d %d:%d:%d.%d\n",
-    //       ts.year, ts.month, ts.day,
-    //       ts.hours, ts.mins, ts.secs, ts.nanos);
 
     return ts;
 }

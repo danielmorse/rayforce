@@ -204,7 +204,8 @@ i32_t ts_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t lim
         return str_fmt_into(dst, len, offset, limit, "%*.*s%s", indent, indent, PADDING, "0t");
 
     timestamp_t ts = rf_timestamp_from_i64(val);
-    i32_t n = str_fmt_into(dst, len, offset, limit, "%.4d.%.2d.%.2dD%.2d:%.2d:%.2d.%.9d",
+    i32_t n = str_fmt_into(dst, len, offset, limit, "%*.*s%.4d.%.2d.%.2dD%.2d:%.2d:%.2d.%.9d",
+                           indent, indent, PADDING,
                            ts.year, ts.month, ts.day, ts.hours, ts.mins, ts.secs, ts.nanos);
 
     return n;
@@ -219,7 +220,8 @@ i32_t guid_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t l
     if (uuid_buffer == NULL)
         return str_fmt_into(dst, len, offset, limit, "%*.*s%s", indent, indent, PADDING, "0g");
 
-    i32_t n = str_fmt_into(dst, len, offset, limit, "%02hhx%02hhx%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+    i32_t n = str_fmt_into(dst, len, offset, limit, "%*.*s%02hhx%02hhx%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+                           indent, indent, PADDING,
                            uuid_buffer[0], uuid_buffer[1], uuid_buffer[2], uuid_buffer[3],
                            uuid_buffer[4], uuid_buffer[5],
                            uuid_buffer[6], uuid_buffer[7],
