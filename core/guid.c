@@ -25,14 +25,10 @@
 #include "alloc.h"
 #include "ops.h"
 
-rf_object_t rf_guid_generate()
+null_t guid_generate(guid_t *g)
 {
     i64_t i;
-    rf_object_t g = guid(NULL);
-    g.guid = (guid_t *)rf_malloc(sizeof(guid_t));
 
     for (i = 0; i < 16; i++)
-        g.guid->data[i] = rand_i64() % 256;
-
-    return g;
+        g->data[i] = rand_i64() % 256;
 }

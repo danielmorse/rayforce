@@ -26,6 +26,6 @@
 
 #include "rayforce.h"
 
-rf_object_t rf_guid_generate();
+null_t guid_generate(guid_t *g);
 
 #endif

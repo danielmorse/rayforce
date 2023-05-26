@@ -29,6 +29,7 @@
 #include "format.h"
 #include "sort.h"
 #include "vector.h"
+#include "guid.h"
 
 rf_object_t rf_til_i64(rf_object_t *x)
 {
@@ -314,4 +315,16 @@ rf_object_t rf_desc_I64(rf_object_t *x)
 rf_object_t rf_flatten_List(rf_object_t *x)
 {
     return list_flatten(x);
+}
+
+rf_object_t rf_guid_generate(rf_object_t *x)
+{
+    i64_t i, count = x->i64;
+    rf_object_t vec = vector_guid(count);
+    guid_t *g = as_vector_guid(&vec);
+
+    for (i = 0; i < count; i++)
+        guid_generate(g + i);
+
+    return vec;
 }

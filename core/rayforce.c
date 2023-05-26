@@ -257,6 +257,8 @@ rf_object_t rf_object_clone(rf_object_t *object)
 
     if (object->type == -TYPE_GUID)
     {
+        if (object->guid == NULL)
+            return guid(NULL);
         guid_t *g = (guid_t *)rf_malloc(sizeof(struct guid_t));
         memcpy(g->data, object->guid->data, sizeof(guid_t));
         return guid(g->data);
@@ -318,7 +320,8 @@ null_t rf_object_free(rf_object_t *object)
 
     if (object->type == -TYPE_GUID)
     {
-        rf_free(object->guid);
+        if (object->guid)
+            rf_free(object->guid);
         return;
     }
 

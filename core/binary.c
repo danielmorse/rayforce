@@ -738,6 +738,29 @@ rf_object_t rf_or_Bool_Bool(rf_object_t *x, rf_object_t *y)
     return res;
 }
 
+rf_object_t rf_nth_Bool_i64(rf_object_t *x, rf_object_t *y)
+{
+    return vector_get(x, y->i64);
+}
+
+rf_object_t rf_nth_Bool_I64(rf_object_t *x, rf_object_t *y)
+{
+    i32_t i;
+    i64_t yl = y->adt->len, xl = x->adt->len;
+    rf_object_t vec = vector_bool(yl);
+    bool_t *iv1 = as_vector_bool(x), *iv2 = as_vector_bool(y), *ov = as_vector_bool(&vec);
+
+    for (i = 0; i < yl; i++)
+    {
+        if (iv2[i] >= xl)
+            ov[i] = false;
+        else
+            ov[i] = iv1[(i32_t)iv2[i]];
+    }
+
+    return vec;
+}
+
 rf_object_t rf_nth_I64_i64(rf_object_t *x, rf_object_t *y)
 {
     return vector_get(x, y->i64);
@@ -754,6 +777,54 @@ rf_object_t rf_nth_I64_I64(rf_object_t *x, rf_object_t *y)
     {
         if (iv2[i] >= xl)
             ov[i] = NULL_I64;
+        else
+            ov[i] = iv1[iv2[i]];
+    }
+
+    return (vec);
+}
+
+rf_object_t rf_nth_Timestamp_i64(rf_object_t *x, rf_object_t *y)
+{
+    return vector_get(x, y->i64);
+}
+
+rf_object_t rf_nth_Timestamp_I64(rf_object_t *x, rf_object_t *y)
+{
+    i32_t i;
+    i64_t yl = y->adt->len, xl = x->adt->len;
+    rf_object_t vec = vector_timestamp(yl);
+    i64_t *iv1 = as_vector_timestamp(x), *ov = as_vector_timestamp(&vec);
+    i64_t *iv2 = as_vector_i64(y);
+
+    for (i = 0; i < yl; i++)
+    {
+        if (iv2[i] >= xl)
+            ov[i] = NULL_I64;
+        else
+            ov[i] = iv1[iv2[i]];
+    }
+
+    return (vec);
+}
+
+rf_object_t rf_nth_Guid_i64(rf_object_t *x, rf_object_t *y)
+{
+    return vector_get(x, y->i64);
+}
+
+rf_object_t rf_nth_Guid_I64(rf_object_t *x, rf_object_t *y)
+{
+    i32_t i;
+    i64_t yl = y->adt->len, xl = x->adt->len;
+    rf_object_t vec = vector_guid(yl);
+    guid_t *iv1 = as_vector_guid(x), *ov = as_vector_guid(&vec);
+    i64_t *iv2 = as_vector_i64(y);
+
+    for (i = 0; i < yl; i++)
+    {
+        if (iv2[i] >= xl)
+            ov[i] = (guid_t){0};
         else
             ov[i] = iv1[iv2[i]];
     }
