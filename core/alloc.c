@@ -272,7 +272,7 @@ null_t *rf_realloc(null_t *ptr, i32_t new_size)
     i32_t size = node->size;
     i32_t adjusted_size = blocksize(orderof(new_size));
 
-    // If new size is smaller or equal to the current block size, no need to reallocate
+    // TODO: Shrink
     if (adjusted_size <= size)
         return ptr;
 

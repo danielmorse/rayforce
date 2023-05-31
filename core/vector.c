@@ -182,8 +182,10 @@ type_list:
 
 null_t vector_shrink(rf_object_t *vector, u32_t len)
 {
-    // TODO!!!
+    // calculate size of vector with new length
+    i64_t new_size = capacity(size_of_val(vector->type) * len + sizeof(header_t));
 
+    rf_realloc(vector->adt, new_size);
     vector->adt->len = len;
 }
 
