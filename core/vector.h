@@ -71,10 +71,10 @@
  * t - type of rf_objectect to append
  * x - rf_objectect to append
  */
-#define push(v, t, x)                               \
-    {                                               \
-        reserve(v, t, 1);                           \
-        ((t *)(as_string(v)))[(v)->adt->len++] = x; \
+#define push(v, t, x)                                                 \
+    {                                                                 \
+        reserve(v, t, 1);                                             \
+        memcpy(&((t *)as_string(v))[(v)->adt->len++], &x, sizeof(t)); \
     }
 
 #define pop(v, t) ((t *)(as_string(v)))[--(v)->adt->len]
