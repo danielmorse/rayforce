@@ -593,10 +593,11 @@ i8_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t
     UNUSED(has_consumer);
 
     i8_t type;
-    rf_object_t *car, *params, key, val, local_env;
+    rf_object_t *car, *params, key, val;
     function_t *func = as_function(&cc->function);
     rf_object_t *code = &func->code;
     env_t *env = &runtime_get()->env;
+    table_t table;
 
     car = &as_list(object)[0];
     if (car->i64 == symbol("select").i64)
@@ -605,21 +606,21 @@ i8_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t
             cerr(cc, car->id, ERR_LENGTH, "'select' takes at least two arguments");
 
         params = &as_list(object)[1];
-        local_env = dict(vector_symbol(0), vector_symbol(0));
-        cc->local_env = &local_env;
 
         if (params->type != TYPE_DICT)
             cerr(cc, car->id, ERR_LENGTH, "'select' takes dict of params");
 
         key = symbol("from");
         val = dict_get(params, &key);
-        type = cc_compile_expr(true, cc, &val);
-        rf_object_free(&val);
-        if (type == TYPE_ERROR)
-            return type;
+        if (val.type == TYPE_NULL)
+            cerr(cc, car->id, ERR_LENGTH, "'select': 'from' is required");
 
-        if (type != TYPE_TABLE)
-            cerr(cc, car->id, ERR_TYPE, "'select': 'from' must be a Table");
+        table = (table_t){
+            .expr = val,
+            .cols = dict(vector_symbol(0), vector_symbol(0)),
+        };
+
+        cc->table = &table;
 
         // compile filters
         key = symbol("where");
@@ -631,16 +632,21 @@ i8_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t
 
             if (type == TYPE_ERROR)
             {
-                rf_object_free(&local_env);
+                rf_object_free(&cc->table->expr);
+                rf_object_free(&cc->table->cols);
                 return type;
             }
 
             if (type != -TYPE_BOOL)
             {
-                rf_object_free(&local_env);
+                rf_object_free(&cc->table->expr);
+                rf_object_free(&cc->table->cols);
                 cerr(cc, car->id, ERR_TYPE, "'select': condition must have a Bool result");
             }
         }
+
+        rf_object_free(&cc->table->expr);
+        rf_object_free(&cc->table->cols);
         // --
     }
 
