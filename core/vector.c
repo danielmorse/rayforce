@@ -49,92 +49,7 @@ rf_object_t vector(i8_t type, i8_t size_of_val, i64_t len)
     return v;
 }
 
-i64_t vector_bool_push(rf_object_t *vector, bool_t value)
-{
-    push(vector, bool_t, value);
-    return vector->adt->len;
-}
-
-i64_t vector_i64_push(rf_object_t *vector, i64_t value)
-{
-    push(vector, i64_t, value);
-    return vector->adt->len;
-}
-
-i64_t vector_f64_push(rf_object_t *vector, f64_t value)
-{
-    push(vector, f64_t, value);
-    return vector->adt->len;
-}
-
-i64_t vector_symbol_push(rf_object_t *vector, i64_t value)
-{
-    push(vector, i64_t, value);
-    return vector->adt->len;
-}
-
-i64_t vector_timestamp_push(rf_object_t *vector, i64_t value)
-{
-    push(vector, i64_t, value);
-    return vector->adt->len;
-}
-
-i64_t vector_char_push(rf_object_t *vector, i8_t value)
-{
-    push(vector, i8_t, value);
-    return vector->adt->len;
-}
-
-i64_t vector_guid_push(rf_object_t *vector, guid_t value)
-{
-    push(vector, guid_t, value);
-    return vector->adt->len;
-}
-
-i64_t list_push(rf_object_t *list, rf_object_t value)
-{
-    push(list, rf_object_t, value);
-    return list->adt->len;
-}
-
-i64_t vector_i64_pop(rf_object_t *vector)
-{
-    return pop(vector, i64_t);
-}
-
-f64_t vector_f64_pop(rf_object_t *vector)
-{
-    return pop(vector, f64_t);
-}
-
-i64_t vector_symbol_pop(rf_object_t *vector)
-{
-    return pop(vector, i64_t);
-}
-
-i64_t vector_timestamp_pop(rf_object_t *vector)
-{
-    return pop(vector, i64_t);
-}
-
-guid_t *vector_guid_pop(rf_object_t *vector)
-{
-    guid_t *g = as_vector_guid(vector);
-    return &g[--vector->adt->len];
-}
-
-char_t vector_char_pop(rf_object_t *vector)
-{
-    return pop(vector, char_t);
-}
-
-rf_object_t list_pop(rf_object_t *list)
-{
-    rf_object_t object = pop(list, rf_object_t);
-    return rf_object_clone(&object);
-}
-
-i64_t vector_push(rf_object_t *vector, rf_object_t object)
+i64_t vector_push(rf_object_t *vector, rf_object_t value)
 {
     i8_t type = vector->type - TYPE_BOOL;
 
@@ -144,28 +59,28 @@ i64_t vector_push(rf_object_t *vector, rf_object_t object)
     goto *types_table[(i32_t)type];
 
 type_bool:
-    vector_bool_push(vector, object.bool);
+    push(vector, bool_t, value.bool);
     return vector->adt->len;
 type_i64:
-    vector_i64_push(vector, object.i64);
+    push(vector, i64_t, value.i64);
     return vector->adt->len;
 type_f64:
-    vector_f64_push(vector, object.f64);
+    push(vector, f64_t, value.f64);
     return vector->adt->len;
 type_symbol:
-    vector_i64_push(vector, object.i64);
+    push(vector, i64_t, value.i64);
     return vector->adt->len;
 type_timestamp:
-    vector_i64_push(vector, object.i64);
+    push(vector, i64_t, value.i64);
     return vector->adt->len;
 type_guid:
-    vector_guid_push(vector, *object.guid);
+    push(vector, guid_t, *value.guid);
     return vector->adt->len;
 type_char:
-    vector_char_push(vector, object.schar);
+    push(vector, char_t, value.schar);
     return vector->adt->len;
 type_list:
-    list_push(vector, object);
+    push(vector, rf_object_t, value);
     return vector->adt->len;
 }
 
@@ -175,6 +90,8 @@ rf_object_t vector_pop(rf_object_t *vector)
         return null();
 
     i8_t type = vector->type - TYPE_BOOL;
+    rf_object_t o;
+    guid_t *g;
 
     static null_t *types_table[] = {&&type_bool, &&type_i64, &&type_f64, &&type_symbol,
                                     &&type_timestamp, &&type_guid, &&type_char, &&type_list};
@@ -182,21 +99,23 @@ rf_object_t vector_pop(rf_object_t *vector)
     goto *types_table[(i32_t)type];
 
 type_bool:
-    return bool(vector_i64_pop(vector));
+    return bool(pop(vector, bool_t));
 type_i64:
-    return i64(vector_i64_pop(vector));
+    return i64(pop(vector, i64_t));
 type_f64:
-    return f64(vector_f64_pop(vector));
+    return f64(pop(vector, f64_t));
 type_symbol:
-    return symboli64(vector_i64_pop(vector));
+    return symboli64(pop(vector, i64_t));
 type_timestamp:
-    return i64(vector_i64_pop(vector));
+    return i64(pop(vector, i64_t));
 type_guid:
-    return guid(vector_guid_pop(vector)->data);
+    g = as_vector_guid(vector);
+    return guid(g[--vector->adt->len].data);
 type_char:
-    return schar(vector_char_pop(vector));
+    return schar(pop(vector, char_t));
 type_list:
-    return list_pop(vector);
+    o = pop(vector, rf_object_t);
+    return rf_object_clone(&o);
 }
 
 null_t vector_reserve(rf_object_t *vector, u32_t len)
@@ -237,6 +156,7 @@ type_list:
 null_t vector_shrink(rf_object_t *vector, u32_t len)
 {
     // TODO!!!
+
     vector->adt->len = len;
 }
 

@@ -251,11 +251,11 @@ rf_object_t parse_cmdline(i32_t argc, str_t argv[])
             if (argv[opt] == NULL)
                 usage();
 
-            vector_i64_push(&keys, symbol("file").i64);
+            vector_push(&keys, symbol("file"));
             len = strlen(argv[opt]);
             str = string(len);
             strncpy(as_string(&str), argv[opt], len);
-            list_push(&vals, str);
+            vector_push(&vals, str);
             break;
         default:
             usage();

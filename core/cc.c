@@ -311,7 +311,7 @@ i8_t cc_compile_fn(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t ari
         }
 
         push_opcode(cc, object->id, code, OP_PUSH);
-        vector_i64_push(&func->const_addrs, code->adt->len);
+        vector_push(&func->const_addrs, i64(code->adt->len));
         push_rf_object(code, fun);
         func->stack_size++;
 
@@ -593,7 +593,7 @@ i8_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t
     UNUSED(has_consumer);
 
     i8_t type;
-    rf_object_t *car, *params, key, val;
+    rf_object_t *car, *params, key, val, local_env;
     function_t *func = as_function(&cc->function);
     rf_object_t *code = &func->code;
     env_t *env = &runtime_get()->env;
@@ -605,6 +605,8 @@ i8_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t
             cerr(cc, car->id, ERR_LENGTH, "'select' takes at least two arguments");
 
         params = &as_list(object)[1];
+        local_env = dict(vector_symbol(0), vector_symbol(0));
+        cc->local_env = &local_env;
 
         if (params->type != TYPE_DICT)
             cerr(cc, car->id, ERR_LENGTH, "'select' takes dict of params");
@@ -628,10 +630,16 @@ i8_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t
             rf_object_free(&val);
 
             if (type == TYPE_ERROR)
+            {
+                rf_object_free(&local_env);
                 return type;
+            }
 
             if (type != -TYPE_BOOL)
+            {
+                rf_object_free(&local_env);
                 cerr(cc, car->id, ERR_TYPE, "'select': condition must have a Bool result");
+            }
         }
         // --
     }
@@ -860,7 +868,7 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
             lst = rf_object_clone(object);
             lst.flags = 0;
             push_opcode(cc, object->id, code, OP_PUSH);
-            vector_i64_push(&func->const_addrs, code->adt->len);
+            vector_push(&func->const_addrs, i64(code->adt->len));
             push_rf_object(code, lst);
             func->stack_size++;
 
@@ -1027,7 +1035,7 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
         if (!has_consumer)
             return TYPE_NONE;
         push_opcode(cc, object->id, code, OP_PUSH);
-        vector_i64_push(&func->const_addrs, code->adt->len);
+        vector_push(&func->const_addrs, i64(code->adt->len));
         push_rf_object(code, rf_object_clone(object));
         func->stack_size++;
 
@@ -1043,6 +1051,7 @@ rf_object_t cc_compile_function(bool_t top, str_t name, i8_t rettype, rf_object_
 {
     cc_t cc = {
         .top_level = top,
+        .local_env = NULL,
         .debuginfo = debuginfo,
         .function = function(rettype, args, dict(vector_symbol(0), vector_i64(0)), string(0),
                              debuginfo_new(debuginfo->filename, name)),

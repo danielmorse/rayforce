@@ -743,12 +743,12 @@ rf_object_t rf_or_Bool_Bool(rf_object_t *x, rf_object_t *y)
     return res;
 }
 
-rf_object_t rf_nth_Bool_i64(rf_object_t *x, rf_object_t *y)
+rf_object_t rf_get_Bool_i64(rf_object_t *x, rf_object_t *y)
 {
     return vector_get(x, y->i64);
 }
 
-rf_object_t rf_nth_Bool_I64(rf_object_t *x, rf_object_t *y)
+rf_object_t rf_get_Bool_I64(rf_object_t *x, rf_object_t *y)
 {
     i32_t i;
     i64_t yl = y->adt->len, xl = x->adt->len;
@@ -766,12 +766,12 @@ rf_object_t rf_nth_Bool_I64(rf_object_t *x, rf_object_t *y)
     return vec;
 }
 
-rf_object_t rf_nth_I64_i64(rf_object_t *x, rf_object_t *y)
+rf_object_t rf_get_I64_i64(rf_object_t *x, rf_object_t *y)
 {
     return vector_get(x, y->i64);
 }
 
-rf_object_t rf_nth_I64_I64(rf_object_t *x, rf_object_t *y)
+rf_object_t rf_get_I64_I64(rf_object_t *x, rf_object_t *y)
 {
     i32_t i;
     i64_t yl = y->adt->len, xl = x->adt->len;
@@ -789,12 +789,12 @@ rf_object_t rf_nth_I64_I64(rf_object_t *x, rf_object_t *y)
     return (vec);
 }
 
-rf_object_t rf_nth_Timestamp_i64(rf_object_t *x, rf_object_t *y)
+rf_object_t rf_get_Timestamp_i64(rf_object_t *x, rf_object_t *y)
 {
     return vector_get(x, y->i64);
 }
 
-rf_object_t rf_nth_Timestamp_I64(rf_object_t *x, rf_object_t *y)
+rf_object_t rf_get_Timestamp_I64(rf_object_t *x, rf_object_t *y)
 {
     i32_t i;
     i64_t yl = y->adt->len, xl = x->adt->len;
@@ -813,12 +813,12 @@ rf_object_t rf_nth_Timestamp_I64(rf_object_t *x, rf_object_t *y)
     return (vec);
 }
 
-rf_object_t rf_nth_Guid_i64(rf_object_t *x, rf_object_t *y)
+rf_object_t rf_get_Guid_i64(rf_object_t *x, rf_object_t *y)
 {
     return vector_get(x, y->i64);
 }
 
-rf_object_t rf_nth_Guid_I64(rf_object_t *x, rf_object_t *y)
+rf_object_t rf_get_Guid_I64(rf_object_t *x, rf_object_t *y)
 {
     i32_t i;
     i64_t yl = y->adt->len, xl = x->adt->len;
@@ -837,12 +837,12 @@ rf_object_t rf_nth_Guid_I64(rf_object_t *x, rf_object_t *y)
     return (vec);
 }
 
-rf_object_t rf_nth_F64_i64(rf_object_t *x, rf_object_t *y)
+rf_object_t rf_get_F64_i64(rf_object_t *x, rf_object_t *y)
 {
     return vector_get(x, y->i64);
 }
 
-rf_object_t rf_nth_F64_I64(rf_object_t *x, rf_object_t *y)
+rf_object_t rf_get_F64_I64(rf_object_t *x, rf_object_t *y)
 {
     i32_t i;
     i64_t yl = y->adt->len, xl = x->adt->len;
@@ -861,12 +861,12 @@ rf_object_t rf_nth_F64_I64(rf_object_t *x, rf_object_t *y)
     return (vec);
 }
 
-rf_object_t rf_nth_Char_i64(rf_object_t *x, rf_object_t *y)
+rf_object_t rf_get_Char_i64(rf_object_t *x, rf_object_t *y)
 {
     return vector_get(x, y->i64);
 }
 
-rf_object_t rf_nth_Char_I64(rf_object_t *x, rf_object_t *y)
+rf_object_t rf_get_Char_I64(rf_object_t *x, rf_object_t *y)
 {
     i32_t i;
     i64_t yl = y->adt->len, xl = x->adt->len;
@@ -885,12 +885,12 @@ rf_object_t rf_nth_Char_I64(rf_object_t *x, rf_object_t *y)
     return vec;
 }
 
-rf_object_t rf_nth_List_i64(rf_object_t *x, rf_object_t *y)
+rf_object_t rf_get_List_i64(rf_object_t *x, rf_object_t *y)
 {
     return vector_get(x, y->i64);
 }
 
-rf_object_t rf_nth_List_I64(rf_object_t *x, rf_object_t *y)
+rf_object_t rf_get_List_I64(rf_object_t *x, rf_object_t *y)
 {
     i32_t i;
     i64_t yl = y->adt->len, xl = x->adt->len;

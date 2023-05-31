@@ -86,47 +86,32 @@
  * f - function to push element to vector
  * t - member type of element to push
  */
-#define flatten(l, v, t)                        \
-    {                                           \
-        rf_object_t *member;                    \
-        i64_t i, n = (l)->adt->len;             \
-        i8_t type = as_list(l)[0].type;         \
-        v = vector_##t(0);                      \
-                                                \
-        for (i = 0; i < n; i++)                 \
-        {                                       \
-            member = &as_list(l)[i];            \
-                                                \
-            if (member->type != type)           \
-            {                                   \
-                rf_object_free(&vec);           \
-                return rf_object_clone(list);   \
-            }                                   \
-                                                \
-            vector_##t##_push(&vec, member->t); \
-        }                                       \
+#define flatten(l, v, t)                      \
+    {                                         \
+        rf_object_t *member;                  \
+        i64_t i, n = (l)->adt->len;           \
+        i8_t type = as_list(l)[0].type;       \
+        v = vector_##t(0);                    \
+                                              \
+        for (i = 0; i < n; i++)               \
+        {                                     \
+            member = &as_list(l)[i];          \
+                                              \
+            if (member->type != type)         \
+            {                                 \
+                rf_object_free(&vec);         \
+                return rf_object_clone(list); \
+            }                                 \
+                                              \
+            vector_push(&vec, *member);       \
+        }                                     \
     }
 
-extern rf_object_t list_flatten(rf_object_t *object);
-extern i64_t vector_find(rf_object_t *vector, rf_object_t *key);
-extern rf_object_t vector_get(rf_object_t *vector, i64_t index);
-extern null_t vector_set(rf_object_t *vector, i64_t index, rf_object_t value);
-extern i64_t vector_push(rf_object_t *vector, rf_object_t object);
-extern i64_t vector_bool_push(rf_object_t *vector, bool_t value);
-extern i64_t vector_i64_push(rf_object_t *vector, i64_t value);
-extern i64_t vector_f64_push(rf_object_t *vector, f64_t value);
-extern i64_t vector_symbol_push(rf_object_t *vector, i64_t value);
-extern i64_t vector_char_push(rf_object_t *vector, char_t value);
-extern i64_t vector_timestamp_push(rf_object_t *vector, i64_t value);
-extern i64_t vector_guid_push(rf_object_t *vector, guid_t value);
-extern i64_t list_push(rf_object_t *vector, rf_object_t object);
-extern i64_t vector_i64_pop(rf_object_t *vector);
-extern f64_t vector_f64_pop(rf_object_t *vector);
-extern i64_t vector_symbol_pop(rf_object_t *vector);
-extern char_t vector_char_pop(rf_object_t *vector);
-extern i64_t vector_timestamp_pop(rf_object_t *vector);
-extern guid_t *vector_guid_pop(rf_object_t *vector);
-extern rf_object_t list_pop(rf_object_t *vector);
+rf_object_t list_flatten(rf_object_t *object);
+i64_t vector_find(rf_object_t *vector, rf_object_t *key);
+rf_object_t vector_get(rf_object_t *vector, i64_t index);
+null_t vector_set(rf_object_t *vector, i64_t index, rf_object_t value);
+i64_t vector_push(rf_object_t *vector, rf_object_t object);
 null_t vector_reserve(rf_object_t *vector, u32_t len);
 null_t vector_shrink(rf_object_t *vector, u32_t len);
 null_t vector_free(rf_object_t *vector);

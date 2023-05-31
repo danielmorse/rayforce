@@ -499,14 +499,14 @@ rf_object_t parse_vector(parser_t *parser)
             }
 
             vec.type = TYPE_BOOL;
-            vector_bool_push(&vec, token.bool);
+            vector_push(&vec, token);
         }
         else if (token.type == -TYPE_I64)
         {
             if (vec.type == TYPE_I64)
-                vector_i64_push(&vec, token.i64);
+                vector_push(&vec, token);
             else if (vec.type == TYPE_F64)
-                vector_f64_push(&vec, (f64_t)token.i64);
+                vector_push(&vec, f64((f64_t)token.i64));
             else
             {
                 rf_object_free(&vec);
@@ -518,13 +518,13 @@ rf_object_t parse_vector(parser_t *parser)
         else if (token.type == -TYPE_F64)
         {
             if (vec.type == TYPE_F64)
-                vector_f64_push(&vec, token.f64);
+                vector_push(&vec, token);
             else if (vec.type == TYPE_I64)
             {
                 for (i = 0; i < vec.adt->len; i++)
                     as_vector_f64(&vec)[i] = (f64_t)as_vector_i64(&vec)[i];
 
-                vector_f64_push(&vec, token.f64);
+                vector_push(&vec, token);
                 vec.type = TYPE_F64;
             }
             else
@@ -539,7 +539,7 @@ rf_object_t parse_vector(parser_t *parser)
         {
             if (vec.type == TYPE_SYMBOL || (vec.adt->len == 0))
             {
-                vector_i64_push(&vec, token.i64);
+                vector_push(&vec, token);
                 vec.type = TYPE_SYMBOL;
             }
             else
@@ -604,7 +604,7 @@ rf_object_t parse_list(parser_t *parser, i8_t quote)
             return err;
         }
 
-        list_push(&lst, token);
+        vector_push(&lst, token);
 
         span_extend(parser, &span);
         token = advance(parser);
@@ -643,7 +643,7 @@ rf_object_t parse_dict(parser_t *parser)
             return err;
         }
 
-        list_push(&keys, token);
+        vector_push(&keys, token);
 
         span_extend(parser, &span);
         token = advance(parser);
@@ -682,7 +682,7 @@ rf_object_t parse_dict(parser_t *parser)
             return err;
         }
 
-        list_push(&vals, token);
+        vector_push(&vals, token);
 
         span_extend(parser, &span);
         token = advance(parser);
@@ -809,7 +809,7 @@ rf_object_t parse_program(parser_t *parser)
         if (is_at(&token, '\0'))
             break;
 
-        list_push(&list, token);
+        vector_push(&list, token);
     }
 
     return list;

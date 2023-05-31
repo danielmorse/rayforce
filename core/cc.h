@@ -33,6 +33,7 @@
 typedef struct cc_t
 {
     bool_t top_level;       // is this top level function?
+    rf_object_t *local_env; // local environment (table fields etc.)
     rf_object_t *body;      // body of function being compiled (list of expressions)
     rf_object_t function;   // function being compiled
     debuginfo_t *debuginfo; // debuginfo from parse phase
