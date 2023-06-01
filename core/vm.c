@@ -77,7 +77,7 @@ vm_t *vm_new()
 /*
  * Execute the function
  */
-rf_object_t vm_exec(vm_t *vm, rf_object_t *fun)
+rf_object_t __attribute__((hot)) vm_exec(vm_t *vm, rf_object_t *fun)
 {
     i8_t type, c;
     function_t *f = as_function(fun);
