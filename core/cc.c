@@ -934,7 +934,7 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
                 }
 
                 push_opcode(cc, car->id, code, OP_PUSH);
-                push_const(cc, rf_object_clone(addr));
+                push_const(cc, *addr);
                 push_opcode(cc, car->id, code, OP_CALLF);
 
                 // additional one for ctx
