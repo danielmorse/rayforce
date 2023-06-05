@@ -31,346 +31,276 @@
 #include "alloc.h"
 #include "util.h"
 
-ht_t *ht_new(u64_t size, u64_t (*hasher)(null_t *a), i32_t (*compare)(null_t *a, null_t *b))
+ht_t *ht_new(i64_t size, u64_t (*hasher)(i64_t a), i32_t (*compare)(i64_t a, i64_t b))
 {
-    size = next_power_of_two_u64(size);
+    i64_t i;
     ht_t *table = (ht_t *)rf_malloc(sizeof(struct ht_t));
 
-    table->buckets = (bucket_t *)rf_malloc(sizeof(bucket_t) * size);
+    table->keys = vector_i64(size);
+    table->vals = vector_i64(size);
     table->size = size;
     table->count = 0;
     table->hasher = hasher;
     table->compare = compare;
 
-    memset(table->buckets, 0, sizeof(bucket_t) * size);
+    for (i = 0; i < size; i++)
+        as_vector_i64(&table->keys)[i] = NULL_I64;
 
     return table;
 }
 
 null_t ht_free(ht_t *table)
 {
-    rf_free(table->buckets);
+    rf_object_free(&table->keys);
+    rf_object_free(&table->vals);
     rf_free(table);
 }
 
 null_t rehash(ht_t *table)
 {
-    u64_t i, old_size = table->size;
-    bucket_t *old_buckets = table->buckets;
+    i64_t i, old_size = table->size;
+    rf_object_t old_keys = table->keys;
+    rf_object_t old_vals = table->vals;
+    i64_t *ok = as_vector_i64(&old_keys), *ov = as_vector_i64(&old_vals);
 
     // Double the table size.
     table->size *= 2;
-    table->buckets = (bucket_t *)rf_malloc(table->size * sizeof(struct bucket_t));
-    memset(table->buckets, 0, table->size * sizeof(struct bucket_t));
+    table->keys = vector_i64(table->size);
+    table->vals = vector_i64(table->size);
 
     for (i = 0; i < old_size; i++)
     {
-        if (old_buckets[i].state == STATE_OCCUPIED)
-            ht_insert(table, old_buckets[i].key, old_buckets[i].val);
+        if (as_vector_i64(&old_keys)[i] != NULL_I64)
+            ht_insert(table, ok[i], ov[i]);
     }
 
-    rf_free(old_buckets);
+    for (; i < table->size; i++)
+        as_vector_i64(&table->keys)[i] = NULL_I64;
+
+    rf_object_free(&old_keys);
+    rf_object_free(&old_vals);
 }
 
-null_t rehash_with(ht_t *table, null_t *seed, null_t *(*func)(null_t *key, null_t *val, null_t *seed, bucket_t *bucket))
-{
-    u64_t i, old_size = table->size;
-    bucket_t *old_buckets = table->buckets;
+// null_t rehash_with(ht_t *table, null_t *seed, null_t *(*func)(null_t *key, null_t *val, null_t *seed, bucket_t *bucket))
+// {
+//     u64_t i, old_size = table->size;
+//     bucket_t *old_buckets = table->buckets;
 
-    // Double the table size.
-    table->size *= 2;
-    table->buckets = (bucket_t *)rf_malloc(table->size * sizeof(struct bucket_t));
+//     // Double the table size.
+//     table->size *= 2;
+//     table->buckets = (bucket_t *)rf_malloc(table->size * sizeof(struct bucket_t));
 
-    for (i = 0; i < old_size; i++)
-    {
-        if (old_buckets[i].state == STATE_OCCUPIED)
-            ht_insert_with(table, old_buckets[i].key, old_buckets[i].val, seed, func);
-    }
+//     for (i = 0; i < old_size; i++)
+//     {
+//         if (old_buckets[i].state == STATE_OCCUPIED)
+//             ht_insert_with(table, old_buckets[i].key, old_buckets[i].val, seed, func);
+//     }
 
-    rf_free(old_buckets);
-}
+//     rf_free(old_buckets);
+// }
 
 /*
  * Inserts new node or returns existing node.
  * Does not update existing node.
  */
-null_t *ht_insert(ht_t *table, null_t *key, null_t *val)
+i64_t ht_insert(ht_t *table, i64_t key, i64_t val)
 {
-    // Table's size is always a power of 2
-    u64_t factor = table->size - 1,
+    i32_t i = 0, size = table->size;
+    i64_t factor = table->size - 1,
           index = table->hasher(key) & factor;
-    u32_t distance = 0, temp_distance;
-    null_t *temp_key, *temp_val;
 
-    while (distance < table->size)
+    i64_t *keys = as_vector_i64(&table->keys);
+    i64_t *vals = as_vector_i64(&table->vals);
+    for (i = index; i < size; i++)
     {
-        if (table->buckets[index].state == STATE_OCCUPIED)
+        debug("INDEX: %lld I: %lld", index);
+        if (keys[i] != NULL_I64)
         {
-            if (table->compare(table->buckets[index].key, key) == 0)
-                return table->buckets[index].val;
+            if (table->compare(keys[i], key) == 0)
+                return vals[i];
+
+            continue;
         }
 
-        if (table->buckets[index].state == STATE_EMPTY)
-        {
-            table->buckets[index].key = key;
-            table->buckets[index].val = val;
-            table->buckets[index].state = STATE_OCCUPIED;
-            table->buckets[index].distance = distance;
-            table->count++;
-            return val;
-        }
-
-        if (table->buckets[index].distance < distance)
-        {
-            // Swap places
-            temp_key = table->buckets[index].key;
-            temp_val = table->buckets[index].val;
-            temp_distance = table->buckets[index].distance;
-
-            table->buckets[index].key = key;
-            table->buckets[index].val = val;
-            table->buckets[index].distance = distance;
-
-            key = temp_key;
-            val = temp_val;
-            distance = temp_distance;
-        }
-
-        index = (index + 1) & factor;
-        distance++;
-
-        // Rehash if the load factor is above 0.7
-        if (distance > table->size * 0.7)
-        {
-            rehash(table);
-            // Start the insert operation from scratch, since the table has been resized and rehashed.
-            return ht_insert(table, key, val);
-        }
+        debug("INSERT: %d %lld", i, key);
+        keys[i] = key;
+        vals[i] = val;
+        table->count++;
+        return val;
     }
 
-    panic("Hash table is full");
+    rehash(table);
+    return ht_insert(table, key, val);
 }
 
 /*
  * Does the same as ht_insert, but uses a function to set the rf_object of the bucket.
  */
-null_t *ht_insert_with(ht_t *table, null_t *key, null_t *val, null_t *seed,
-                       null_t *(*func)(null_t *key, null_t *val, null_t *seed, bucket_t *bucket))
+i64_t ht_insert_with(ht_t *table, i64_t key, i64_t val, null_t *seed,
+                     i64_t (*func)(i64_t key, i64_t val, null_t *seed, i64_t *tkey, i64_t *tval))
 {
-    // Table's size is always a power of 2
+    i32_t i, size = table->size;
     u64_t factor = table->size - 1,
           index = table->hasher(key) & factor;
-    u32_t distance = 0;
 
-    while (distance < table->size)
+    i64_t *keys = as_vector_i64(&table->keys);
+    i64_t *vals = as_vector_i64(&table->vals);
+
+    for (i = index; i < size; i++)
     {
-        if (table->buckets[index].state == STATE_OCCUPIED)
+        if (keys[i] != NULL_I64)
         {
-            if (table->compare(table->buckets[index].key, key) == 0)
-                return table->buckets[index].val;
+            if (table->compare(keys[i], key) == 0)
+                return vals[i];
+
+            continue;
         }
 
-        if (table->buckets[index].state == STATE_EMPTY)
-        {
-            // debug("INSERT INTO %d: hash: %lld, %s %lld", index, table->hasher(key), *(str_t *)key, (i64_t)val);
-            table->buckets[index].state = STATE_OCCUPIED;
-            table->count++;
-            return func(key, val, seed, &table->buckets[index]);
-        }
-
-        if (table->buckets[index].distance < distance)
-        {
-            // Swap places
-            null_t *temp_key = table->buckets[index].key;
-            null_t *temp_val = table->buckets[index].val;
-            u64_t temp_distance = table->buckets[index].distance;
-
-            table->buckets[index].key = key;
-            table->buckets[index].val = val;
-            table->buckets[index].distance = distance;
-
-            key = temp_key;
-            val = temp_val;
-            distance = temp_distance;
-        }
-
-        index = (index + 1) & factor;
-        distance++;
-
-        // Rehash if the load factor is above 0.7
-        if (distance > table->size * 0.7)
-        {
-            rehash_with(table, seed, func);
-            // Start the insert operation from scratch, since the table has been resized and rehashed.
-            return ht_insert_with(table, key, val, seed, func);
-        }
+        table->count++;
+        return func(key, val, seed, &keys[i], &vals[i]);
     }
 
-    panic("Hash table is full");
+    rehash(table);
+    return ht_insert(table, key, val);
 }
 
 /*
  * Inserts new node or updates existing one.
  * Returns true if the node was updated, false if it was inserted.
  */
-bool_t ht_update(ht_t *table, null_t *key, null_t *val)
+bool_t ht_update(ht_t *table, i64_t key, i64_t val)
 {
-    // Table's size is always a power of 2
+    i32_t i, size = table->size;
     u64_t factor = table->size - 1,
           index = table->hasher(key) & factor;
-    u32_t distance = 0;
 
-    while (distance < table->size)
+    i64_t *keys = as_vector_i64(&table->keys);
+    i64_t *vals = as_vector_i64(&table->vals);
+
+    for (i = index; i < size; i++)
     {
-        if (table->buckets[index].state == STATE_OCCUPIED)
+        if (keys[i] != NULL_I64)
         {
-            if (table->compare(table->buckets[index].key, key) == 0)
+            if (table->compare(keys[i], key) == 0)
             {
-                table->buckets[index].key = key;
-                table->buckets[index].val = val;
+                keys[i] = key;
+                vals[i] = val;
                 return true;
             }
-        }
-        else
-        {
-            table->buckets[index].key = key;
-            table->buckets[index].val = val;
-            table->buckets[index].state = STATE_OCCUPIED;
-            table->count++;
-            return false;
+
+            continue;
         }
 
-        if (table->buckets[index].distance < distance)
-        {
-            // Swap places
-            null_t *temp_key = table->buckets[index].key;
-            null_t *temp_val = table->buckets[index].val;
-            u64_t temp_distance = table->buckets[index].distance;
-
-            table->buckets[index].key = key;
-            table->buckets[index].val = val;
-            table->buckets[index].distance = distance;
-
-            key = temp_key;
-            val = temp_val;
-            distance = temp_distance;
-        }
-
-        index = (index + 1) & factor;
-        distance++;
-
-        // Rehash if the load factor is above 0.7
-        if (distance > table->size * 0.7)
-        {
-            rehash(table);
-            // Start the insert operation from scratch, since the table has been resized and rehashed.
-            return ht_update(table, key, val);
-        }
+        keys[i] = key;
+        vals[i] = val;
+        table->count++;
+        return false;
     }
 
-    panic("Hash table is full");
+    rehash(table);
+    return ht_insert(table, key, val);
 }
 
 /*
  * Does the same as ht_update, but uses a function to set the val of the bucket.
  */
-bool_t ht_update_with(ht_t *table, null_t *key, null_t *val, null_t *seed,
-                      null_t *(*func)(null_t *key, null_t *val, null_t *seed, bucket_t *bucket))
-{
-    // Table's size is always a power of 2
-    u64_t factor = table->size - 1,
-          index = table->hasher(key) & factor;
-    u32_t distance = 0;
+// bool_t ht_update_with(ht_t *table, null_t *key, null_t *val, null_t *seed,
+//                       null_t *(*func)(null_t *key, null_t *val, null_t *seed, bucket_t *bucket))
+// {
+//     // Table's size is always a power of 2
+//     u64_t factor = table->size - 1,
+//           index = table->hasher(key) & factor;
+//     u32_t distance = 0;
 
-    while (distance < table->size)
-    {
-        if (table->buckets[index].state == STATE_OCCUPIED)
-        {
-            if (table->compare(table->buckets[index].key, key) == 0)
-            {
-                func(key, val, seed, &table->buckets[index]);
-                return true;
-            }
-        }
-        else
-        {
-            func(key, val, seed, &table->buckets[index]);
-            table->buckets[index].state = STATE_OCCUPIED;
-            table->count++;
-            return false;
-        }
+//     while (distance < table->size)
+//     {
+//         if (table->buckets[index].state == STATE_OCCUPIED)
+//         {
+//             if (table->compare(table->buckets[index].key, key) == 0)
+//             {
+//                 func(key, val, seed, &table->buckets[index]);
+//                 return true;
+//             }
+//         }
+//         else
+//         {
+//             func(key, val, seed, &table->buckets[index]);
+//             table->buckets[index].state = STATE_OCCUPIED;
+//             table->count++;
+//             return false;
+//         }
 
-        if (table->buckets[index].distance < distance)
-        {
-            // Swap places
-            null_t *temp_key = table->buckets[index].key;
-            null_t *temp_val = table->buckets[index].val;
-            u64_t temp_distance = table->buckets[index].distance;
+//         if (table->buckets[index].distance < distance)
+//         {
+//             // Swap places
+//             null_t *temp_key = table->buckets[index].key;
+//             null_t *temp_val = table->buckets[index].val;
+//             u64_t temp_distance = table->buckets[index].distance;
 
-            table->buckets[index].key = key;
-            table->buckets[index].val = val;
-            table->buckets[index].distance = distance;
+//             table->buckets[index].key = key;
+//             table->buckets[index].val = val;
+//             table->buckets[index].distance = distance;
 
-            key = temp_key;
-            val = temp_val;
-            distance = temp_distance;
-        }
+//             key = temp_key;
+//             val = temp_val;
+//             distance = temp_distance;
+//         }
 
-        index = (index + 1) & factor;
-        distance++;
+//         index = (index + 1) & factor;
+//         distance++;
 
-        // Rehash if the load factor is above 0.7
-        if (distance > table->size * 0.7)
-        {
-            rehash_with(table, seed, func);
-            // Start the insert operation from scratch, since the table has been resized and rehashed.
-            ht_update_with(table, key, val, seed, func);
-            return true;
-        }
-    }
+//         // Rehash if the load factor is above 0.7
+//         if (distance > table->size * 0.7)
+//         {
+//             rehash_with(table, seed, func);
+//             // Start the insert operation from scratch, since the table has been resized and rehashed.
+//             ht_update_with(table, key, val, seed, func);
+//             return true;
+//         }
+//     }
 
-    panic("Hash table is full");
-}
+//     panic("Hash table is full");
+// }
 
 /*
  * Returns the rf_object of the node with the given key.
  * Returns -1 if the key does not exist.
  */
-null_t *ht_get(ht_t *table, null_t *key)
+i64_t ht_get(ht_t *table, i64_t key)
 {
-    // Table's size is always a power of 2
+    i32_t i, size = table->size;
     u64_t factor = table->size - 1,
           index = table->hasher(key) & factor;
-    u32_t distance = 0;
+    i64_t *keys = as_vector_i64(&table->keys);
+    i64_t *vals = as_vector_i64(&table->vals);
 
-    while (table->buckets[index].state == STATE_OCCUPIED &&
-           distance <= table->buckets[index].distance)
+    for (i = index; i < size; i++)
     {
-        if (table->compare(table->buckets[index].key, key) == 0)
-            return table->buckets[index].val;
-
-        index = (index + 1) & factor;
-        distance++;
+        if (keys[i] != NULL_I64)
+        {
+            if (table->compare(keys[i], key) == 0)
+                return vals[i];
+        }
     }
 
-    return (null_t *)NULL_I64;
+    return NULL_I64;
 }
 
-bucket_t *ht_next_bucket(ht_t *table, u64_t *index)
+i64_t ht_next_key(ht_t *table, i64_t *index)
 {
-    bucket_t *bucket;
-
+    i64_t *keys = as_vector_i64(&table->keys), i;
+    debug("INMDEX: %lld", *index);
     while (*index < table->size)
     {
-        if (table->buckets[*index].state == STATE_OCCUPIED)
+        if (keys[*index] != NULL_I64)
         {
-            bucket = &table->buckets[*index];
+            i = *index;
             (*index)++;
-            return bucket;
+            return keys[i];
         }
 
         (*index)++;
     }
 
-    return NULL;
+    return NULL_I64;
 }

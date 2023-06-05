@@ -58,12 +58,11 @@ rf_object_t rf_distinct_I64(rf_object_t *x)
 {
 #define normalize(k) ((u64_t)(k - min))
 
-    u64_t i, j = 0, xl = x->adt->len;
-    i64_t n, range, min, max, *iv1 = as_vector_i64(x), *ov;
+    i64_t i, j = 0, xl = x->adt->len;
+    i64_t n = 0, range, min, max, *iv1 = as_vector_i64(x), *ov;
     rf_object_t mask, vec;
     bool_t *m;
     ht_t *ht;
-    bucket_t *b;
 
     if (xl == 0)
         return vector_i64(0);
@@ -84,52 +83,50 @@ rf_object_t rf_distinct_I64(rf_object_t *x)
     range = max - min + 1;
 
     // if range fits in 64 mb, use vector positions instead of hash table
-    if (range < 1024 * 1024 * 64)
-    {
-        mask = vector_bool(range);
-        m = as_vector_bool(&mask);
+    // if (range < 1024 * 1024 * 64)
+    // {
+    //     mask = vector_bool(range);
+    //     m = as_vector_bool(&mask);
 
-        memset(m, 0, range);
+    //     memset(m, 0, range);
 
-        vec = vector_i64(xl);
-        ov = as_vector_i64(&vec);
+    //     vec = vector_i64(xl);
+    //     ov = as_vector_i64(&vec);
 
-        for (i = 0; i < xl; i++)
-        {
-            n = normalize(iv1[i]);
-            if (!m[n])
-            {
-                ov[j++] = n;
-                m[n] = true;
-            }
-        }
+    //     for (i = 0; i < xl; i++)
+    //     {
+    //         n = normalize(iv1[i]);
+    //         if (!m[n])
+    //         {
+    //             ov[j++] = n;
+    //             m[n] = true;
+    //         }
+    //     }
 
-        rf_object_free(&mask);
-        vector_shrink(&vec, j);
+    //     rf_object_free(&mask);
+    //     vector_shrink(&vec, j);
 
-        vec.adt->attrs |= VEC_ATTR_WITHOUT_NULLS | VEC_ATTR_DISTINCT;
+    //     vec.adt->attrs |= VEC_ATTR_WITHOUT_NULLS | VEC_ATTR_DISTINCT;
 
-        return vec;
-    }
-    debug("ht new");
-    // if (range > 1 << 30)
-    // ht = ht_new(xl, &trim_hash, &i64_cmp);
-    // else
+    //     return vec;
+    // }
+
+    debug("START!!!!!!!!!!!!!!!!!!!!!!!!");
+
     ht = ht_new(xl, &i64_hash, &i64_cmp);
 
     for (i = 0; i < xl; i++)
-        ht_insert(ht, (null_t *)(normalize(iv1[i])), (null_t *)i);
-    debug("insert done");
-    // vec = vector_i64(ht->count);
-    // ov = as_vector_i64(&vec);
+        ht_insert(ht, (normalize(iv1[i])), i);
 
-    i = j = 0;
-    // while ((b = ht_next_bucket(ht, &i)))
-    //     ov[j++] = (i64_t)b->key;
-    debug("search done");
+    vec = vector_i64(ht->count);
+    debug("HT SIZE: %d", ht->count);
+    i = j = n = 0;
+    for (; n != NULL_I64; n = ht_next_key(ht, &i))
+        as_vector_i64(&vec)[j++] = n + min;
+
     ht_free(ht);
 
-    return i64(0);
+    return vec;
 }
 
 rf_object_t rf_group_I64(rf_object_t *x)
@@ -148,11 +145,11 @@ rf_object_t rf_group_I64(rf_object_t *x)
 
     for (i = 0; i < xl; i++)
     {
-        n = (i64_t)ht_get(ht, (null_t *)iv1[i]);
+        n = ht_get(ht, iv1[i]);
         if (n == NULL_I64)
         {
             kv[j] = iv1[i];
-            ht_insert(ht, (null_t *)iv1[i], (null_t *)j);
+            ht_insert(ht, iv1[i], j);
             v = vector_i64(cap);
             as_vector_i64(&v)[0] = i;
             v.adt->len = 1;

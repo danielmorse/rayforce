@@ -45,7 +45,7 @@ typedef struct str_slice_t
  * by Dan Bernstein
  * http://www.cse.yorku.ca/~oz/hash.html
  */
-u64_t string_hash(null_t *val)
+u64_t string_hash(i64_t val)
 {
     str_slice_t *string = (str_slice_t *)val;
     u32_t hash = 5381, len = string->len, i;
@@ -57,14 +57,14 @@ u64_t string_hash(null_t *val)
     return hash;
 }
 
-u64_t i64_hash(null_t *val)
+u64_t i64_hash(i64_t val)
 {
     return (u64_t)val;
 }
 
-i32_t i64_cmp(null_t *a, null_t *b)
+i32_t i64_cmp(i64_t a, i64_t b)
 {
-    return !((i64_t)a == (i64_t)b);
+    return !(a == b);
 }
 
 /*
@@ -74,7 +74,7 @@ i32_t i64_cmp(null_t *a, null_t *b)
  * a: raw C string already stored in a hash
  * b: str_slice_t string to be inserted
  */
-i32_t string_str_cmp(null_t *a, null_t *b)
+i32_t string_str_cmp(i64_t a, i64_t b)
 {
     str_t str_a = (str_t)a;
     str_slice_t *str_b = (str_slice_t *)b;
@@ -108,7 +108,7 @@ null_t pool_node_free(pool_node_t *node)
  * In case of symbols this avoids having to copy the string every time.
  * Stores string in the strings pool and returns the pointer to the string.
  */
-null_t *str_dup(null_t *key, null_t *val, null_t *seed, bucket_t *bucket)
+i64_t str_dup(i64_t key, i64_t val, null_t *seed, i64_t *tkey, i64_t *tval)
 {
     symbols_t *symbols = (symbols_t *)seed;
 
@@ -126,10 +126,10 @@ null_t *str_dup(null_t *key, null_t *val, null_t *seed, bucket_t *bucket)
     }
 
     strncpy(symbols->strings_pool, str, len);
-    bucket->key = symbols->strings_pool;
-    bucket->val = val;
+    *tkey = (i64_t)symbols->strings_pool;
+    *tval = val;
     symbols->strings_pool += len + 1; // +1 for null terminator (buffer is zeroed)
-    return bucket->key;
+    return key;
 }
 
 symbols_t *symbols_new()
@@ -167,16 +167,16 @@ i64_t symbols_intern(str_t s, i64_t len)
     symbols_t *symbols = runtime_get()->symbols;
     i64_t id = symbols->str_to_id->count;
     str_slice_t str_slice = {s, len};
-    i64_t id_or_str = (i64_t)ht_insert_with(symbols->str_to_id, &str_slice, (null_t *)id, symbols, &str_dup);
-    if (symbols->str_to_id->count == (u64_t)id)
+    i64_t id_or_str = ht_insert_with(symbols->str_to_id, (i64_t)&str_slice, id, symbols, &str_dup);
+    if (symbols->str_to_id->count == id)
         return id_or_str;
 
-    ht_insert(symbols->id_to_str, (null_t *)id, (str_t)id_or_str);
+    ht_insert(symbols->id_to_str, id, id_or_str);
     return id;
 }
 
 str_t symbols_get(i64_t key)
 {
     symbols_t *symbols = runtime_get()->symbols;
-    return (str_t)ht_get(symbols->id_to_str, (null_t *)key);
+    return (str_t)ht_get(symbols->id_to_str, key);
 }

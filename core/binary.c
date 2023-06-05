@@ -1104,13 +1104,13 @@ rf_object_t rf_find_I64_I64(rf_object_t *x, rf_object_t *y)
     range = xl;
 
     // otherwise, use a hash table
-    ht = ht_new(range, i64_hash, i64_cmp);
+    ht = ht_new(range, &i64_hash, &i64_cmp);
 
     for (i = 0; i < xl; i++)
-        ht_insert(ht, (null_t *)(normalize(iv1[i])), (null_t *)i);
+        ht_insert(ht, (normalize(iv1[i])), i);
 
     for (i = 0; i < yl; i++)
-        ov[i] = (i64_t)ht_get(ht, (null_t *)(normalize(iv2[i])));
+        ov[i] = ht_get(ht, (normalize(iv2[i])));
 
     ht_free(ht);
 

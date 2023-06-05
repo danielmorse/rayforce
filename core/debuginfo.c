@@ -25,14 +25,14 @@
 #include "string.h"
 #include "alloc.h"
 
-u64_t u32_hash(null_t *val)
+u64_t u32_hash(i64_t val)
 {
     return (u64_t)val;
 }
 
-i32_t u32_cmp(null_t *a, null_t *b)
+i32_t u32_cmp(i64_t a, i64_t b)
 {
-    return !((u32_t)(i64_t)a == (u32_t)(i64_t)b);
+    return !((u32_t)a == (u32_t)b);
 }
 
 debuginfo_t debuginfo_new(str_t filename, str_t function)
@@ -50,14 +50,14 @@ null_t debuginfo_insert(debuginfo_t *debuginfo, u32_t index, span_t span)
 {
     u64_t s;
     memcpy(&s, &span, sizeof(span_t));
-    ht_update(debuginfo->spans, (null_t *)(i64_t)index, (null_t *)s);
+    ht_update(debuginfo->spans, (i64_t)index, (i64_t)s);
 }
 
 span_t debuginfo_get(debuginfo_t *debuginfo, u32_t index)
 {
-    u64_t *s = (u64_t *)ht_get(debuginfo->spans, (null_t *)(i64_t)index);
+    i64_t s = ht_get(debuginfo->spans, (i64_t)index);
 
-    if ((i64_t)s == NULL_I64)
+    if (s == NULL_I64)
         return (span_t){0};
 
     span_t span;

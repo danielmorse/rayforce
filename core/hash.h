@@ -30,34 +30,28 @@
 #define STATE_OCCUPIED 1
 #define STATE_DELETED 2
 
-typedef struct bucket_t
-{
-    null_t *key;
-    null_t *val;
-    u32_t distance;
-    u32_t state;
-} bucket_t;
-
 typedef struct ht_t
 {
-    u64_t (*hasher)(null_t *a);
-    i32_t (*compare)(null_t *a, null_t *b);
-    u64_t size;
-    u64_t count;
-    bucket_t *buckets;
+    u64_t (*hasher)(i64_t a);
+    i32_t (*compare)(i64_t a, i64_t b);
+    i64_t size;
+    i64_t count;
+    rf_object_t keys;
+    rf_object_t vals;
 } ht_t;
 
 // clang-format off
-ht_t     *ht_new(u64_t size, u64_t (*hasher)(null_t *a), i32_t (*compare)(null_t *a, null_t *b));
-null_t    ht_free(ht_t *table);
-null_t   *ht_insert(ht_t *table, null_t *key, null_t *val);
-null_t   *ht_insert_with(ht_t *table, null_t *key, null_t *val, null_t *seed, 
-                            null_t *(*func)(null_t *key, null_t *val, null_t *seed, bucket_t *bucket));
-bool_t    ht_update(ht_t *table, null_t *key, null_t *val);
-bool_t    ht_update_with(ht_t *table, null_t *key, null_t *val, null_t *seed, 
-                            null_t *(*func)(null_t *key, null_t *val, null_t *seed, bucket_t *bucket));
-null_t   *ht_get(ht_t *table, null_t *key);
-bucket_t *ht_next_bucket(ht_t *table, u64_t *index);
+ht_t   *ht_new(i64_t size, u64_t (*hasher)(i64_t a), i32_t (*compare)(i64_t a, i64_t b));
+null_t  ht_free(ht_t *table);
+i64_t   ht_insert(ht_t *table, i64_t key, i64_t val);
+i64_t   ht_insert_with(ht_t *table, i64_t key, i64_t val, null_t *seed,
+                  i64_t (*func)(i64_t key, i64_t val, null_t *seed, i64_t *tkey, i64_t *tval));
+bool_t  ht_update(ht_t *table, i64_t key, i64_t val);
+i64_t   ht_get(ht_t *table, i64_t key);
+
+i64_t ht_next_key(ht_t *table, i64_t *index);
+// bool_t    ht_update_with(ht_t *table, null_t *key, null_t *val, null_t *seed, 
+//                             null_t *(*func)(null_t *key, null_t *val, null_t *seed, bucket_t *bucket));
 // clang-format on
 
 #endif
