@@ -180,6 +180,7 @@ null_t *rf_malloc(i32_t size)
             block = rf_alloc_add_pool(size);
             return (null_t *)((node_t *)block + 1);
         }
+        printf("add new pool\n");
         rf_alloc_add_main_pool();
         i = MAX_ORDER;
     }

@@ -70,17 +70,16 @@ null_t rehash(ht_t *table)
     table->size *= 2;
     table->keys = vector_i64(table->size);
     table->vals = vector_i64(table->size);
+    kv = as_vector_i64(&table->keys);
+
+    for (i = 0; i < table->size; i++)
+        kv[i] = NULL_I64;
 
     for (i = 0; i < old_size; i++)
     {
         if (as_vector_i64(&old_keys)[i] != NULL_I64)
             ht_insert(table, ok[i], ov[i]);
     }
-
-    kv = as_vector_i64(&table->keys);
-
-    for (; i < table->size; i++)
-        kv[i] = NULL_I64;
 
     rf_object_free(&old_keys);
     rf_object_free(&old_vals);
@@ -97,17 +96,16 @@ null_t rehash_with(ht_t *table, null_t *seed, i64_t (*func)(i64_t key, i64_t val
     table->size *= 2;
     table->keys = vector_i64(table->size);
     table->vals = vector_i64(table->size);
+    kv = as_vector_i64(&table->keys);
+
+    for (i = 0; i < table->size; i++)
+        kv[i] = NULL_I64;
 
     for (i = 0; i < old_size; i++)
     {
         if (as_vector_i64(&old_keys)[i] != NULL_I64)
             ht_insert_with(table, ok[i], ov[i], seed, func);
     }
-
-    kv = as_vector_i64(&table->keys);
-
-    for (; i < table->size; i++)
-        kv[i] = NULL_I64;
 
     rf_object_free(&old_keys);
     rf_object_free(&old_vals);
@@ -172,7 +170,7 @@ i64_t ht_insert_with(ht_t *table, i64_t key, i64_t val, null_t *seed,
         return func(key, val, seed, &keys[i], &vals[i]);
     }
 
-    rehash_with(table);
+    rehash_with(table, seed, func);
     return ht_insert(table, key, val);
 }
 

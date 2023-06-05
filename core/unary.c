@@ -48,10 +48,13 @@ rf_object_t rf_til_i64(rf_object_t *x)
     return vec;
 }
 
-u64_t trim_hash(null_t *val)
+// https://lemire.me/blog/2018/08/15/fast-strongly-universal-64-bit-hashing-everywhere/
+u64_t trim_hash(i64_t val)
 {
-    i64_t key = (i64_t)val;
-    return (u64_t)(key >> 32);
+    i64_t a, b, c; // randomly assigned 64-bit values
+    i32_t low = (i32_t)val;
+    i32_t high = (i32_t)(val >> 32);
+    return (i32_t)((a * low + b * high + c) >> 32);
 }
 
 rf_object_t rf_distinct_I64(rf_object_t *x)
@@ -83,47 +86,51 @@ rf_object_t rf_distinct_I64(rf_object_t *x)
     range = max - min + 1;
 
     // if range fits in 64 mb, use vector positions instead of hash table
-    // if (range < 1024 * 1024 * 64)
-    // {
-    //     mask = vector_bool(range);
-    //     m = as_vector_bool(&mask);
+    if (range < 1024 * 1024 * 64)
+    {
+        mask = vector_bool(range);
+        m = as_vector_bool(&mask);
 
-    //     memset(m, 0, range);
+        memset(m, 0, range);
 
-    //     vec = vector_i64(xl);
-    //     ov = as_vector_i64(&vec);
+        vec = vector_i64(xl);
+        ov = as_vector_i64(&vec);
 
-    //     for (i = 0; i < xl; i++)
-    //     {
-    //         n = normalize(iv1[i]);
-    //         if (!m[n])
-    //         {
-    //             ov[j++] = n;
-    //             m[n] = true;
-    //         }
-    //     }
+        for (i = 0; i < xl; i++)
+        {
+            n = normalize(iv1[i]);
+            if (!m[n])
+            {
+                ov[j++] = n;
+                m[n] = true;
+            }
+        }
 
-    //     rf_object_free(&mask);
-    //     vector_shrink(&vec, j);
+        rf_object_free(&mask);
+        vector_shrink(&vec, j);
 
-    //     vec.adt->attrs |= VEC_ATTR_WITHOUT_NULLS | VEC_ATTR_DISTINCT;
+        vec.adt->attrs |= VEC_ATTR_DISTINCT;
 
-    //     return vec;
-    // }
+        return vec;
+    }
 
-    ht = ht_new(xl, &i64_hash, &i64_cmp);
+    if (range > 1ull << 32)
+        ht = ht_new(xl, &trim_hash, &i64_cmp);
+    else
+        ht = ht_new(xl, &i64_hash, &i64_cmp);
 
     for (i = 0; i < xl; i++)
-        ht_insert(ht, normalize(iv1[i]), i);
+        ht_insert(ht, iv1[i], i);
 
     vec = vector_i64(ht->count);
     ov = as_vector_i64(&vec);
     i = j = n = 0;
 
     while ((n = ht_next_key(ht, &i)) != NULL_I64)
-        ov[j++] = n + min;
+        ov[j++] = n;
 
     ht_free(ht);
+    vec.adt->attrs |= VEC_ATTR_DISTINCT;
 
     return vec;
 }
