@@ -104,8 +104,24 @@ u64_t rand_u64()
     return __RND_SEED__;
 }
 
-u32_t kmh_hash(i64_t key)
+u64_t kmh_hash(i64_t key)
 {
 #define LARGE_PRIME 6364136223846793005ULL
-    return (u32_t)((key * LARGE_PRIME) >> 32);
+    return (key * LARGE_PRIME) >> 32;
+}
+
+u64_t fnv1a_hash_64(i64_t key)
+{
+#define FNV_OFFSET_64 14695981039346656037ULL
+#define FNV_PRIME_64 1099511628211ULL
+    u64_t hash = FNV_OFFSET_64;
+    i32_t i;
+    for (i = 0; i < 8; i++)
+    {
+        u8_t byte = (key >> (i * 8)) & 0xff;
+        hash ^= byte;
+        hash *= FNV_PRIME_64;
+    }
+
+    return hash;
 }

@@ -32,7 +32,7 @@
 
 typedef struct ht_t
 {
-    u32_t (*hasher)(i64_t a);
+    u64_t (*hasher)(i64_t a);
     i32_t (*compare)(i64_t a, i64_t b);
     i64_t size;
     i64_t count;
@@ -41,7 +41,7 @@ typedef struct ht_t
 } ht_t;
 
 // clang-format off
-ht_t   *ht_new(i64_t size, u32_t (*hasher)(i64_t a), i32_t (*compare)(i64_t a, i64_t b));
+ht_t   *ht_new(i64_t size, u64_t (*hasher)(i64_t a), i32_t (*compare)(i64_t a, i64_t b));
 null_t  ht_free(ht_t *table);
 i64_t   ht_insert(ht_t *table, i64_t key, i64_t val);
 i64_t   ht_insert_with(ht_t *table, i64_t key, i64_t val, null_t *seed,

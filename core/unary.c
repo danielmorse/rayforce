@@ -49,11 +49,6 @@ rf_object_t rf_til_i64(rf_object_t *x)
     return vec;
 }
 
-u32_t i64_hash(i64_t key)
-{
-    return (u32_t)key;
-}
-
 rf_object_t rf_distinct_I64(rf_object_t *x)
 {
 #define MAX_LINEAR_VALUE 1024 * 1024 * 64
@@ -115,19 +110,21 @@ rf_object_t rf_distinct_I64(rf_object_t *x)
         return vec;
     }
 
+    set = set_new(xl, &kmh_hash, &i64_cmp);
     vec = vector_i64(xl);
     ov = as_vector_i64(&vec);
 
-    set = set_new(xl, &kmh_hash, &i64_cmp);
-
-    j = 0;
     for (i = 0; i < xl; i++)
+    {
         if (set_insert(set, iv1[i]))
             ov[j++] = iv1[i];
+    }
 
     vec.adt->attrs |= VEC_ATTR_DISTINCT;
 
     vector_shrink(&vec, j);
+
+    set_free(set);
 
     return vec;
 }
@@ -161,20 +158,16 @@ rf_object_t rf_group_I64(rf_object_t *x)
     rf_object_t keys, vals, *vv, v;
     ht_t *ht;
 
-    keys = vector_i64(xl);
-    kv = as_vector_i64(&keys);
-    vals = list(xl);
-    vv = as_list(&vals);
-
     ht = ht_new(xl, &kmh_hash, &i64_cmp);
 
     // calculate counts for each key
     for (i = 0; i < xl; i++)
-    {
-        if (iv1[i] == NULL_I64)
-            panic("NULL_I64");
         ht_upsert_with(ht, iv1[i], 1, NULL, &cnt_update);
-    }
+
+    keys = vector_i64(ht->count);
+    kv = as_vector_i64(&keys);
+    vals = list(ht->count);
+    vv = as_list(&vals);
 
     // allocate vectors of positions for each key
     ek = as_vector_i64(&ht->keys);
@@ -198,9 +191,6 @@ rf_object_t rf_group_I64(rf_object_t *x)
         ht_upsert_with(ht, iv1[i], i, vv, &pos_update);
 
     ht_free(ht);
-
-    vector_shrink(&keys, j);
-    vector_shrink(&vals, j);
 
     return dict(keys, vals);
 }

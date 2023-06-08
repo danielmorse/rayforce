@@ -25,7 +25,7 @@
 #include "alloc.h"
 #include "util.h"
 
-set_t *set_new(i64_t size, u32_t (*hasher)(i64_t a), i32_t (*compare)(i64_t a, i64_t b))
+set_t *set_new(i64_t size, u64_t (*hasher)(i64_t a), i32_t (*compare)(i64_t a, i64_t b))
 {
     size = next_power_of_two_u64(size);
     i64_t i, *kv;
@@ -53,9 +53,10 @@ null_t set_free(set_t *set)
 
 null_t set_rehash(set_t *set)
 {
-    i64_t i, old_size = set->size;
+    i64_t i, old_size = set->size, key;
     rf_object_t old_keys = set->keys;
     i64_t *ok = as_vector_i64(&old_keys), *kv;
+    u64_t index, factor;
 
     // Double the table size.
     set->size *= 2;
@@ -68,7 +69,17 @@ null_t set_rehash(set_t *set)
     for (i = 0; i < old_size; i++)
     {
         if (ok[i] != NULL_I64)
-            set_insert(set, ok[i]);
+        {
+            key = ok[i];
+            factor = set->size - 1,
+            index = set->hasher(key) & factor;
+
+            // Linear probing.
+            while (kv[index] != NULL_I64)
+                index = (index + 1) & factor;
+
+            kv[index] = key;
+        }
     }
 
     rf_object_free(&old_keys);
@@ -76,35 +87,33 @@ null_t set_rehash(set_t *set)
 
 bool_t set_insert(set_t *set, i64_t key)
 {
-entry:
-    i32_t i, size = set->size;
-    u64_t factor = set->size - 1,
-          index = set->hasher(key) & factor;
-
-    i64_t *keys = as_vector_i64(&set->keys);
-
-    for (i = index; i < size; i++)
+    while (true)
     {
-        if (keys[i] != NULL_I64)
+        i32_t i, size = set->size;
+        u64_t factor = set->size - 1,
+              index = set->hasher(key) & factor;
+        i64_t *keys = as_vector_i64(&set->keys);
+
+        for (i = index; i < size; i++)
         {
+            if (keys[i] == NULL_I64)
+            {
+                keys[i] = key;
+                set->count++;
+
+                // Check if rehash is necessary.
+                if ((f64_t)set->count / set->size > 0.7)
+                    set_rehash(set);
+
+                return true;
+            }
+
             if (set->compare(keys[i], key) == 0)
                 return false;
         }
-        else
-        {
-            keys[i] = key;
-            set->count++;
 
-            // Check if rehash is necessary.
-            if ((f64_t)set->count / set->size > 0.7)
-                set_rehash(set);
-
-            return true;
-        }
+        set_rehash(set);
     }
-
-    set_rehash(set);
-    goto entry;
 }
 
 bool_t set_contains(set_t *set, i64_t key)

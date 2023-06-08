@@ -45,10 +45,10 @@ typedef struct str_slice_t
  * by Dan Bernstein
  * http://www.cse.yorku.ca/~oz/hash.html
  */
-u32_t string_hash(i64_t val)
+u64_t string_hash(i64_t val)
 {
     str_slice_t *string = (str_slice_t *)val;
-    u32_t hash = 5381, len = string->len, i;
+    u64_t hash = 5381, len = string->len, i;
     str_t str = string->str;
 
     for (i = 0; i < len; i++)

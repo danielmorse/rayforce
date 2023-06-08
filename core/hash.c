@@ -31,7 +31,7 @@
 #include "alloc.h"
 #include "util.h"
 
-ht_t *ht_new(i64_t size, u32_t (*hasher)(i64_t a), i32_t (*compare)(i64_t a, i64_t b))
+ht_t *ht_new(i64_t size, u64_t (*hasher)(i64_t a), i32_t (*compare)(i64_t a, i64_t b))
 {
     size = next_power_of_two_u64(size);
     i64_t i, *kv;
@@ -117,36 +117,37 @@ null_t ht_rehash_with(ht_t *table, null_t *seed, i64_t (*func)(i64_t key, i64_t 
  */
 i64_t ht_insert(ht_t *table, i64_t key, i64_t val)
 {
-entry:
-    i32_t i = 0, size = table->size;
-    i64_t factor = table->size - 1,
-          index = table->hasher(key) & factor;
-
-    i64_t *keys = as_vector_i64(&table->keys);
-    i64_t *vals = as_vector_i64(&table->vals);
-    for (i = index; i < size; i++)
+    while (true)
     {
-        if (keys[i] != NULL_I64)
-        {
-            if (table->compare(keys[i], key) == 0)
-                return vals[i];
-        }
-        else
-        {
-            keys[i] = key;
-            vals[i] = val;
-            table->count++;
+        i32_t i = 0, size = table->size;
+        i64_t factor = table->size - 1,
+              index = table->hasher(key) & factor;
 
-            // Check if ht_rehash is necessary.
-            if ((f64_t)table->count / table->size > 0.7)
-                ht_rehash(table);
+        i64_t *keys = as_vector_i64(&table->keys);
+        i64_t *vals = as_vector_i64(&table->vals);
+        for (i = index; i < size; i++)
+        {
+            if (keys[i] != NULL_I64)
+            {
+                if (table->compare(keys[i], key) == 0)
+                    return vals[i];
+            }
+            else
+            {
+                keys[i] = key;
+                vals[i] = val;
+                table->count++;
 
-            return val;
+                // Check if ht_rehash is necessary.
+                if ((f64_t)table->count / table->size > 0.7)
+                    ht_rehash(table);
+
+                return val;
+            }
         }
+
+        ht_rehash(table);
     }
-
-    ht_rehash(table);
-    goto entry;
 }
 
 /*
@@ -155,35 +156,36 @@ entry:
 i64_t ht_insert_with(ht_t *table, i64_t key, i64_t val, null_t *seed,
                      i64_t (*func)(i64_t key, i64_t val, null_t *seed, i64_t *tkey, i64_t *tval))
 {
-entry:
-    i32_t i, size = table->size;
-    u64_t factor = table->size - 1,
-          index = table->hasher(key) & factor;
-
-    i64_t *keys = as_vector_i64(&table->keys);
-    i64_t *vals = as_vector_i64(&table->vals);
-
-    for (i = index; i < size; i++)
+    while (true)
     {
-        if (keys[i] != NULL_I64)
-        {
-            if (table->compare(keys[i], key) == 0)
-                return vals[i];
-        }
-        else
-        {
-            table->count++;
+        i32_t i, size = table->size;
+        u64_t factor = table->size - 1,
+              index = table->hasher(key) & factor;
 
-            // Check if ht_rehash is necessary.
-            if ((f64_t)table->count / table->size > 0.7)
-                ht_rehash_with(table, seed, func);
+        i64_t *keys = as_vector_i64(&table->keys);
+        i64_t *vals = as_vector_i64(&table->vals);
 
-            return func(key, val, seed, &keys[i], &vals[i]);
+        for (i = index; i < size; i++)
+        {
+            if (keys[i] != NULL_I64)
+            {
+                if (table->compare(keys[i], key) == 0)
+                    return vals[i];
+            }
+            else
+            {
+                table->count++;
+
+                // Check if ht_rehash is necessary.
+                if ((f64_t)table->count / table->size > 0.7)
+                    ht_rehash_with(table, seed, func);
+
+                return func(key, val, seed, &keys[i], &vals[i]);
+            }
         }
+
+        ht_rehash_with(table, seed, func);
     }
-
-    ht_rehash_with(table, seed, func);
-    goto entry;
 }
 
 /*
@@ -192,40 +194,41 @@ entry:
  */
 bool_t ht_upsert(ht_t *table, i64_t key, i64_t val)
 {
-entry:
-    i32_t i, size = table->size;
-    u64_t factor = table->size - 1,
-          index = table->hasher(key) & factor;
-
-    i64_t *keys = as_vector_i64(&table->keys);
-    i64_t *vals = as_vector_i64(&table->vals);
-
-    for (i = index; i < size; i++)
+    while (true)
     {
-        if (keys[i] != NULL_I64)
+        i32_t i, size = table->size;
+        u64_t factor = table->size - 1,
+              index = table->hasher(key) & factor;
+
+        i64_t *keys = as_vector_i64(&table->keys);
+        i64_t *vals = as_vector_i64(&table->vals);
+
+        for (i = index; i < size; i++)
         {
-            if (table->compare(keys[i], key) == 0)
+            if (keys[i] != NULL_I64)
             {
+                if (table->compare(keys[i], key) == 0)
+                {
+                    vals[i] = val;
+                    return true;
+                }
+            }
+            else
+            {
+                keys[i] = key;
                 vals[i] = val;
-                return true;
+                table->count++;
+
+                // Check if ht_rehash is necessary.
+                if ((f64_t)table->count / table->size > 0.7)
+                    ht_rehash(table);
+
+                return false;
             }
         }
-        else
-        {
-            keys[i] = key;
-            vals[i] = val;
-            table->count++;
 
-            // Check if ht_rehash is necessary.
-            if ((f64_t)table->count / table->size > 0.7)
-                ht_rehash(table);
-
-            return false;
-        }
+        ht_rehash(table);
     }
-
-    ht_rehash(table);
-    goto entry;
 }
 
 /*
@@ -234,40 +237,41 @@ entry:
 bool_t ht_upsert_with(ht_t *table, i64_t key, i64_t val, null_t *seed,
                       i64_t (*func)(i64_t key, i64_t val, null_t *seed, i64_t *tkey, i64_t *tval))
 {
-entry:
-    i32_t i, size = table->size;
-    u64_t factor = table->size - 1,
-          index = table->hasher(key) & factor;
-
-    i64_t *keys = as_vector_i64(&table->keys);
-    i64_t *vals = as_vector_i64(&table->vals);
-
-    for (i = index; i < size; i++)
+    while (true)
     {
-        if (keys[i] != NULL_I64)
+        i32_t i, size = table->size;
+        u64_t factor = table->size - 1,
+              index = table->hasher(key) & factor;
+
+        i64_t *keys = as_vector_i64(&table->keys);
+        i64_t *vals = as_vector_i64(&table->vals);
+
+        for (i = index; i < size; i++)
         {
-            if (table->compare(keys[i], key) == 0)
+            if (keys[i] != NULL_I64)
             {
-                func(key, val, seed, &keys[i], &vals[i]);
-                return true;
+                if (table->compare(keys[i], key) == 0)
+                {
+                    func(key, val, seed, &keys[i], &vals[i]);
+                    return true;
+                }
+            }
+            else
+            {
+                keys[i] = key;
+                vals[i] = val;
+                table->count++;
+
+                // Check if ht_rehash is necessary.
+                if ((f64_t)table->count / table->size > 0.7)
+                    ht_rehash_with(table, seed, func);
+
+                return false;
             }
         }
-        else
-        {
-            keys[i] = key;
-            vals[i] = val;
-            table->count++;
 
-            // Check if ht_rehash is necessary.
-            if ((f64_t)table->count / table->size > 0.7)
-                ht_rehash_with(table, seed, func);
-
-            return false;
-        }
+        ht_rehash_with(table, seed, func);
     }
-
-    ht_rehash_with(table, seed, func);
-    goto entry;
 }
 
 /*
@@ -289,6 +293,8 @@ i64_t ht_get(ht_t *table, i64_t key)
             if (table->compare(keys[i], key) == 0)
                 return vals[i];
         }
+        else
+            return NULL_I64;
     }
 
     return NULL_I64;

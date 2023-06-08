@@ -28,7 +28,7 @@
 
 typedef struct set_t
 {
-    u32_t (*hasher)(i64_t a);
+    u64_t (*hasher)(i64_t a);
     i32_t (*compare)(i64_t a, i64_t b);
     i64_t size;
     i64_t count;
@@ -36,7 +36,7 @@ typedef struct set_t
 } set_t;
 
 // clang-format off
-set_t  *set_new(i64_t size, u32_t (*hasher)(i64_t a), i32_t (*compare)(i64_t a, i64_t b));
+set_t  *set_new(i64_t size, u64_t (*hasher)(i64_t a), i32_t (*compare)(i64_t a, i64_t b));
 null_t  set_free(set_t *set);
 bool_t  set_insert(set_t *set, i64_t key);
 bool_t  set_contains(set_t *set, i64_t key);

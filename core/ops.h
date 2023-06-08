@@ -71,6 +71,7 @@ i64_t floor_f64(f64_t x);
 i64_t ceil_f64(f64_t x);
 u64_t rand_u64();
 // Knuth's multiplicative hash
-u32_t kmh_hash(i64_t key);
+u64_t kmh_hash(i64_t key);
+u64_t fnv1a_hash_64(i64_t key);
 
 #endif
