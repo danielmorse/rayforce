@@ -77,7 +77,7 @@ null_t rehash(ht_t *table)
 
     for (i = 0; i < old_size; i++)
     {
-        if (as_vector_i64(&old_keys)[i] != NULL_I64)
+        if (ok[i] != NULL_I64)
             ht_insert(table, ok[i], ov[i]);
     }
 
@@ -103,7 +103,7 @@ null_t rehash_with(ht_t *table, null_t *seed, i64_t (*func)(i64_t key, i64_t val
 
     for (i = 0; i < old_size; i++)
     {
-        if (as_vector_i64(&old_keys)[i] != NULL_I64)
+        if (ok[i] != NULL_I64)
             ht_insert_with(table, ok[i], ov[i], seed, func);
     }
 
@@ -179,7 +179,7 @@ i64_t ht_insert_with(ht_t *table, i64_t key, i64_t val, null_t *seed,
  * Inserts new node or updates existing one.
  * Returns true if the node was updated, false if it was inserted.
  */
-bool_t ht_update(ht_t *table, i64_t key, i64_t val)
+bool_t ht_upsert(ht_t *table, i64_t key, i64_t val)
 {
     i32_t i, size = table->size;
     u64_t factor = table->size - 1,
@@ -210,69 +210,46 @@ bool_t ht_update(ht_t *table, i64_t key, i64_t val)
 
     rehash(table);
 
-    return ht_insert(table, key, val);
+    return ht_upsert(table, key, val);
 }
 
 /*
- * Does the same as ht_update, but uses a function to set the val of the bucket.
+ * Does the same as ht_upsert, but uses a function to set the val of the bucket.
  */
-// bool_t ht_update_with(ht_t *table, null_t *key, null_t *val, null_t *seed,
-//                       null_t *(*func)(null_t *key, null_t *val, null_t *seed, bucket_t *bucket))
-// {
-//     // Table's size is always a power of 2
-//     u64_t factor = table->size - 1,
-//           index = table->hasher(key) & factor;
-//     u32_t distance = 0;
+bool_t ht_upsert_with(ht_t *table, i64_t key, i64_t val, null_t *seed,
+                      i64_t (*func)(i64_t key, i64_t val, null_t *seed, i64_t *tkey, i64_t *tval))
+{
+    i32_t i, size = table->size;
+    u64_t factor = table->size - 1,
+          index = table->hasher(key) & factor;
 
-//     while (distance < table->size)
-//     {
-//         if (table->buckets[index].state == STATE_OCCUPIED)
-//         {
-//             if (table->compare(table->buckets[index].key, key) == 0)
-//             {
-//                 func(key, val, seed, &table->buckets[index]);
-//                 return true;
-//             }
-//         }
-//         else
-//         {
-//             func(key, val, seed, &table->buckets[index]);
-//             table->buckets[index].state = STATE_OCCUPIED;
-//             table->count++;
-//             return false;
-//         }
+    i64_t *keys = as_vector_i64(&table->keys);
+    i64_t *vals = as_vector_i64(&table->vals);
 
-//         if (table->buckets[index].distance < distance)
-//         {
-//             // Swap places
-//             null_t *temp_key = table->buckets[index].key;
-//             null_t *temp_val = table->buckets[index].val;
-//             u64_t temp_distance = table->buckets[index].distance;
+    for (i = index; i < size; i++)
+    {
+        if (keys[i] != NULL_I64)
+        {
+            if (table->compare(keys[i], key) == 0)
+            {
+                func(key, val, seed, &keys[i], &vals[i]);
+                return true;
+            }
 
-//             table->buckets[index].key = key;
-//             table->buckets[index].val = val;
-//             table->buckets[index].distance = distance;
+            continue;
+        }
 
-//             key = temp_key;
-//             val = temp_val;
-//             distance = temp_distance;
-//         }
+        keys[i] = key;
+        vals[i] = val;
+        table->count++;
 
-//         index = (index + 1) & factor;
-//         distance++;
+        return false;
+    }
 
-//         // Rehash if the load factor is above 0.7
-//         if (distance > table->size * 0.7)
-//         {
-//             rehash_with(table, seed, func);
-//             // Start the insert operation from scratch, since the table has been resized and rehashed.
-//             ht_update_with(table, key, val, seed, func);
-//             return true;
-//         }
-//     }
+    rehash_with(table, seed, func);
 
-//     panic("Hash table is full");
-// }
+    return ht_upsert_with(table, key, val, seed, func);
+}
 
 /*
  * Returns the rf_object of the node with the given key.
@@ -298,20 +275,24 @@ i64_t ht_get(ht_t *table, i64_t key)
     return NULL_I64;
 }
 
-i64_t ht_next_key(ht_t *table, i64_t *index)
+bool_t ht_next_entry(ht_t *table, i64_t **k, i64_t **v, i64_t *index)
 {
-    i64_t *keys = as_vector_i64(&table->keys), i;
+    i64_t i, *keys = as_vector_i64(&table->keys),
+             *vals = as_vector_i64(&table->vals);
+
     while (*index < table->size)
     {
         if (keys[*index] != NULL_I64)
         {
             i = *index;
             (*index)++;
-            return keys[i];
+            *k = &keys[i];
+            *v = &vals[i];
+            return true;
         }
 
         (*index)++;
     }
 
-    return NULL_I64;
+    return false;
 }

@@ -50,12 +50,6 @@ rf_object_t rf_til_i64(rf_object_t *x)
 
 u32_t i64_hash(i64_t key)
 {
-    key = (~key) + (key << 18); // key = (key << 18) - key - 1;
-    key = key ^ (key >> 31);
-    key = key * 21; // key = (key + (key << 2)) + (key << 4);
-    key = key ^ (key >> 11);
-    key = key + (key << 6);
-    key = key ^ (key >> 22);
     return (u32_t)key;
 }
 
@@ -125,7 +119,7 @@ rf_object_t rf_distinct_I64(rf_object_t *x)
     for (i = 0; i < xl; i++)
     {
         n = normalize(iv1[i]);
-        if (!ht_update(ht, n, 0))
+        if (!ht_upsert(ht, n, 0))
             ov[j++] = iv1[i];
     }
 
@@ -136,12 +130,34 @@ rf_object_t rf_distinct_I64(rf_object_t *x)
     return vec;
 }
 
+i64_t cnt_update(i64_t key, i64_t val, null_t *seed, i64_t *tkey, i64_t *tval)
+{
+    UNUSED(key);
+    UNUSED(*tkey);
+    UNUSED(seed);
+
+    *tval += 1;
+    return val;
+}
+
+i64_t pos_update(i64_t key, i64_t val, null_t *seed, i64_t *tkey, i64_t *tval)
+{
+    UNUSED(key);
+    UNUSED(*tkey);
+
+    u32_t idx = (u32_t)*tval;
+    rf_object_t *vv = (rf_object_t *)seed + idx;
+    i64_t *vi = as_vector_i64(vv);
+    vi[vv->adt->len++] = val;
+
+    return val;
+}
+
 rf_object_t rf_group_I64(rf_object_t *x)
 {
-    i64_t i, j = 0, n = 0, l, xl = x->adt->len, *iv1 = as_vector_i64(x), *kv;
+    i64_t i, j = 0, l, xl = x->adt->len, *iv1 = as_vector_i64(x), *kv, *ek, *ev;
     rf_object_t keys, vals, *vv, v;
     ht_t *ht;
-    i64_t cap = 2;
 
     keys = vector_i64(xl);
     kv = as_vector_i64(&keys);
@@ -150,33 +166,30 @@ rf_object_t rf_group_I64(rf_object_t *x)
 
     ht = ht_new(xl, &kmh_hash, &i64_cmp);
 
+    // calculate counts for each key
     for (i = 0; i < xl; i++)
-    {
-        n = ht_get(ht, iv1[i]);
-        if (n == NULL_I64)
-        {
-            kv[j] = iv1[i];
-            ht_insert(ht, iv1[i], j);
-            v = vector_i64(cap);
-            as_vector_i64(&v)[0] = i;
-            v.adt->len = 1;
-            vv[j++] = v;
-        }
-        else
-        {
-            l = vv[n].adt->len;
-            if (l < cap)
-                as_vector_i64(&vv[n])[l] = i;
-            else
-            {
-                cap *= 2;
-                vector_grow(&vv[n], cap);
-                as_vector_i64(&vv[n])[l] = i;
-            }
+        ht_upsert_with(ht, iv1[i], 1, NULL, &cnt_update);
 
-            vv[n].adt->len = l + 1;
-        }
+    // allocate vectors of positions for each key
+    ek = as_vector_i64(&ht->keys);
+    ev = as_vector_i64(&ht->vals);
+    l = ht->size;
+
+    for (i = 0; i < l; i++)
+    {
+        if (ek[i] == NULL_I64)
+            continue;
+
+        kv[j] = ek[i];
+        v = vector_i64(ev[i]);
+        v.adt->len = 0;
+        ev[i] = j;
+        vv[j++] = v;
     }
+
+    // finally, fill vectors with positions
+    for (i = 0; i < xl; i++)
+        ht_upsert_with(ht, iv1[i], i, vv, &pos_update);
 
     ht_free(ht);
 

@@ -46,12 +46,11 @@ null_t  ht_free(ht_t *table);
 i64_t   ht_insert(ht_t *table, i64_t key, i64_t val);
 i64_t   ht_insert_with(ht_t *table, i64_t key, i64_t val, null_t *seed,
                   i64_t (*func)(i64_t key, i64_t val, null_t *seed, i64_t *tkey, i64_t *tval));
-bool_t  ht_update(ht_t *table, i64_t key, i64_t val);
+bool_t  ht_upsert(ht_t *table, i64_t key, i64_t val);
+bool_t  ht_upsert_with(ht_t *table, i64_t key, i64_t val, null_t *seed,
+                  i64_t (*func)(i64_t key, i64_t val, null_t *seed, i64_t *tkey, i64_t *tval));
 i64_t   ht_get(ht_t *table, i64_t key);
-
-i64_t ht_next_key(ht_t *table, i64_t *index);
-// bool_t    ht_update_with(ht_t *table, null_t *key, null_t *val, null_t *seed, 
-//                             null_t *(*func)(null_t *key, null_t *val, null_t *seed, bucket_t *bucket));
+bool_t ht_next_entry(ht_t *table, i64_t **k, i64_t **v, i64_t *index);
 // clang-format on
 
 #endif
