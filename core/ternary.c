@@ -24,6 +24,7 @@
 #include "ternary.h"
 #include "ops.h"
 #include "util.h"
+#include <stdlib.h>
 
 rf_object_t rf_rand_i64_i64_i64(rf_object_t *x, rf_object_t *y, rf_object_t *z)
 {

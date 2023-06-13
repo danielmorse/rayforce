@@ -62,6 +62,9 @@ null_t *rf_alloc_add_pool(u32_t size)
     null_t *pool = (null_t *)mmap_malloc(size);
     node_t *node = (node_t *)pool;
 
+    assert(node != NULL);
+    assert((i64_t)node % 16 == 0);
+
     node->size = size;
     node->base = pool;
 
@@ -71,8 +74,7 @@ null_t *rf_alloc_add_pool(u32_t size)
 null_t rf_alloc_add_main_pool()
 {
     node_t *node = (node_t *)rf_alloc_add_pool(realsize(POOL_SIZE));
-    debug_assert(node != NULL);
-    debug_assert((i64_t)node % 16 == 0);
+
     node->next = NULL;
     _ALLOC->freelist[MAX_ORDER] = node;
     _ALLOC->avail |= 1 << MAX_ORDER;
@@ -140,7 +142,7 @@ memstat_t rf_alloc_memstat()
 
 #ifdef SYS_MALLOC
 
-null_t *rf_malloc(i32_t size)
+null_t *rf_malloc(u64_t size)
 {
     return malloc(size);
 }
@@ -150,14 +152,14 @@ null_t rf_free(null_t *block)
     free(block);
 }
 
-null_t *rf_realloc(null_t *ptr, i32_t new_size)
+null_t *rf_realloc(null_t *ptr, u64_t new_size)
 {
     return realloc(ptr, new_size);
 }
 
 #else
 
-null_t *rf_malloc(i32_t size)
+null_t *rf_malloc(u64_t size)
 {
     i32_t i, order;
     null_t *block;
@@ -167,6 +169,9 @@ null_t *rf_malloc(i32_t size)
 
     // calculate minimal order for this size
     order = orderof(size);
+
+    if (order > MAX_POOL_ORDER)
+        return NULL;
 
     // find least order block that fits
     i = (AVAIL_MASK << order) & _ALLOC->avail;
@@ -196,7 +201,7 @@ null_t *rf_malloc(i32_t size)
         _ALLOC->avail &= ~blocksize(i);
 
     // split until i == order
-    while (i-- > order)
+    while ((i--) > order)
     {
         node = (node_t *)buddyof(block, ((node_t *)block)->base, i);
         node->size = size;
@@ -256,7 +261,7 @@ null_t rf_free(null_t *block)
     }
 }
 
-null_t *rf_realloc(null_t *ptr, i32_t new_size)
+null_t *rf_realloc(null_t *ptr, u64_t new_size)
 {
     if (ptr == NULL)
         return rf_malloc(new_size);
@@ -268,7 +273,7 @@ null_t *rf_realloc(null_t *ptr, i32_t new_size)
     }
 
     node_t *node = ((node_t *)ptr) - 1;
-    i32_t size = node->size - sizeof(struct node_t);
+    u64_t size = node->size - sizeof(struct node_t);
 
     // TODO: Shrink
     if (new_size <= size)

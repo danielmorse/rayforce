@@ -24,8 +24,11 @@
 #ifndef MMAP_H
 #define MMAP_H
 
+#ifndef __USE_MISC
 #define __USE_MISC
 #define _DEFAULT_SOURCE
+#endif
+
 #define PAGE_SIZE 4096
 
 #if defined(_WIN32) || defined(__CYGWIN__)

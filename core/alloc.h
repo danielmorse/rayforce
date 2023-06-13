@@ -29,8 +29,8 @@
 
 // clang-format off
 #define MIN_ORDER      4
-#define MAX_ORDER      29 // 64MB
-#define MAX_POOL_ORDER 48
+#define MAX_ORDER      25 // 2^25 = 32MB
+#define MAX_POOL_ORDER 36 // 2^36 = 64GB
 #define MIN_ALLOC      ((i64_t)1 << MIN_ORDER)
 #define MAX_ALLOC      ((i64_t)1 << MAX_ORDER)
 #define POOL_SIZE      (1 << MAX_ORDER)
@@ -62,8 +62,8 @@ typedef struct alloc_t
 
 CASSERT(sizeof(struct alloc_t) % PAGE_SIZE == 0, alloc_h)
 
-extern null_t   *rf_malloc(i32_t size);
-extern null_t   *rf_realloc(null_t *ptr, i32_t size);
+extern null_t   *rf_malloc(u64_t size);
+extern null_t   *rf_realloc(null_t *ptr, u64_t size);
 extern null_t    rf_free(null_t *block);
 extern alloc_t   rf_alloc_init();
 extern alloc_t   rf_alloc_get();

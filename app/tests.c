@@ -185,11 +185,126 @@ null_t test_vector()
     rf_object_free(&v);
 }
 
+null_t test_allocate_and_free()
+{
+    u64_t size = 1024; // size of the memory block to allocate
+    null_t *ptr = rf_malloc(size);
+    assert(ptr != NULL);
+    rf_free(ptr);
+    printf("test_allocate_and_free passed\n");
+}
+
+null_t test_multiple_allocations()
+{
+    u64_t size = 1024;
+    null_t *ptr1 = rf_malloc(size);
+    null_t *ptr2 = rf_malloc(size);
+    assert(ptr1 != NULL);
+    assert(ptr2 != NULL);
+    assert(ptr1 != ptr2);
+    rf_free(ptr1);
+    rf_free(ptr2);
+    printf("test_multiple_allocations passed\n");
+}
+
+null_t test_allocation_after_free()
+{
+    u64_t size = 1024;
+    null_t *ptr1 = rf_malloc(size);
+    assert(ptr1 != NULL);
+    rf_free(ptr1);
+
+    null_t *ptr2 = rf_malloc(size);
+    assert(ptr2 != NULL);
+
+    // the second allocation should be able to use the block freed by the first allocation
+    assert(ptr1 == ptr2);
+
+    rf_free(ptr2);
+    printf("test_allocation_after_free passed\n");
+}
+
+null_t test_out_of_memory()
+{
+    u64_t size = 1ull << 38;
+    null_t *ptr = rf_malloc(size);
+    assert(ptr == NULL);
+    printf("test_out_of_memory passed\n");
+}
+
+null_t test_large_number_of_allocations()
+{
+    u64_t num_allocs = 1e5; // Large number of allocations
+    u64_t size = 1024;
+    null_t *ptrs[num_allocs];
+    for (u64_t i = 0; i < num_allocs; i++)
+    {
+        ptrs[i] = rf_malloc(size);
+        assert(ptrs[i] != NULL);
+    }
+    // Free memory in reverse order
+    for (u64_t i = num_allocs - 1; i >= 0; i--)
+    {
+        rf_free(ptrs[i]);
+    }
+    printf("test_large_number_of_allocations passed\n");
+}
+
+null_t test_varying_sizes()
+{
+    u64_t size = 16;       // Start size
+    u64_t num_allocs = 10; // number of allocations
+    null_t *ptrs[num_allocs];
+    for (u64_t i = 0; i < num_allocs; i++)
+    {
+        ptrs[i] = rf_malloc(size << i); // double the size at each iteration
+        assert(ptrs[i] != NULL);
+    }
+    // Free memory in reverse order
+    for (int i = num_allocs - 1; i >= 0; i--)
+    {
+        rf_free(ptrs[i]);
+    }
+    printf("test_varying_sizes passed\n");
+}
+
+null_t test_fragmentation()
+{
+    u64_t size = 1024;
+    null_t *ptr1 = rf_malloc(size);
+    null_t *ptr2 = rf_malloc(size);
+    null_t *ptr3 = rf_malloc(size);
+    assert(ptr1 != NULL);
+    assert(ptr2 != NULL);
+    assert(ptr3 != NULL);
+
+    // Free the first and third blocks
+    rf_free(ptr1);
+    rf_free(ptr3);
+
+    // Attempt to allocate a block that is larger than the two freed blocks individually,
+    // but smaller than their total size. If the allocator handles fragmentation correctly,
+    // this allocation should fail because it cannot fit into the fragmented free blocks.
+    null_t *ptr4 = rf_malloc(size * 1.5);
+    assert(ptr4 == NULL);
+
+    rf_free(ptr2);
+    printf("test_fragmentation passed\n");
+}
+
 i32_t main()
 {
     runtime_init(0);
 
-    test_vector();
+    test_allocate_and_free();
+    test_multiple_allocations();
+    test_allocation_after_free();
+    test_out_of_memory();
+    test_large_number_of_allocations();
+    test_varying_sizes();
+    test_fragmentation();
+
+    printf("All tests passed!\n");
 
     runtime_cleanup();
 }
