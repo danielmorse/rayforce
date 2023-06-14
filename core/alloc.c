@@ -67,6 +67,7 @@ null_t *rf_alloc_add_pool(u32_t size)
 
     node->size = size;
     node->base = pool;
+    node->next = NULL;
 
     return (null_t *)node;
 }
@@ -75,7 +76,6 @@ null_t rf_alloc_add_main_pool()
 {
     node_t *node = (node_t *)rf_alloc_add_pool(realsize(POOL_SIZE));
 
-    node->next = NULL;
     _ALLOC->freelist[MAX_ORDER] = node;
     _ALLOC->avail |= 1 << MAX_ORDER;
 }
@@ -217,7 +217,7 @@ null_t *rf_malloc(u64_t size)
 null_t rf_free(null_t *block)
 {
     null_t *buddy;
-    node_t *node = (node_t *)block - 1, **n;
+    node_t *node = (node_t *)((i64_t)block - sizeof(node_t)), **n;
     block = (null_t *)node;
     i32_t order = orderof(node->size);
 
