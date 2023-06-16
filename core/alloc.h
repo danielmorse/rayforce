@@ -35,6 +35,7 @@
 #define MAX_ALLOC        (1ull << MAX_ORDER)
 #define POOL_SIZE        (1ull << MAX_ORDER)
 #define SMALL_BLOCK_SIZE (1ull << MIN_ORDER) // 64 bytes
+#define NUM_32_BLOCKS    1024 * 1024 * 16    // 16M blocks
 #define NUM_64_BLOCKS    1024 * 1024 * 16    // 16M blocks
 
 typedef struct node_t
@@ -58,6 +59,8 @@ typedef struct memstat_t
 
 typedef struct alloc_t
 {
+    null_t *blocks32;                     // pool of 32 bytes blocks
+    null_t *freelist32;                   // blocks of 32 bytes
     null_t *blocks64;                     // pool of 64 bytes blocks
     null_t *freelist64;                   // blocks of 64 bytes
     node_t *freelist[MAX_POOL_ORDER + 2]; // free list of blocks by order
