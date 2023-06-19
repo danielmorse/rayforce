@@ -48,7 +48,7 @@ null_t init_functions(rf_object_t *records)
     REC(records, 0, "memstat",   TYPE_DICT,       rf_memstat,              { 0                                 });
           
     // Unary           
-    REC(records, 1, "type",     -TYPE_SYMBOL,     OP_TYPE,                 { TYPE_ANY                          });
+    REC(records, 1, "type",     -TYPE_SYMBOL,     rf_type,                 { TYPE_ANY                          });
     REC(records, 1, "til" ,      TYPE_I64,        rf_til_i64,              {-TYPE_I64                          });
     REC(records, 1, "trace" ,    TYPE_I64,        OP_TRACE,                { TYPE_ANY                          });
     REC(records, 1, "distinct",  TYPE_I64,        rf_distinct_I64,         { TYPE_I64                          });

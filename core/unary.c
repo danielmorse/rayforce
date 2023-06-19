@@ -22,6 +22,7 @@
  */
 
 #include "rayforce.h"
+#include "runtime.h"
 #include "alloc.h"
 #include "vm.h"
 #include "ops.h"
@@ -31,6 +32,13 @@
 #include "vector.h"
 #include "guid.h"
 #include "set.h"
+#include "env.h"
+
+rf_object_t rf_type(rf_object_t *x)
+{
+    i64_t t = env_get_typename_by_type(&runtime_get()->env, x->type);
+    return symboli64(t);
+}
 
 rf_object_t rf_til_i64(rf_object_t *x)
 {

@@ -40,7 +40,6 @@ typedef enum vm_opcode_t
     OP_POP,       // Pop an rf_object from the stack
     OP_JNE,       // Jump if not equal
     OP_JMP,       // Jump
-    OP_TYPE,      // Get type of rf_object
     OP_TIMER_SET, // Start timer
     OP_TIMER_GET, // Get timer value
     OP_CALL0,     // Call function with no arguments

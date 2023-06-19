@@ -100,7 +100,7 @@ rf_object_t __attribute__((hot)) vm_exec(vm_t *vm, rf_object_t *fun)
 
     // The indices of labels in the dispatch_table are the relevant opcodes
     static null_t *dispatch_table[] = {
-        &&op_halt, &&op_ret, &&op_push, &&op_pop, &&op_jne, &&op_jmp, &&op_type, &&op_timer_set, &&op_timer_get,
+        &&op_halt, &&op_ret, &&op_push, &&op_pop, &&op_jne, &&op_jmp, &&op_timer_set, &&op_timer_get,
         &&op_call0, &&op_call1, &&op_call2, &&op_call3, &&op_call4, &&op_calln, &&op_callf, &&op_lset, &&op_gset,
         &&op_lload, &&op_gload, &&op_cast, &&op_try, &&op_catch, &&op_throw, &&op_trace,
         &&op_alloc, &&op_map, &&op_collect};
@@ -209,15 +209,6 @@ op_jmp:
     vm->ip++;
     load_u64(l, vm);
     vm->ip = l;
-    dispatch();
-op_type:
-    vm->ip++;
-    x2 = stack_pop(vm);
-    t = env_get_typename_by_type(&runtime_get()->env, x2.type);
-    x1 = i64(t);
-    x1.type = -TYPE_SYMBOL;
-    stack_push(vm, x1);
-    rf_object_free(&x2);
     dispatch();
 op_timer_set:
     vm->ip++;
@@ -485,9 +476,6 @@ str_t vm_code_fmt(rf_object_t *fun)
             rf_object_fmt_into(&s, &l, &o, 0, 0, (rf_object_t *)(code + ip));
             str_fmt_into(&s, &l, &o, 0, "\n");
             ip += sizeof(rf_object_t);
-            break;
-        case OP_TYPE:
-            str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] type\n", c++, ip++);
             break;
         case OP_TIMER_SET:
             str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] timer_set\n", c++, ip++);
