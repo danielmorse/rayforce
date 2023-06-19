@@ -338,9 +338,9 @@ null_t rf_free(null_t *block)
 
 null_t *rf_realloc(null_t *block, u64_t new_size)
 {
-    node_t *node;
-    u64_t size;
-    null_t *new_block;
+    node_t *node, *buddy;
+    u64_t i, size, order;
+    null_t *new_block, *base;
 
     if (block == NULL)
         return rf_malloc(new_size);
@@ -386,17 +386,40 @@ null_t *rf_realloc(null_t *block, u64_t new_size)
     node = ((node_t *)block) - 1;
     size = node->size - sizeof(struct node_t);
 
-    // TODO: Shrink
-    if (new_size <= size)
+    if (new_size == size)
         return block;
 
-    new_block = rf_malloc(new_size);
-    if (new_block)
-        memcpy(new_block, block, size);
+    // grow
+    if (new_size > size)
+    {
+        new_block = rf_malloc(new_size);
 
-    rf_free(block);
+        if (new_block)
+            memcpy(new_block, block, size);
 
-    return new_block;
+        rf_free(block);
+
+        return new_block;
+    }
+
+    // shrink
+    i = orderof(size);
+    order = orderof(new_size + sizeof(struct node_t));
+
+    // split until i == order
+    while ((i--) > order)
+    {
+        size = blocksize(i);
+        base = (node_t *)node->base;
+        node->size = size;
+        buddy = (node_t *)buddyof((null_t *)node, base, i);
+        buddy->next = _ALLOC->freelist[i];
+        buddy->base = base;
+        _ALLOC->freelist[i] = buddy;
+        _ALLOC->avail |= size;
+    }
+
+    return block;
 }
 
 null_t rf_alloc_mrequest(u64_t size)

@@ -109,6 +109,7 @@ rf_object_t rf_distinct_I64(rf_object_t *x)
 
         rf_object_free(&mask);
         vector_shrink(&vec, j);
+
         vec.adt->attrs |= VEC_ATTR_DISTINCT;
 
         return vec;
