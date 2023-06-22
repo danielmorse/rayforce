@@ -257,15 +257,16 @@ bool_t rf_object_eq(rf_object_t *a, rf_object_t *b)
 rf_object_t __attribute__((hot)) rf_object_clone(rf_object_t *object)
 {
     i64_t i, l;
+    type_t type = type(object->type);
 
-    if (object->type == -TYPE_GUID)
+    if (type == -TYPE_GUID)
     {
         if (object->guid == NULL)
             return guid(NULL);
         return guid(object->guid->data);
     }
 
-    if (object->type < TYPE_NULL)
+    if (type < TYPE_NULL)
         return *object;
 
     rc_inc(object);
@@ -274,7 +275,7 @@ rf_object_t __attribute__((hot)) rf_object_clone(rf_object_t *object)
         &&type_any, &&type_bool, &&type_i64, &&type_f64, &&type_symbol, &&type_timestamp,
         &&type_guid, &&type_char, &&type_list, &&type_dict, &&type_table, &&type_function, &&type_error};
 
-    goto *types_table[(i32_t)object->type];
+    goto *types_table[(i32_t)type];
 
 type_any:
     return *object;
@@ -317,15 +318,16 @@ type_error:
 null_t __attribute__((hot)) rf_object_free(rf_object_t *object)
 {
     i64_t i, rc, l;
+    type_t type = type(object->type);
 
-    if (object->type == -TYPE_GUID)
+    if (type == -TYPE_GUID)
     {
         if (object->guid)
             rf_free(object->guid);
         return;
     }
 
-    if (object->type < 0)
+    if (type < 0)
         return;
 
     rc_dec(rc, object);
@@ -334,7 +336,7 @@ null_t __attribute__((hot)) rf_object_free(rf_object_t *object)
         &&type_any, &&type_bool, &&type_i64, &&type_f64, &&type_symbol, &&type_timestamp,
         &&type_guid, &&type_char, &&type_list, &&type_dict, &&type_table, &&type_function, &&type_error};
 
-    goto *types_table[(i32_t)object->type];
+    goto *types_table[(i32_t)type];
 
 type_any:
     return;
@@ -409,8 +411,9 @@ rf_object_t rf_object_cow(rf_object_t *object)
 {
     i64_t i, l;
     rf_object_t new;
+    type_t type = type(object->type);
 
-    if (object->type < 0)
+    if (type < 0)
         return *object;
 
     if (object->adt == NULL)
@@ -423,7 +426,7 @@ rf_object_t rf_object_cow(rf_object_t *object)
         &&type_any, &&type_bool, &&type_i64, &&type_f64, &&type_symbol, &&type_timestamp,
         &&type_guid, &&type_char, &&type_list, &&type_dict, &&type_table, &&type_function, &&type_error};
 
-    goto *types_table[(i32_t)object->type];
+    goto *types_table[(i32_t)type];
 
 type_any:
     return *object;

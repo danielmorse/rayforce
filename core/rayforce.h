@@ -53,7 +53,6 @@ extern "C"
 #define TYPE_FUNCTION 11
 #define TYPE_ERROR 12
 #define TYPE_ANY 127
-#define TYPE_MASK 0x7F
 
 // Result constants
 #define OK 0
@@ -162,7 +161,7 @@ extern rf_object_t schar(char_t c);                                         // c
 extern rf_object_t vector(i8_t type, i64_t len);                            // vector of type
 extern rf_object_t string(i64_t len);                                       // string 
 
-#define type(x)               ((x)->type & TYPE_MASK)                       // get type
+#define type(x)               ((type_t)((i8_t)(x)))                         // get type
 #define null()                ((rf_object_t){.type = TYPE_NULL})            // null
 #define vector_bool(len)      (vector(TYPE_BOOL,          len ))            // bool vector
 #define vector_i64(len)       (vector(TYPE_I64,           len ))            // i64 vector
