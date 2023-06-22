@@ -266,19 +266,21 @@ rf_object_t __attribute__((hot)) rf_object_clone(rf_object_t *object)
         return guid(object->guid->data);
     }
 
-    if (type < TYPE_NULL)
+    if (type < TYPE_BOOL)
         return *object;
 
     rc_inc(object);
 
+    type = type - TYPE_BOOL;
+
+    debug("CLONE TYPE: %d TP: %d", type, object->type);
+
     static null_t *types_table[] = {
-        &&type_any, &&type_bool, &&type_i64, &&type_f64, &&type_symbol, &&type_timestamp,
-        &&type_guid, &&type_char, &&type_list, &&type_dict, &&type_table, &&type_function, &&type_error};
+        &&type_bool, &&type_i64, &&type_f64, &&type_symbol, &&type_timestamp, &&type_guid,
+        &&type_char, &&type_list, &&type_dict, &&type_table, &&type_function, &&type_error};
 
-    goto *types_table[(i32_t)type];
+    goto *types_table[type];
 
-type_any:
-    return *object;
 type_bool:
     return *object;
 type_i64:
@@ -327,19 +329,21 @@ null_t __attribute__((hot)) rf_object_free(rf_object_t *object)
         return;
     }
 
-    if (type < 0)
+    if (type < TYPE_BOOL)
         return;
 
     rc_dec(rc, object);
 
+    type = type - TYPE_BOOL;
+
+    debug("FREE TYPE: %d TP: %d", type, object->type);
+
     static null_t *types_table[] = {
-        &&type_any, &&type_bool, &&type_i64, &&type_f64, &&type_symbol, &&type_timestamp,
-        &&type_guid, &&type_char, &&type_list, &&type_dict, &&type_table, &&type_function, &&type_error};
+        &&type_bool, &&type_i64, &&type_f64, &&type_symbol, &&type_timestamp, &&type_guid,
+        &&type_char, &&type_list, &&type_dict, &&type_table, &&type_function, &&type_error};
 
-    goto *types_table[(i32_t)type];
+    goto *types_table[type];
 
-type_any:
-    return;
 type_bool:
     if (rc == 0)
         vector_free(object);
@@ -376,6 +380,7 @@ type_list:
         vector_free(object);
     return;
 type_dict:
+    debug("------------------- FREE DICT: %d", as_list(object)[0].type);
     rf_object_free(&as_list(object)[0]);
     rf_object_free(&as_list(object)[1]);
     if (rc == 0)
@@ -413,7 +418,7 @@ rf_object_t rf_object_cow(rf_object_t *object)
     rf_object_t new;
     type_t type = type(object->type);
 
-    if (type < 0)
+    if (type < TYPE_BOOL)
         return *object;
 
     if (object->adt == NULL)
@@ -422,14 +427,14 @@ rf_object_t rf_object_cow(rf_object_t *object)
     if (rf_object_rc(object) == 1)
         return rf_object_clone(object);
 
+    type = type - TYPE_BOOL;
+
     static null_t *types_table[] = {
-        &&type_any, &&type_bool, &&type_i64, &&type_f64, &&type_symbol, &&type_timestamp,
+        &&type_bool, &&type_i64, &&type_f64, &&type_symbol, &&type_timestamp,
         &&type_guid, &&type_char, &&type_list, &&type_dict, &&type_table, &&type_function, &&type_error};
 
-    goto *types_table[(i32_t)type];
+    goto *types_table[type];
 
-type_any:
-    return *object;
 type_bool:
     new = vector_bool(object->adt->len);
     new.adt->attrs = object->adt->attrs;

@@ -37,9 +37,9 @@ typedef struct function_t
     rf_object_t constants; // list of function constants
     debuginfo_t debuginfo; // debuginfo from cc phase
     i32_t stack_size;      // size of stack frame
-    i8_t rettype;          // return type of function
+    type_t rettype;        // return type of function
 } function_t;
 
-rf_object_t function(i8_t rettype, rf_object_t args, rf_object_t locals, rf_object_t code, debuginfo_t debuginfo);
+rf_object_t function(type_t rettype, rf_object_t args, rf_object_t locals, rf_object_t code, debuginfo_t debuginfo);
 
 #endif

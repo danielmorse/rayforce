@@ -79,7 +79,7 @@ vm_t *vm_new()
  */
 rf_object_t __attribute__((hot)) vm_exec(vm_t *vm, rf_object_t *fun)
 {
-    i8_t type, c;
+    type_t type, c;
     function_t *f = as_function(fun);
     str_t code = as_string(&f->code);
     rf_object_t x1, x2, x3, x4, x5, *addr;
@@ -390,7 +390,8 @@ op_trace:
     dispatch();
 op_alloc:
     b = vm->ip++;
-    type = code[vm->ip++];
+    type = *(type_t *)(code + vm->ip);
+    vm->ip += sizeof(type_t);
     c = code[vm->ip++];
     vm->counter = stack_peek(vm)->adt->len;
     // allocate result and write to a preserved space on the stack

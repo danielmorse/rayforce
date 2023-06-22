@@ -35,7 +35,7 @@
  * If the cast is not possible, returns an error object.
  * If object is already of the specified type, returns the object itself (cloned).
  */
-static inline __attribute__((always_inline)) rf_object_t rf_cast(i8_t type, rf_object_t *y)
+static inline __attribute__((always_inline)) rf_object_t rf_cast(type_t type, rf_object_t *y)
 {
 
 #define m(a, b) ((i16_t)((u8_t)a << 8 | (u8_t)b))

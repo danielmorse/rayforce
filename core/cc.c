@@ -42,8 +42,8 @@
 #define stack_malloc(size) alloca(size)
 #endif
 
-i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object);
-rf_object_t cc_compile_function(bool_t top, str_t name, i8_t rettype, rf_object_t args, rf_object_t *body, u32_t id, i32_t len, debuginfo_t *debuginfo);
+type_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object);
+rf_object_t cc_compile_function(bool_t top, str_t name, type_t rettype, rf_object_t args, rf_object_t *body, u32_t id, i32_t len, debuginfo_t *debuginfo);
 
 #define push_u8(c, x)                            \
     {                                            \
@@ -95,7 +95,7 @@ rf_object_t cc_compile_function(bool_t top, str_t name, i8_t rettype, rf_object_
         return TYPE_ERROR;                                            \
     }
 
-env_record_t *find_record(rf_object_t *records, rf_object_t *car, i8_t *args, u32_t *arity)
+env_record_t *find_record(rf_object_t *records, rf_object_t *car, type_t *args, u32_t *arity)
 {
     bool_t match_rec = false;
     u8_t match_args = 0;
@@ -147,7 +147,8 @@ env_record_t *find_record(rf_object_t *records, rf_object_t *car, i8_t *args, u3
 
 type_t cc_compile_quote(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
-    i8_t type;
+    UNUSED(arity);
+
     rf_object_t *car = &as_list(object)[0];
     function_t *func = as_function(&cc->function);
     rf_object_t *code = &func->code;
@@ -158,23 +159,17 @@ type_t cc_compile_quote(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_
             return TYPE_NULL;
 
         push_opcode(cc, car->id, code, OP_PUSH);
-
-        if (arity == 0)
-        {
-            push_const(cc, null());
-            return TYPE_NULL;
-        }
-
         push_const(cc, rf_object_clone(&as_list(object)[1]));
+
         return as_list(object)[1].type;
     }
 
     return TYPE_NONE;
 }
 
-i8_t cc_compile_time(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+type_t cc_compile_time(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
-    i8_t type;
+    type_t type;
     rf_object_t *car = &as_list(object)[0];
     function_t *func = as_function(&cc->function);
     rf_object_t *code = &func->code;
@@ -201,9 +196,9 @@ i8_t cc_compile_time(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t a
     return TYPE_NONE;
 }
 
-i8_t cc_compile_set(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+type_t cc_compile_set(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
-    i8_t type;
+    type_t type;
     i64_t id;
     rf_object_t *car = &as_list(object)[0], *addr, name;
     function_t *func = as_function(&cc->function);
@@ -270,9 +265,9 @@ i8_t cc_compile_set(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t ar
     return TYPE_NONE;
 }
 
-i8_t cc_compile_cast(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+type_t cc_compile_cast(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
-    i8_t type;
+    type_t type;
     rf_object_t *car = &as_list(object)[0];
     function_t *func = as_function(&cc->function);
     rf_object_t *code = &func->code;
@@ -307,11 +302,11 @@ i8_t cc_compile_cast(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t a
     return TYPE_NONE;
 }
 
-i8_t cc_compile_fn(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+type_t cc_compile_fn(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
     UNUSED(has_consumer);
 
-    i8_t type = TYPE_NULL;
+    type_t type = TYPE_NULL;
     rf_object_t *car = &as_list(object)[0], *b, fun;
     function_t *func = as_function(&cc->function);
     rf_object_t *code = &func->code;
@@ -360,9 +355,9 @@ i8_t cc_compile_fn(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t ari
     return TYPE_NONE;
 }
 
-i8_t cc_compile_cond(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+type_t cc_compile_cond(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
-    i8_t type, type1;
+    type_t type, type1;
     i64_t lbl1, lbl2;
     rf_object_t *car = &as_list(object)[0];
     function_t *func = as_function(&cc->function);
@@ -423,9 +418,9 @@ i8_t cc_compile_cond(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t a
     return TYPE_NONE;
 }
 
-i8_t cc_compile_try(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+type_t cc_compile_try(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
-    i8_t type, type1;
+    type_t type, type1;
     i64_t lbl1, lbl2;
     rf_object_t *car = &as_list(object)[0];
     function_t *func = as_function(&cc->function);
@@ -473,11 +468,11 @@ i8_t cc_compile_try(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t ar
     return TYPE_NONE;
 }
 
-i8_t cc_compile_throw(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+type_t cc_compile_throw(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
     UNUSED(has_consumer);
 
-    i8_t type;
+    type_t type;
     rf_object_t *car = &as_list(object)[0];
     function_t *func = as_function(&cc->function);
     rf_object_t *code = &func->code;
@@ -506,7 +501,7 @@ i8_t cc_compile_throw(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t 
     return TYPE_NONE;
 }
 
-i8_t cc_compile_catch(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+type_t cc_compile_catch(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
     UNUSED(has_consumer);
 
@@ -527,11 +522,11 @@ i8_t cc_compile_catch(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t 
     return TYPE_NONE;
 }
 
-i8_t cc_compile_map(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+type_t cc_compile_map(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
     UNUSED(has_consumer);
 
-    i8_t type, *args;
+    type_t type, *args;
     rf_object_t *car, *addr, *arg_keys, *arg_vals;
     function_t *func = as_function(&cc->function);
     rf_object_t *code = &func->code;
@@ -545,7 +540,7 @@ i8_t cc_compile_map(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t ar
             cerr(cc, car->id, ERR_LENGTH, "'map' takes at least two arguments");
 
         arity -= 1;
-        args = (i8_t *)stack_malloc(arity);
+        args = (type_t *)stack_malloc(arity * sizeof(type_t));
 
         // reserve space for map result
         push_opcode(cc, car->id, code, OP_PUSH);
@@ -581,7 +576,7 @@ i8_t cc_compile_map(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t ar
         func = as_function(addr);
 
         // specify type for alloc result as return type of the function
-        *(i8_t *)(as_string(code) + lbl0) = func->rettype < 0 ? -func->rettype : TYPE_LIST;
+        *(type_t *)(as_string(code) + lbl0) = func->rettype < 0 ? -func->rettype : TYPE_LIST;
 
         arg_keys = &as_list(&func->args)[0];
         arg_vals = &as_list(&func->args)[1];
@@ -631,11 +626,11 @@ i8_t cc_compile_map(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t ar
     return TYPE_NONE;
 }
 
-i8_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+type_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
     UNUSED(has_consumer);
 
-    i8_t type, i;
+    type_t type, i;
     i64_t lbl1, lbl2, usertype;
     rf_object_t *car, *params, key, val, *keys, *vals, *tkeys, *tvals, mtkeys, mtvals, tabletype;
     env_t *env = &runtime_get()->env;
@@ -708,9 +703,9 @@ i8_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t
  * return TYPE_NONE if it is not a special form
  * return type of the special form if it is a special form
  */
-i8_t cc_compile_special_forms(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+type_t cc_compile_special_forms(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
-    i8_t type;
+    type_t type;
 
     type = cc_compile_quote(has_consumer, cc, object, arity);
 
@@ -770,7 +765,7 @@ i8_t cc_compile_special_forms(bool_t has_consumer, cc_t *cc, rf_object_t *object
     return type;
 }
 
-i8_t cc_compile_call(cc_t *cc, rf_object_t *car, i8_t *args, u32_t arity)
+type_t cc_compile_call(cc_t *cc, rf_object_t *car, type_t *args, u32_t arity)
 {
     i32_t i, l, o = 0, n = 0;
     u32_t found_arity = arity, j;
@@ -836,10 +831,10 @@ i8_t cc_compile_call(cc_t *cc, rf_object_t *car, i8_t *args, u32_t arity)
     return rec->ret;
 }
 
-i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
+type_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
 {
     rf_object_t *car, *addr, *arg_keys, *arg_vals, lst;
-    i8_t *args, type = TYPE_NULL;
+    type_t *args, type = TYPE_NULL;
     u32_t l, i, arity;
     i64_t id, sym;
     env_t *env = &runtime_get()->env;
@@ -899,7 +894,7 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
     case TYPE_LIST:
         car = &as_list(object)[0];
         arity = object->adt->len - 1;
-        args = (i8_t *)stack_malloc(arity);
+        args = (type_t *)stack_malloc(arity * sizeof(type_t));
 
         // special forms compilation need to be done before arguments compilation
         type = cc_compile_special_forms(has_consumer, cc, object, arity);
@@ -1066,7 +1061,7 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
 /*
  * Compile function
  */
-rf_object_t cc_compile_function(bool_t top, str_t name, i8_t rettype, rf_object_t args,
+rf_object_t cc_compile_function(bool_t top, str_t name, type_t rettype, rf_object_t args,
                                 rf_object_t *body, u32_t id, i32_t len, debuginfo_t *debuginfo)
 {
     cc_t cc = {
@@ -1077,7 +1072,7 @@ rf_object_t cc_compile_function(bool_t top, str_t name, i8_t rettype, rf_object_
                              debuginfo_new(debuginfo->filename, name)),
     };
 
-    i8_t type;
+    type_t type;
     i32_t i;
     function_t *func = as_function(&cc.function);
     rf_object_t *code = &func->code, *b = body, err;

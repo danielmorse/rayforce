@@ -64,47 +64,47 @@ u32_t span_commit(parser_t *parser, span_t span)
     return parser->count++;
 }
 
-i8_t is_whitespace(i8_t c)
+bool_t is_whitespace(i8_t c)
 {
     return c == ' ' || c == '\t' || c == '\r' || c == '\n';
 }
 
-i8_t is_digit(i8_t c)
+bool_t is_digit(i8_t c)
 {
     return c >= '0' && c <= '9';
 }
 
-i8_t is_alpha(i8_t c)
+bool_t is_alpha(i8_t c)
 {
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }
 
-i8_t is_alphanum(i8_t c)
+bool_t is_alphanum(i8_t c)
 {
     return is_alpha(c) || is_digit(c);
 }
 
-i8_t is_op(i8_t c)
+bool_t is_op(i8_t c)
 {
     return strchr("+-*/%&|^~<>!=", c) != NULL;
 }
 
-i8_t at_eof(i8_t c)
+bool_t at_eof(i8_t c)
 {
     return c == '\0' || c == EOF;
 }
 
-i8_t at_term(i8_t c)
+bool_t at_term(i8_t c)
 {
     return c == ')' || c == ']' || c == '}' || c == ':' || c == '\n';
 }
 
-i8_t is_at(rf_object_t *token, i8_t c)
+bool_t is_at(rf_object_t *token, i8_t c)
 {
     return token->type == TYPE_TOKEN && token->i64 == (i64_t)c;
 }
 
-i8_t is_at_term(rf_object_t *token)
+bool_t is_at_term(rf_object_t *token)
 {
     return token->type == TYPE_TOKEN && at_term(token->i64);
 }
@@ -655,11 +655,11 @@ rf_object_t parse_dict(parser_t *parser)
 
         if (!is_at(&token, ':'))
         {
-            rf_object_free(&keys);
-            rf_object_free(&vals);
-            rf_object_free(&token);
             err = error(ERR_PARSE, "Expected ':'");
             err.id = token.id;
+            rf_object_free(&vals);
+            rf_object_free(&keys);
+            rf_object_free(&token);
             return err;
         }
 
@@ -729,12 +729,18 @@ rf_object_t advance(parser_t *parser)
     if ((*parser->current) == '`')
     {
         shift(parser, 1);
+
         tok = advance(parser);
         if (is_error(&tok))
             return tok;
+
+        if (is_at_term(&tok))
+            tok = null();
+
         lst = list(2);
         as_list(&lst)[0] = symbol("`");
         as_list(&lst)[1] = tok;
+
         return lst;
     }
 

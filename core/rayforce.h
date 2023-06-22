@@ -40,19 +40,19 @@ extern "C"
 
 // Type constants
 #define TYPE_NULL 0
-#define TYPE_BOOL 1
-#define TYPE_I64 2
-#define TYPE_F64 3
-#define TYPE_SYMBOL 4
-#define TYPE_TIMESTAMP 5
-#define TYPE_GUID 6
-#define TYPE_CHAR 7
-#define TYPE_LIST 8
-#define TYPE_DICT 9
-#define TYPE_TABLE 10
-#define TYPE_FUNCTION 11
-#define TYPE_ERROR 12
-#define TYPE_ANY 2147483647
+#define TYPE_BOOL 2
+#define TYPE_I64 3
+#define TYPE_F64 4
+#define TYPE_SYMBOL 5
+#define TYPE_TIMESTAMP 6
+#define TYPE_GUID 7
+#define TYPE_CHAR 8
+#define TYPE_LIST 9
+#define TYPE_DICT 10
+#define TYPE_TABLE 11
+#define TYPE_FUNCTION 12
+#define TYPE_ERROR 13
+#define TYPE_ANY -1
 
 // Result constants
 #define OK 0
@@ -158,7 +158,7 @@ extern rf_object_t symboli64(i64_t id);                                     // s
 extern rf_object_t timestamp(i64_t val);                                    // timestamp
 extern rf_object_t guid(u8_t data[]);                                       // GUID
 extern rf_object_t schar(char_t c);                                         // char
-extern rf_object_t vector(i8_t type, i64_t len);                            // vector of type
+extern rf_object_t vector(type_t type, i64_t len);                          // vector of type
 extern rf_object_t string(i64_t len);                                       // string 
 
 #define type(x)               ((type_t)((i8_t)(x)))                         // get type

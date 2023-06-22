@@ -91,7 +91,7 @@
     {                                         \
         rf_object_t *member;                  \
         i64_t i, n = (l)->adt->len;           \
-        i8_t type = as_list(l)[0].type;       \
+        type_t type = as_list(l)[0].type;     \
         v = vector_##t(0);                    \
                                               \
         for (i = 0; i < n; i++)               \
@@ -108,7 +108,7 @@
         }                                     \
     }
 
-i64_t size_of_val(i8_t type);
+i64_t size_of_val(type_t type);
 rf_object_t list_flatten(rf_object_t *object);
 i64_t vector_find(rf_object_t *vector, rf_object_t *key);
 rf_object_t vector_get(rf_object_t *vector, i64_t index);
