@@ -145,6 +145,33 @@ env_record_t *find_record(rf_object_t *records, rf_object_t *car, i8_t *args, u3
     return NULL;
 }
 
+type_t cc_compile_quote(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+{
+    i8_t type;
+    rf_object_t *car = &as_list(object)[0];
+    function_t *func = as_function(&cc->function);
+    rf_object_t *code = &func->code;
+
+    if (car->i64 == symbol("`").i64)
+    {
+        if (!has_consumer)
+            return TYPE_NULL;
+
+        push_opcode(cc, car->id, code, OP_PUSH);
+
+        if (arity == 0)
+        {
+            push_const(cc, null());
+            return TYPE_NULL;
+        }
+
+        push_const(cc, rf_object_clone(&as_list(object)[1]));
+        return as_list(object)[1].type;
+    }
+
+    return TYPE_NONE;
+}
+
 i8_t cc_compile_time(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
     i8_t type;
@@ -152,7 +179,6 @@ i8_t cc_compile_time(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t a
     function_t *func = as_function(&cc->function);
     rf_object_t *code = &func->code;
 
-    // compile special forms
     if (car->i64 == symbol("time").i64)
     {
         if (!has_consumer)
@@ -686,6 +712,11 @@ i8_t cc_compile_special_forms(bool_t has_consumer, cc_t *cc, rf_object_t *object
 {
     i8_t type;
 
+    type = cc_compile_quote(has_consumer, cc, object, arity);
+
+    if (type != TYPE_NONE)
+        return type;
+
     type = cc_compile_time(has_consumer, cc, object, arity);
 
     if (type != TYPE_NONE)
@@ -821,16 +852,6 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
         if (!has_consumer)
             return TYPE_NONE;
 
-        // symbol is quoted
-        // if (object->flags == 1)
-        // {
-        //     object->flags = 0;
-        //     push_opcode(cc, object->id, code, OP_PUSH);
-        //     push_const(cc, *object);
-        //     func->stack_size++;
-        //     return -TYPE_SYMBOL;
-        // }
-
         // first find in locals
         arg_keys = &as_list(&func->locals)[0];
         arg_vals = &as_list(&func->locals)[1];
@@ -876,17 +897,6 @@ i8_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
         return addr->type;
 
     case TYPE_LIST:
-        // if (object->adt->len == 0 || object->flags == 1)
-        // {
-        //     lst = rf_object_clone(object);
-        //     lst.flags = 0;
-        //     push_opcode(cc, object->id, code, OP_PUSH);
-        //     push_const(cc, lst);
-        //     func->stack_size++;
-
-        //     return TYPE_LIST;
-        // }
-
         car = &as_list(object)[0];
         arity = object->adt->len - 1;
         args = (i8_t *)stack_malloc(arity);

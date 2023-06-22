@@ -52,7 +52,7 @@ extern "C"
 #define TYPE_TABLE 10
 #define TYPE_FUNCTION 11
 #define TYPE_ERROR 12
-#define TYPE_ANY 127
+#define TYPE_ANY 2147483647
 
 // Result constants
 #define OK 0

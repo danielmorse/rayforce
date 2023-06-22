@@ -412,7 +412,7 @@ rf_object_t parse_string(parser_t *parser)
     return str;
 }
 
-rf_object_t parse_symbol(parser_t *parser, i8_t quote)
+rf_object_t parse_symbol(parser_t *parser)
 {
     str_t pos = parser->current;
     rf_object_t res;
@@ -458,7 +458,6 @@ rf_object_t parse_symbol(parser_t *parser, i8_t quote)
     shift(parser, pos - parser->current);
     span_extend(parser, &span);
     res.id = span_commit(parser, span);
-    // res.flags |= quote;
 
     return res;
 }
@@ -568,7 +567,7 @@ rf_object_t parse_vector(parser_t *parser)
     return vec;
 }
 
-rf_object_t parse_list(parser_t *parser, i8_t quote)
+rf_object_t parse_list(parser_t *parser)
 {
     rf_object_t lst = list(0), token, err;
     span_t span = span_start(parser);
@@ -612,7 +611,6 @@ rf_object_t parse_list(parser_t *parser, i8_t quote)
 
     span_extend(parser, &span);
     lst.id = span_commit(parser, span);
-    // lst.flags |= quote;
 
     return lst;
 }
@@ -702,8 +700,7 @@ rf_object_t parse_dict(parser_t *parser)
 
 rf_object_t advance(parser_t *parser)
 {
-    rf_object_t tok, err;
-    i8_t quote = 0;
+    rf_object_t tok, lst, err;
     str_t msg;
 
     // Skip all whitespaces
@@ -731,8 +728,14 @@ rf_object_t advance(parser_t *parser)
 
     if ((*parser->current) == '`')
     {
-        quote = 1;
         shift(parser, 1);
+        tok = advance(parser);
+        if (is_error(&tok))
+            return tok;
+        lst = list(2);
+        as_list(&lst)[0] = symbol("`");
+        as_list(&lst)[1] = tok;
+        return lst;
     }
 
     if (at_eof(*parser->current))
@@ -742,7 +745,7 @@ rf_object_t advance(parser_t *parser)
         return parse_vector(parser);
 
     if ((*parser->current) == '(')
-        return parse_list(parser, quote);
+        return parse_list(parser);
 
     if ((*parser->current) == '{')
         return parse_dict(parser);
@@ -758,7 +761,7 @@ rf_object_t advance(parser_t *parser)
         return parse_number(parser);
 
     if (is_alpha(*parser->current) || is_op(*parser->current))
-        return parse_symbol(parser, quote);
+        return parse_symbol(parser);
 
     if ((*parser->current) == '\'')
         return parse_char(parser);
