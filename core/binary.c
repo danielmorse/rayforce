@@ -1435,6 +1435,24 @@ rf_object_t rf_filter_I64_Bool(rf_object_t *x, rf_object_t *y)
     return res;
 }
 
+rf_object_t rf_filter_Table_Bool(rf_object_t *x, rf_object_t *y)
+{
+    rf_object_t *vals = &as_list(x)[1], outvals, col;
+    i64_t i, j, p = NULL_I64, len = vals->adt->len;
+    bool_t *m = as_vector_bool(y);
+
+    outvals = list(len);
+
+    for (i = 0; i < len; i++)
+    {
+        col = vector_filter(&as_list(vals)[i], m, p);
+        p = col.adt->len;
+        as_list(&outvals)[i] = col;
+    }
+
+    return table(rf_object_clone(&as_list(x)[0]), outvals);
+}
+
 rf_object_t rf_take_i64_i64(rf_object_t *x, rf_object_t *y)
 {
     i64_t i, l = x->i64, n = y->i64;

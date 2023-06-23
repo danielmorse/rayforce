@@ -153,6 +153,7 @@ rf_object_t rf_filter_Timestamp_Bool(rf_object_t *x, rf_object_t *y);
 rf_object_t rf_filter_Guid_Bool(rf_object_t *x, rf_object_t *y);
 rf_object_t rf_filter_F64_Bool(rf_object_t *x, rf_object_t *y);
 rf_object_t rf_filter_Char_Bool(rf_object_t *x, rf_object_t *y);
+rf_object_t rf_filter_Table_Bool(rf_object_t *x, rf_object_t *y);
 rf_object_t rf_take_i64_i64(rf_object_t *x, rf_object_t *y);
 
 #endif

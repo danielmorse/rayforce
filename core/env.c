@@ -180,6 +180,7 @@ null_t init_functions(rf_object_t *records)
     REC(records, 2, "concat",    TYPE_CHAR,       rf_concat_char_Char,     {-TYPE_CHAR,       TYPE_CHAR        });
     REC(records, 2, "concat",    TYPE_LIST,       rf_concat_List_List,     { TYPE_LIST,       TYPE_LIST        });
     REC(records, 2, "filter",    TYPE_I64,        rf_filter_I64_Bool,      { TYPE_I64,        TYPE_BOOL        });
+    REC(records, 2, "filter",    TYPE_TABLE,      rf_filter_Table_Bool,    { TYPE_TABLE,      TYPE_BOOL        });
     REC(records, 2, "take",      TYPE_I64,        rf_take_i64_i64,         {-TYPE_I64,       -TYPE_I64         });
      
     // Ternary       

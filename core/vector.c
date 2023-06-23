@@ -407,6 +407,83 @@ rf_object_t list_flatten(rf_object_t *list)
     return vec;
 }
 
+rf_object_t vector_filter(rf_object_t *x, bool_t mask[], i64_t len)
+{
+    i64_t i, j = 0, l;
+    type_t type = x->type - TYPE_BOOL;
+    rf_object_t vec;
+
+    static null_t *types_table[] = {&&type_bool, &&type_i64, &&type_f64, &&type_symbol,
+                                    &&type_timestamp, &&type_guid, &&type_char, &&type_list};
+
+    l = len == NULL_I64 ? x->adt->len : len;
+
+    goto *types_table[type];
+
+type_bool:
+    vec = vector_bool(l);
+    for (i = 0; i < l; i++)
+        if (mask[i])
+            as_vector_bool(&vec)[j++] = as_vector_bool(x)[i];
+    vector_shrink(&vec, j);
+    return vec;
+type_i64:
+    vec = vector_i64(l);
+    for (i = 0; i < l; i++)
+        if (mask[i])
+            as_vector_i64(&vec)[j++] = as_vector_i64(x)[i];
+    if (len == NULL_I64)
+        vector_shrink(&vec, j);
+    return vec;
+type_f64:
+    vec = vector_f64(l);
+    for (i = 0; i < l; i++)
+        if (mask[i])
+            as_vector_f64(&vec)[j++] = as_vector_f64(x)[i];
+    if (len == NULL_I64)
+        vector_shrink(&vec, j);
+    return vec;
+type_symbol:
+    vec = vector_symbol(l);
+    for (i = 0; i < l; i++)
+        if (mask[i])
+            as_vector_i64(&vec)[j++] = as_vector_i64(x)[i];
+    if (len == NULL_I64)
+        vector_shrink(&vec, j);
+    return vec;
+type_timestamp:
+    vec = vector_timestamp(l);
+    for (i = 0; i < l; i++)
+        if (mask[i])
+            as_vector_i64(&vec)[j++] = as_vector_i64(x)[i];
+    if (len == NULL_I64)
+        vector_shrink(&vec, j);
+    return vec;
+type_guid:
+    vec = vector_guid(l);
+    for (i = 0; i < l; i++)
+        if (mask[i])
+            as_vector_guid(&vec)[j++] = as_vector_guid(x)[i];
+    if (len == NULL_I64)
+        return vec;
+type_char:
+    vec = string(l);
+    for (i = 0; i < l; i++)
+        if (mask[i])
+            as_string(&vec)[j++] = as_string(x)[i];
+    if (len == NULL_I64)
+        vector_shrink(&vec, j);
+    return vec;
+type_list:
+    vec = list(l);
+    for (i = 0; i < l; i++)
+        if (mask[i])
+            as_list(&vec)[j++] = rf_object_clone(&as_list(x)[i]);
+    if (len == NULL_I64)
+        vector_shrink(&vec, j);
+    return vec;
+}
+
 null_t vector_free(rf_object_t *vector)
 {
     rf_free(vector->adt);

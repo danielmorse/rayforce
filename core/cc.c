@@ -648,8 +648,10 @@ type_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32
     UNUSED(has_consumer);
 
     type_t type, i;
-    i64_t lbl1, lbl2;
+    i64_t offset;
     rf_object_t *car, *params, key, val, *keys, *vals, *tkeys, *tvals, mtkeys, mtvals;
+    function_t *func = as_function(&cc->function);
+    rf_object_t *code = &func->code;
     env_t *env = &runtime_get()->env;
 
     car = &as_list(object)[0];
@@ -669,13 +671,15 @@ type_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32
         key = symbol("from");
         val = dict_get(params, &key);
 
+        offset = 0;
+
         type = cc_compile_expr(true, cc, &val);
         rf_object_free(&val);
 
         if (type(type) != TYPE_TABLE)
             cerr(cc, car->id, ERR_LENGTH, "'select': 'from <Table>' is required");
 
-        cc->tabletype = type;
+        cc->table = (cc_table_t){.type = type, .offset = offset};
 
         // compile filters
         key = symbol("where");
@@ -695,7 +699,10 @@ type_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32
         else
             rf_object_free(&val);
 
-        cc->tabletype = NULL_I64;
+        cc->table = (cc_table_t){.type = NULL_I64};
+
+        push_opcode(cc, car->id, code, OP_CALL2);
+        push_u64(code, rf_filter_Table_Bool);
 
         return type;
         // --
@@ -845,7 +852,7 @@ type_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
     i64_t id, sym;
     env_t *env = &runtime_get()->env;
     function_t *func = as_function(&cc->function);
-    rf_object_t *code = &func->code;
+    rf_object_t *code = &func->code, tabletype, col;
 
     switch (object->type)
     {
@@ -854,20 +861,35 @@ type_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
             return TYPE_NONE;
 
         // first try to find in a table columns (if any)
-        if (cc->tabletype != NULL_I64)
+        if (cc->table.type != NULL_I64)
         {
-            u64_t offset = 0;
+            tabletype = env_get_tabletype(env, cc->table.type >> 8);
 
-            push_opcode(cc, object->id, code, OP_LLOAD);
-            push_u64(code, 1 + offset);
-            func->stack_size++;
-            push_opcode(cc, object->id, code, OP_PUSH);
-            push_const(cc, *object);
-            func->stack_size++;
-            push_opcode(cc, object->id, code, OP_CALL2);
-            push_u64(code, rf_get_Table_symbol);
+            if (tabletype.type == TYPE_DICT)
+            {
+                col = dict_get(&tabletype, object);
 
-            return TYPE_SYMBOL;
+                if (col.i64 != NULL_I64)
+                {
+                    type = env_get_type_by_typename(env, col.i64);
+
+                    push_opcode(cc, object->id, code, OP_LLOAD);
+                    push_u64(code, 1 + cc->table.offset);
+                    func->stack_size++;
+                    push_opcode(cc, object->id, code, OP_PUSH);
+                    push_const(cc, *object);
+                    func->stack_size++;
+                    push_opcode(cc, object->id, code, OP_CALL2);
+                    push_u64(code, rf_get_Table_symbol);
+
+                    rf_object_free(&col);
+                    rf_object_free(&tabletype);
+
+                    return type;
+                }
+            }
+
+            rf_object_free(&tabletype);
         }
 
         // then try to find in locals
@@ -1089,7 +1111,7 @@ rf_object_t cc_compile_function(bool_t top, str_t name, type_t rettype, rf_objec
 {
     cc_t cc = {
         .top_level = top,
-        .tabletype = NULL_I64,
+        .table = (cc_table_t){.type = NULL_I64},
         .debuginfo = debuginfo,
         .function = function(rettype, args, dict(vector_symbol(0), vector_i64(0)), string(0),
                              debuginfo_new(debuginfo->filename, name)),

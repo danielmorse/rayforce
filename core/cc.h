@@ -27,11 +27,11 @@
 #include "rayforce.h"
 #include "debuginfo.h"
 
-typedef struct table_t
+typedef struct cc_table_t
 {
-    rf_object_t expr;
-    rf_object_t cols;
-} table_t;
+    i64_t offset; // offset in a stack frame
+    i64_t type;   // table type (compound)
+} cc_table_t;
 
 /*
  * Context for compiling function
@@ -39,11 +39,10 @@ typedef struct table_t
 typedef struct cc_t
 {
     bool_t top_level;       // is this top level function?
-    i64_t tabletype;        // Table type being compiled
+    cc_table_t table;       // Table being compiled
     rf_object_t *body;      // body of function being compiled (list of expressions)
     rf_object_t function;   // function being compiled
     debuginfo_t *debuginfo; // debuginfo from parse phase
-
 } cc_t;
 
 rf_object_t cc_compile(rf_object_t *body, debuginfo_t *debuginfo);

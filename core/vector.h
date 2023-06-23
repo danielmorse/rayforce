@@ -112,6 +112,7 @@ i64_t size_of_val(type_t type);
 rf_object_t list_flatten(rf_object_t *object);
 i64_t vector_find(rf_object_t *vector, rf_object_t *key);
 rf_object_t vector_get(rf_object_t *vector, i64_t index);
+rf_object_t vector_filter(rf_object_t *vector, bool_t mask[], i64_t len);
 null_t vector_set(rf_object_t *vector, i64_t index, rf_object_t value);
 i64_t vector_push(rf_object_t *vector, rf_object_t object);
 null_t vector_reserve(rf_object_t *vector, u32_t len);
