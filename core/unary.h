@@ -28,9 +28,9 @@
 
 rf_object_t rf_get_variable(rf_object_t *x);
 rf_object_t rf_type(rf_object_t *x);
-rf_object_t rf_til_i64(rf_object_t *x);
-rf_object_t rf_distinct_I64(rf_object_t *x);
-rf_object_t rf_group_I64(rf_object_t *x);
+rf_object_t rf_til(rf_object_t *x);
+rf_object_t rf_distinct(rf_object_t *x);
+rf_object_t rf_group(rf_object_t *x);
 rf_object_t rf_sum_I64(rf_object_t *x);
 rf_object_t rf_avg_I64(rf_object_t *x);
 rf_object_t rf_min_I64(rf_object_t *x);

@@ -26,8 +26,11 @@
 #include "util.h"
 #include <stdlib.h>
 
-rf_object_t rf_rand_i64_i64_i64(rf_object_t *x, rf_object_t *y, rf_object_t *z)
+rf_object_t rf_rand(rf_object_t *x, rf_object_t *y, rf_object_t *z)
 {
+    if (MTYPE3(x->type, y->type, z->type) != MTYPE3(-TYPE_I64, -TYPE_I64, -TYPE_I64))
+        return error(ERR_TYPE, "rand: expected i64, i64, i64");
+
     i64_t i, count = x->i64, mod = (z->i64 - y->i64 + 1), *v;
     rf_object_t vec = vector_i64(count);
 

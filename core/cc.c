@@ -214,7 +214,11 @@ cc_result_t cc_compile_set(bool_t has_consumer, cc_t *cc, rf_object_t *object, u
 
         push_opcode(cc, car->id, code, OP_CALL2);
         push_u64(code, rf_set_variable);
+
+        return CC_OK;
     }
+
+    return CC_NONE;
 }
 
 type_t cc_compile_fn(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
@@ -628,10 +632,10 @@ cc_result_t cc_compile_special_forms(bool_t has_consumer, cc_t *cc, rf_object_t 
     // if (type != TYPE_NONE)
     //     return type;
 
-    // type = cc_compile_time(has_consumer, cc, object, arity);
+    res = cc_compile_time(has_consumer, cc, object, arity);
 
-    // if (type != TYPE_NONE)
-    //     return type;
+    if (res != CC_NONE)
+        return res;
 
     // type = cc_compile_cast(has_consumer, cc, object, arity);
 
@@ -716,7 +720,7 @@ cc_result_t cc_compile_call(cc_t *cc, rf_object_t *car, u32_t arity)
     }
 
     // It is a function call
-    switch (found_arity)
+    switch (arity)
     {
     case 0:
         push_opcode(cc, car->id, code, OP_CALL0);
@@ -799,18 +803,15 @@ cc_result_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
         // special forms compilation need to be done before arguments compilation
         res = cc_compile_special_forms(has_consumer, cc, object, arity);
 
-        if (res == CC_ERROR)
+        if (res == CC_ERROR || res != CC_NONE)
             return res;
 
-        if (res != CC_NONE)
-            return res;
         // --
 
         // compile arguments
         for (i = 0; i < arity; i++)
         {
             res = cc_compile_expr(true, cc, &as_list(object)[i + 1]);
-
             if (res == CC_ERROR)
                 return CC_ERROR;
         }
@@ -857,53 +858,10 @@ cc_result_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
             }
             else
             {
-                cc_compile_call(cc, car, arity);
-                // try to find function in a global env
-                // addr = env_get_variable(env, car);
+                res = cc_compile_call(cc, car, arity);
 
-                // // try to find function in a functions table
-                // if (addr == NULL)
-                // {
-                //     type = cc_compile_call(cc, car, args, arity);
-
-                //     if (type == TYPE_ERROR)
-                //         return type;
-
-                //     if (!has_consumer)
-                //         push_opcode(cc, car->id, code, OP_POP);
-
-                //     return type;
-                // }
-
-                // if (addr->type != TYPE_FUNCTION)
-                //     cerr(cc, car->id, ERR_TYPE, "expected function/symbol as first argument");
-
-                // func = as_function(addr);
-                // arg_vals = &as_list(&func->args)[1];
-                // l = arg_vals->adt->len;
-
-                // if (l != arity)
-                //     if (l != arity)
-                //         ccerr(cc, car->id, ERR_LENGTH,
-                //               str_fmt(0, "arguments length mismatch: expected %d, got %d", l, arity));
-
-                // for (i = 0; i < arity; i++)
-                // {
-                //     sym = as_vector_i64(arg_vals)[i];
-                //     type = env_get_type_by_typename(env, sym);
-
-                //     if (args[i] != type)
-                //         ccerr(cc, as_list(object)[i + 1].id, ERR_TYPE,
-                //               str_fmt(0, "argument type mismatch: expected %s, got %s",
-                //                       symbols_get(env_get_typename_by_type(env, type)), symbols_get(env_get_typename_by_type(env, args[i]))));
-                // }
-
-                // push_opcode(cc, car->id, code, OP_GLOAD);
-                // push_u64(code, addr);
-                // push_opcode(cc, car->id, code, OP_CALLF);
-
-                // // additional one for ctx
-                // func->stack_size += 2;
+                if (res == CC_ERROR)
+                    return CC_ERROR;
 
                 return CC_OK;
             }
@@ -949,11 +907,13 @@ cc_result_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
 
     default:
         if (!has_consumer)
-            return TYPE_NONE;
+            return CC_NONE;
+
         push_opcode(cc, object->id, code, OP_PUSH);
         push_const(cc, rf_object_clone(object));
         func->stack_size++;
-        return object->type;
+
+        return CC_OK;
     }
 }
 
@@ -976,6 +936,7 @@ rf_object_t cc_compile_function(bool_t top, str_t name, rf_object_t args,
     rf_object_t *code = &func->code, *b = body, err;
     env_t *env = &runtime_get()->env;
     str_t msg;
+
     if (len == 0)
     {
         push_opcode(&cc, id, code, OP_PUSH);

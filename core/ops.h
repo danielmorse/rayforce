@@ -41,6 +41,12 @@
 
 #define align8(x) ((str_t)(((u64_t)x + 7) & ~7))
 // --
+
+#define MTYPE(x) ((u8_t)(x))
+#define MTYPE2(x, y) ((u8_t)(x) | ((u8_t)(y) << 8))
+#define MTYPE3(x, y, z) ((u8_t)(x) | ((u8_t)(y) << 8) | ((u8_t)(z) << 16))
+#define MTYPE4(x, y, z, w) ((u8_t)(x) | ((u8_t)(y) << 8) | ((u8_t)(z) << 16) | ((u8_t)(w) << 24))
+
 #define IS_NULL_I64(x) (((x) >> 63) & 1)
 #define ADDI64(x, y) ((((x) + (y)) & ~((i64_t)IS_NULL_I64(x) | (i64_t)IS_NULL_I64(y))) | ((i64_t)IS_NULL_I64(x) | (i64_t)IS_NULL_I64(y)) << 63)
 #define ADDF64(x, y) (x + y)

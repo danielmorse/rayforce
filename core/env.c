@@ -33,14 +33,14 @@
 
 #define REC_SIZE (MAX_ARITY + 2)
 
-#define REC(records, arity, name, op)                      \
-    {                                                      \
-        env_record_t rec = {                               \
-            symbol(name).i64,                              \
-            arity,                                         \
-            (i64_t)op,                                     \
-        };                                                 \
-        push(&as_list(records)[arity], env_record_t, rec); \
+#define REC(r, a, n, o)                          \
+    {                                            \
+        env_record_t rec = {                     \
+            .id = symbol(n).i64,                 \
+            .op = (i64_t)o,                      \
+            .arity = a,                          \
+        };                                       \
+        push(&as_list(r)[a], env_record_t, rec); \
     }
 
 // clang-format off
@@ -51,12 +51,12 @@ null_t init_functions(rf_object_t *records)
     // REC(records, 0, "env",       TYPE_DICT,       rf_env,                  { 0                                 });
     // REC(records, 0, "memstat",   TYPE_DICT,       rf_memstat,              { 0                                 });
           
-    // // Unary           
+    // Unary           
     // REC(records, 1, "type",     -TYPE_SYMBOL,     rf_type,                 { TYPE_ANY                          });
-    // REC(records, 1, "til" ,      TYPE_I64,        rf_til_i64,              {-TYPE_I64                          });
+    REC(records, 1, "til" ,              rf_til);
     // REC(records, 1, "trace" ,    TYPE_I64,        OP_TRACE,                { TYPE_ANY                          });
-    // REC(records, 1, "distinct",  TYPE_I64,        rf_distinct_I64,         { TYPE_I64                          });
-    // REC(records, 1, "group",     TYPE_DICT,       rf_group_I64,            { TYPE_I64                          });
+    REC(records, 1, "distinct",        rf_distinct);
+    REC(records, 1, "group",       rf_group);
     // REC(records, 1, "sum",      -TYPE_I64,        rf_sum_I64,              { TYPE_I64                          });
     // REC(records, 1, "sum",      -TYPE_F64,        rf_sum_F64,              { TYPE_F64                          });
     // REC(records, 1, "avg",      -TYPE_F64,        rf_avg_I64,              { TYPE_I64                          });
@@ -188,7 +188,7 @@ null_t init_functions(rf_object_t *records)
     // REC(records, 2, "take",      TYPE_I64,        rf_take_i64_i64,         {-TYPE_I64,       -TYPE_I64         });
      
     // // Ternary       
-    // REC(records, 3, "rand",      TYPE_I64,        rf_rand_i64_i64_i64,     {-TYPE_I64,    -TYPE_I64, -TYPE_I64 });
+    REC(records, 3, "rand",      rf_rand);
          
     // // Quaternary       
     // // Nary       

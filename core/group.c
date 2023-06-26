@@ -64,7 +64,7 @@ bool_t pos_update(i64_t key, i64_t val, null_t *seed, i64_t *tkey, i64_t *tval)
     return true;
 }
 
-rf_object_t rf_distinct(rf_object_t *x)
+rf_object_t rf_distinct_I64(rf_object_t *x)
 {
     i64_t i, j = 0, p = 0, w = 0, xl = x->adt->len;
     i64_t n = 0, range, inrange = 0, min, max, *m, *iv1 = as_vector_i64(x), *ov;
@@ -184,7 +184,7 @@ set:
     return vec;
 }
 
-rf_object_t rf_group(rf_object_t *x)
+rf_object_t rf_group_I64(rf_object_t *x)
 {
     i64_t i, j = 0, xl = x->adt->len, *iv1 = as_vector_i64(x), *kv, range, inrange = 0, min, max, *m, n;
     rf_object_t keys, vals, mask, *vv;

@@ -47,8 +47,11 @@ rf_object_t rf_type(rf_object_t *x)
     return symboli64(t);
 }
 
-rf_object_t rf_til_i64(rf_object_t *x)
+rf_object_t rf_til(rf_object_t *x)
 {
+    if (x->type != -TYPE_I64)
+        return error(ERR_TYPE, "til: expected i64");
+
     i32_t i, l = (i32_t)x->i64;
     i64_t *v;
     rf_object_t vec;
@@ -64,14 +67,20 @@ rf_object_t rf_til_i64(rf_object_t *x)
     return vec;
 }
 
-rf_object_t rf_distinct_I64(rf_object_t *x)
+rf_object_t rf_distinct(rf_object_t *x)
 {
-    return rf_distinct(x);
+    if (MTYPE(x->type) != MTYPE(TYPE_I64))
+        return error(ERR_TYPE, "distinct: expected I64");
+
+    return rf_distinct_I64(x);
 }
 
-rf_object_t rf_group_I64(rf_object_t *x)
+rf_object_t rf_group(rf_object_t *x)
 {
-    return rf_group(x);
+    if (MTYPE(x->type) != MTYPE(TYPE_I64))
+        return error(ERR_TYPE, "group: expected I64");
+
+    return rf_group_I64(x);
 }
 
 rf_object_t rf_sum_I64(rf_object_t *x)

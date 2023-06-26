@@ -47,7 +47,7 @@ typedef rf_object_t (*nary_t)(rf_object_t *, i64_t);
 typedef struct env_record_t
 {
     i64_t id;   // symbol id
-    u64_t op;   // opcode or function ptr
+    i64_t op;   // opcode or function ptr
     u8_t arity; // arity of function
 } env_record_t;
 
