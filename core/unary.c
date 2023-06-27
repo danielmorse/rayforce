@@ -36,7 +36,7 @@
 #include "env.h"
 #include "group.h"
 
-rf_object_t error_type(type_t type, str_t msg)
+rf_object_t error_type1(type_t type, str_t msg)
 {
     str_t fmsg = str_fmt(0, "%s: '%s'", msg, env_get_typename(type));
     rf_object_t err = error(ERR_TYPE, fmsg);
@@ -141,7 +141,7 @@ rf_object_t rf_sum(rf_object_t *x)
         return f64(fsum);
 
     default:
-        return error_type(x->type, "sum: unsupported type");
+        return error_type1(x->type, "sum: unsupported type");
     }
 }
 
@@ -186,7 +186,7 @@ rf_object_t rf_avg(rf_object_t *x)
         return f64(fsum / l);
 
     default:
-        return error_type(x->type, "avg: unsupported type");
+        return error_type1(x->type, "avg: unsupported type");
     }
 }
 
@@ -267,7 +267,7 @@ rf_object_t rf_min(rf_object_t *x)
         return f64(fmin);
 
     default:
-        return error_type(x->type, "min: unsupported type");
+        return error_type1(x->type, "min: unsupported type");
     }
 }
 
@@ -319,7 +319,7 @@ rf_object_t rf_max(rf_object_t *x)
         return i64(imax);
 
     default:
-        return error_type(x->type, "max: unsupported type");
+        return error_type1(x->type, "max: unsupported type");
     }
 }
 
@@ -341,7 +341,7 @@ rf_object_t rf_not(rf_object_t *x)
         return res;
 
     default:
-        return error_type(x->type, "not: unsupported type");
+        return error_type1(x->type, "not: unsupported type");
     }
 }
 
@@ -353,7 +353,7 @@ rf_object_t rf_iasc(rf_object_t *x)
         return rf_sort_asc(x);
 
     default:
-        return error_type(x->type, "iasc: unsupported type");
+        return error_type1(x->type, "iasc: unsupported type");
     }
 }
 
@@ -365,7 +365,7 @@ rf_object_t rf_idesc(rf_object_t *x)
         return rf_sort_desc(x);
 
     default:
-        return error_type(x->type, "idesc: unsupported type");
+        return error_type1(x->type, "idesc: unsupported type");
     }
 }
 
@@ -386,7 +386,7 @@ rf_object_t rf_asc(rf_object_t *x)
         return idx;
 
     default:
-        return error_type(x->type, "asc: unsupported type");
+        return error_type1(x->type, "asc: unsupported type");
     }
 }
 
@@ -407,7 +407,7 @@ rf_object_t rf_desc(rf_object_t *x)
         return idx;
 
     default:
-        return error_type(x->type, "desc: unsupported type");
+        return error_type1(x->type, "desc: unsupported type");
     }
 }
 
@@ -426,6 +426,6 @@ rf_object_t rf_guid_generate(rf_object_t *x)
         return vec;
 
     default:
-        return error_type(x->type, "guid_generate: unsupported type");
+        return error_type1(x->type, "guid_generate: unsupported type");
     }
 }

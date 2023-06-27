@@ -32,6 +32,14 @@
 #include "vector.h"
 #include "hash.h"
 
+rf_object_t error_type2(type_t type1, type_t type2, str_t msg)
+{
+    str_t fmsg = str_fmt(0, "%s: '%s', '%s'", msg, env_get_typename(type1), env_get_typename(type2));
+    rf_object_t err = error(ERR_TYPE, fmsg);
+    rf_free(fmsg);
+    return err;
+}
+
 rf_object_t rf_set_variable(rf_object_t *key, rf_object_t *val)
 {
     return dict_set(&runtime_get()->env.variables, key, rf_object_clone(val));
@@ -47,9 +55,17 @@ rf_object_t rf_table(rf_object_t *x, rf_object_t *y)
     return table(rf_object_clone(x), rf_object_clone(y));
 }
 
-rf_object_t rf_add_i64_i64(rf_object_t *x, rf_object_t *y)
+rf_object_t rf_add(rf_object_t *x, rf_object_t *y)
 {
-    return (i64(ADDI64(x->i64, y->i64)));
+    switch (MTYPE2(x->type, y->type))
+    {
+
+    case MTYPE2(-TYPE_I64, -TYPE_I64):
+        return (i64(ADDI64(x->i64, y->i64)));
+
+    default:
+        return error_type2(x->type, y->type, "add: unsupported types");
+    }
 }
 
 rf_object_t rf_add_f64_f64(rf_object_t *x, rf_object_t *y)
