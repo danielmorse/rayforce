@@ -355,111 +355,96 @@ type_t cc_compile_catch(cc_t *cc, rf_object_t *object, u32_t arity)
     return TYPE_NONE;
 }
 
-type_t cc_compile_map(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+cc_result_t cc_compile_map(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
-    UNUSED(has_consumer);
-    UNUSED(cc);
-    UNUSED(object);
-    UNUSED(arity);
+    cc_result_t res;
+    // rf_object_t *car, *addr, *arg_keys, *arg_vals;
+    // function_t *func = as_function(&cc->function);
+    // rf_object_t *code = &func->code;
+    // env_t *env = &runtime_get()->env;
+    // i64_t i, lbl0, lbl1, lbl2, sym;
 
-    //     type_t type, *args;
-    //     rf_object_t *car, *addr, *arg_keys, *arg_vals;
-    //     function_t *func = as_function(&cc->function);
-    //     rf_object_t *code = &func->code;
-    //     env_t *env = &runtime_get()->env;
-    //     i64_t i, lbl0, lbl1, lbl2, sym;
+    // car = &as_list(object)[0];
 
-    //     car = &as_list(object)[0];
-    //     if (car->i64 == symbol("map").i64)
-    //     {
-    //         if (arity < 2)
-    //             cerr(cc, car->id, ERR_LENGTH, "'map' takes at least two arguments");
+    // if (arity < 2)
+    //     cerr(cc, car->id, ERR_LENGTH, "'map' takes at least two arguments");
 
-    //         arity -= 1;
-    //         args = (type_t *)stack_malloc(arity * sizeof(type_t));
+    // arity -= 1;
 
-    //         // reserve space for map result
-    //         push_opcode(cc, car->id, code, OP_PUSH);
-    //         push_const(cc, null());
+    // // reserve space for map result
+    // push_opcode(cc, car->id, code, OP_PUSH);
+    // push_const(cc, null());
 
-    //         // compile args
-    //         for (i = 0; i < arity; i++)
-    //         {
-    //             type = cc_compile_expr(true, cc, &as_list(object)[i + 2]);
+    // // compile args
+    // for (i = 0; i < arity; i++)
+    // {
+    //     res = cc_compile_expr(true, cc, &as_list(object)[i + 2]);
 
-    //             if (type == TYPE_ERROR)
-    //                 return type;
+    //     if (res == CC_ERROR)
+    //         return CC_ERROR;
+    // }
 
-    //             args[i] = -type;
-    //         }
+    // push_opcode(cc, car->id, code, OP_ALLOC);
+    // lbl0 = code->adt->len;
+    // push_u8(code, 0);
+    // push_u8(code, arity);
+    // // additional check for zero length argument
+    // push_opcode(cc, car->id, code, OP_JNE);
+    // push_u64(code, 0);
+    // lbl1 = code->adt->len - sizeof(u64_t);
 
-    //         push_opcode(cc, car->id, code, OP_ALLOC);
-    //         lbl0 = code->adt->len;
-    //         push_u8(code, 0);
-    //         push_u8(code, arity);
-    //         // additional check for zero length argument
-    //         push_opcode(cc, car->id, code, OP_JNE);
-    //         push_u64(code, 0);
-    //         lbl1 = code->adt->len - sizeof(u64_t);
+    // // compile function
+    // res = cc_compile_expr(true, cc, &as_list(object)[1]);
 
-    //         // compile function
-    //         type = cc_compile_expr(true, cc, &as_list(object)[1]);
+    // addr = &as_list(&func->constants)[func->constants.adt->len - 1];
+    // func = as_function(addr);
 
-    //         if (type != TYPE_FUNCTION)
-    //             cerr(cc, car->id, ERR_LENGTH, "'map' takes function as first argument");
+    // // specify type for alloc result as return type of the function
+    // *(type_t *)(as_string(code) + lbl0) = func->rettype < 0 ? -func->rettype : TYPE_LIST;
 
-    //         addr = &as_list(&func->constants)[func->constants.adt->len - 1];
-    //         func = as_function(addr);
+    // arg_keys = &as_list(&func->args)[0];
+    // arg_vals = &as_list(&func->args)[1];
 
-    //         // specify type for alloc result as return type of the function
-    //         *(type_t *)(as_string(code) + lbl0) = func->rettype < 0 ? -func->rettype : TYPE_LIST;
+    // // check function arity
+    // if (arg_keys->adt->len != arity)
+    //     cerr(cc, car->id, ERR_LENGTH, "'map' function arity mismatch");
 
-    //         arg_keys = &as_list(&func->args)[0];
-    //         arg_vals = &as_list(&func->args)[1];
+    // // check function argument types
+    // for (i = 0; i < arity; i++)
+    // {
+    //     sym = as_vector_i64(arg_vals)[i];
+    //     type = env_get_type_by_typename(env, sym);
 
-    //         // check function arity
-    //         if (arg_keys->adt->len != arity)
-    //             cerr(cc, car->id, ERR_LENGTH, "'map' function arity mismatch");
+    //     if (args[i] != type)
+    //         ccerr(cc, as_list(object)[i + 2].id, ERR_TYPE,
+    //               str_fmt(0, "argument type mismatch: expected %s, got %s",
+    //                       symbols_get(env_get_typename_by_type(env, type)),
+    //                       symbols_get(env_get_typename_by_type(env, args[i]))));
+    // }
 
-    //         // check function argument types
-    //         for (i = 0; i < arity; i++)
-    //         {
-    //             sym = as_vector_i64(arg_vals)[i];
-    //             type = env_get_type_by_typename(env, sym);
+    // lbl2 = code->adt->len;
+    // push_opcode(cc, car->id, code, OP_MAP);
+    // push_u8(code, arity);
+    // push_opcode(cc, car->id, code, OP_CALLF);
+    // push_opcode(cc, car->id, code, OP_COLLECT);
+    // push_u8(code, arity);
+    // push_opcode(cc, car->id, code, OP_JNE);
+    // push_u64(code, lbl2);
+    // // pop function
+    // push_opcode(cc, car->id, code, OP_POP);
+    // // pop arguments
+    // for (i = 0; i < arity; i++)
+    //     push_opcode(cc, car->id, code, OP_POP);
 
-    //             if (args[i] != type)
-    //                 ccerr(cc, as_list(object)[i + 2].id, ERR_TYPE,
-    //                       str_fmt(0, "argument type mismatch: expected %s, got %s",
-    //                               symbols_get(env_get_typename_by_type(env, type)),
-    //                               symbols_get(env_get_typename_by_type(env, args[i]))));
-    //         }
+    // *(u64_t *)(as_string(code) + lbl1) = code->adt->len;
 
-    //         lbl2 = code->adt->len;
-    //         push_opcode(cc, car->id, code, OP_MAP);
-    //         push_u8(code, arity);
-    //         push_opcode(cc, car->id, code, OP_CALLF);
-    //         push_opcode(cc, car->id, code, OP_COLLECT);
-    //         push_u8(code, arity);
-    //         push_opcode(cc, car->id, code, OP_JNE);
-    //         push_u64(code, lbl2);
-    //         // pop function
-    //         push_opcode(cc, car->id, code, OP_POP);
-    //         // pop arguments
-    //         for (i = 0; i < arity; i++)
-    //             push_opcode(cc, car->id, code, OP_POP);
+    // // additional one for ctx
+    // func->stack_size += 2;
 
-    //         *(u64_t *)(as_string(code) + lbl1) = code->adt->len;
+    // if (!has_consumer)
+    //     push_opcode(cc, car->id, code, OP_POP);
 
-    //         // additional one for ctx
-    //         func->stack_size += 2;
-
-    //         if (!has_consumer)
-    //             push_opcode(cc, car->id, code, OP_POP);
-
-    //         return type;
-    //     }
-
-    return TYPE_NONE;
+    return CC_OK;
 }
 
 type_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)

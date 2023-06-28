@@ -28,15 +28,15 @@
 #include "symbols.h"
 
 // clang-format off
-#define MIN_ORDER        6  // 2^6  = 64 bytes
-#define MAX_ORDER        25 // 2^25 = 32MB
-#define MAX_POOL_ORDER   36 // 2^36 = 64GB
-#define MIN_ALLOC        (1ull << MIN_ORDER)
-#define MAX_ALLOC        (1ull << MAX_ORDER)
-#define POOL_SIZE        (1ull << MAX_ORDER)
+#define MIN_ORDER        6                   // 2^6  = 64 bytes
+#define MAX_ORDER        25                  // 2^25 = 32MB
+#define MAX_POOL_ORDER   36                  // 2^36 = 64GB
+#define MIN_ALLOC        (1ull << MIN_ORDER) // 64 bytes
+#define MAX_ALLOC        (1ull << MAX_ORDER) // 32MB
+#define POOL_SIZE        (1ull << MAX_ORDER) // 32MB
 #define SMALL_BLOCK_SIZE (1ull << MIN_ORDER) // 64 bytes
-#define NUM_32_BLOCKS    1024 * 1024 * 16    // 16M blocks
-#define NUM_64_BLOCKS    1024 * 1024 * 16    // 16M blocks
+#define NUM_32_BLOCKS    1024 * 1024 * 8     // 8M blocks
+#define NUM_64_BLOCKS    1024 * 1024 * 8     // 8M blocks
 
 typedef struct node_t
 {

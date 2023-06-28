@@ -90,7 +90,7 @@ alloc_t rf_alloc_init()
         _ALLOC->freelist32 = block32;
     }
 
-    // fill linked list of 64 bytes blocks
+    // // fill linked list of 64 bytes blocks
     for (i = NUM_64_BLOCKS - 1; i >= 0; i--)
     {
         null_t *block64 = _ALLOC->blocks64 + i * 64;
