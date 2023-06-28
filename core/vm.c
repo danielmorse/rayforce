@@ -336,7 +336,8 @@ op_callf:
 op_store:
     b = vm->ip++;
     load_u64(t, vm);
-    vm->stack[vm->bp + t] = rf_object_clone(stack_peek(vm));
+    x1 = stack_pop(vm);
+    vm->stack[vm->bp + t] = x1;
     dispatch();
 op_load:
     b = vm->ip++;

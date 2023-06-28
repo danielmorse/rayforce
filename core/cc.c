@@ -210,8 +210,8 @@ cc_result_t cc_compile_let(bool_t has_consumer, cc_t *cc, rf_object_t *object, u
     function_t *func = as_function(&cc->function);
     rf_object_t *code = &func->code;
 
-    if (!has_consumer)
-        return CC_NULL;
+    // if (!has_consumer)
+    //     return CC_NULL;
 
     if (arity != 2)
         cerr(cc, car->id, ERR_LENGTH, "'let' takes two arguments");
