@@ -3,10 +3,7 @@
 ;;        (list [AAPL MSFT IBM] [100 200 300] [10 20 30])))
 
 (set l (til 10000000))
-
 (set t (table [a b c d e f g h] (list l l l l l l l l)))
-
-
 
 ;;(select {a: sum b} 
 ;;        {from:  t 

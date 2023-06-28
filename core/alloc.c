@@ -60,9 +60,10 @@ null_t print_blocks()
 null_t *rf_alloc_add_pool(u64_t size)
 {
     null_t *pool = mmap_malloc(size);
+    if (pool == NULL)
+        return NULL;
     node_t *node = (node_t *)pool;
 
-    assert(node != NULL);
     assert((i64_t)node % 16 == 0);
 
     node->base = pool;
@@ -445,6 +446,8 @@ null_t rf_alloc_mrequest(u64_t size)
 
     // add a new pool of requested size
     node = (node_t *)rf_alloc_add_pool(capacity);
+    if (node == NULL)
+        return;
     node->next = NULL;
     _ALLOC->freelist[order] = node;
     _ALLOC->avail |= 1 << order;

@@ -45,20 +45,26 @@ rf_object_t rf_rand(rf_object_t *x, rf_object_t *y, rf_object_t *z)
 
 rf_object_t rf_collect_table(rf_object_t *mask, rf_object_t *cols, rf_object_t *tab)
 {
-    i32_t i, j = 0;
-    i64_t l, p = NULL_I64;
+    i64_t i, l, j, p = 0;
     rf_object_t res, *vals, col;
+
+    l = (i64_t)mask->adt->len;
+    for (i = 0; i < l; i++)
+        if (as_vector_bool(mask)[i])
+            p++;
+
+    if (p == 0)
+        p = NULL_I64;
 
     vals = &as_list(tab)[1];
     l = vals->adt->len;
     res = list(l);
 
-    // for (i = 0; i < l; i++)
-    // {
-    //     col = vector_filter(&as_list(vals)[i], as_vector_bool(mask), p);
-    //     p = col.adt->len;
-    //     as_list(&res)[i] = col;
-    // }
+    for (i = 0; i < l; i++)
+    {
+        col = vector_filter(&as_list(vals)[i], as_vector_bool(mask), p);
+        as_list(&res)[i] = col;
+    }
 
     return table(rf_object_clone(&as_list(tab)[0]), res);
 }

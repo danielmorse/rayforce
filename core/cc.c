@@ -150,15 +150,12 @@ cc_result_t cc_compile_quote(bool_t has_consumer, cc_t *cc, rf_object_t *object)
     return as_list(object)[1].type;
 }
 
-cc_result_t cc_compile_time(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+cc_result_t cc_compile_time(cc_t *cc, rf_object_t *object, u32_t arity)
 {
     cc_result_t res;
     rf_object_t *car = &as_list(object)[0];
     function_t *func = as_function(&cc->function);
     rf_object_t *code = &func->code;
-
-    if (!has_consumer)
-        return CC_NULL;
 
     if (arity != 1)
         cerr(cc, car->id, ERR_LENGTH, "'time' takes one argument");
@@ -537,6 +534,9 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
     push_opcode(cc, car->id, code, OP_CALL3);
     push_u64(code, rf_collect_table);
 
+    if (!has_consumer)
+        push_opcode(cc, car->id, code, OP_POP);
+
     return CC_OK;
 }
 /*
@@ -556,7 +556,7 @@ cc_result_t cc_compile_special_forms(bool_t has_consumer, cc_t *cc, rf_object_t 
         res = cc_compile_quote(has_consumer, cc, object);
         break;
     case KW_TIME:
-        res = cc_compile_time(has_consumer, cc, object, arity);
+        res = cc_compile_time(cc, object, arity);
         break;
     case KW_SET:
         res = cc_compile_set(has_consumer, cc, object, arity);
