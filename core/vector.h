@@ -80,36 +80,8 @@
 
 #define pop(v, t) ((t *)(as_string(v)))[--(v)->adt->len]
 
-/*
- * Attemts to make vector from list if all elements are of the same type
- * l - list
- * v - vector
- * f - function to push element to vector
- * t - member type of element to push
- */
-#define flatten(l, v, t)                      \
-    {                                         \
-        rf_object_t *member;                  \
-        i64_t i, n = (l)->adt->len;           \
-        type_t type = as_list(l)[0].type;     \
-        v = vector_##t(0);                    \
-                                              \
-        for (i = 0; i < n; i++)               \
-        {                                     \
-            member = &as_list(l)[i];          \
-                                              \
-            if (member->type != type)         \
-            {                                 \
-                rf_object_free(&vec);         \
-                return rf_object_clone(list); \
-            }                                 \
-                                              \
-            vector_push(&vec, *member);       \
-        }                                     \
-    }
-
 i64_t size_of_val(type_t type);
-rf_object_t list_flatten(rf_object_t *object);
+rf_object_t vector_flatten(rf_object_t *object);
 i64_t vector_find(rf_object_t *vector, rf_object_t *key);
 i64_t vector_find_rev(rf_object_t *vector, rf_object_t *key);
 rf_object_t vector_get(rf_object_t *vector, i64_t index);

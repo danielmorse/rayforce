@@ -46,8 +46,12 @@
 #define KW_TRY -8
 #define KW_CATCH -9
 #define KW_THROW -10
-#define KW_SELECT -11
-#define KW_MAP -12
+#define KW_MAP -11
+#define KW_SELECT -12
+#define KW_FROM -13
+#define KW_WHERE -14
+#define KW_BY -15
+#define KW_ORDER -16
 
 typedef rf_object_t (*nilary_t)();
 typedef rf_object_t (*unary_t)(rf_object_t *);

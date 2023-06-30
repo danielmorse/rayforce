@@ -702,7 +702,7 @@ rf_object_t parse_dict(parser_t *parser)
         token = advance(parser);
     }
 
-    d = dict(list_flatten(&keys), list_flatten(&vals));
+    d = dict(vector_flatten(&keys), vector_flatten(&vals));
 
     rf_object_free(&keys);
     rf_object_free(&vals);

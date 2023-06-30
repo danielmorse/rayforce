@@ -202,7 +202,6 @@ cc_result_t cc_compile_set(bool_t has_consumer, cc_t *cc, rf_object_t *object, u
 
 cc_result_t cc_compile_let(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
-    i64_t id = 0;
     cc_result_t res;
     rf_object_t *car = &as_list(object)[0];
     function_t *func = as_function(&cc->function);
@@ -383,110 +382,146 @@ type_t cc_compile_catch(cc_t *cc, rf_object_t *object, u32_t arity)
     return TYPE_NONE;
 }
 
+cc_result_t cc_compile_call(cc_t *cc, rf_object_t *car, u32_t arity)
+{
+    cc_result_t res;
+    u32_t found_arity = arity;
+    rf_object_t *code = &as_function(&cc->function)->code, *records;
+    env_record_t *rec;
+
+    // It is a binary function call
+    if (car->type == -TYPE_SYMBOL && car->i64 < 0 && car->i64 != KW_SELF)
+    {
+        records = &runtime_get()->env.functions;
+
+        rec = find_record(records, car, &found_arity);
+
+        if (!rec)
+            ccerr(cc, car->id, ERR_LENGTH, str_fmt(0, "function name/arity mismatch"));
+
+        // It is an instruction
+        if (rec->op < OP_INVALID)
+        {
+            push_opcode(cc, car->id, code, rec->op);
+            return CC_OK;
+        }
+
+        // It is a function call
+        switch (found_arity)
+        {
+        case 0:
+            push_opcode(cc, car->id, code, OP_CALL0);
+            break;
+        case 1:
+            push_opcode(cc, car->id, code, OP_CALL1);
+            break;
+        case 2:
+            push_opcode(cc, car->id, code, OP_CALL2);
+            break;
+        case 3:
+            push_opcode(cc, car->id, code, OP_CALL3);
+            break;
+        case 4:
+            push_opcode(cc, car->id, code, OP_CALL4);
+            break;
+        default:
+            push_opcode(cc, car->id, code, OP_CALLN);
+            push_opcode(cc, car->id, code, arity);
+        }
+
+        push_u64(code, rec->op);
+
+        return CC_OK;
+    }
+
+    // otherwise it is a user function call
+    res = cc_compile_expr(true, cc, car);
+
+    if (res == CC_ERROR)
+        return CC_ERROR;
+
+    push_opcode(cc, car->id, code, OP_CALLF);
+    push_opcode(cc, car->id, code, arity);
+
+    return CC_OK;
+}
+
 cc_result_t cc_compile_map(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
-    UNUSED(has_consumer);
-    UNUSED(cc);
-    UNUSED(object);
-    UNUSED(arity);
-
     cc_result_t res = CC_NONE;
-    // rf_object_t *car, *addr, *arg_keys, *arg_vals;
-    // function_t *func = as_function(&cc->function);
-    // rf_object_t *code = &func->code;
-    // env_t *env = &runtime_get()->env;
-    // i64_t i, lbl0, lbl1, lbl2, sym;
+    rf_object_t *car;
+    function_t *func = as_function(&cc->function);
+    rf_object_t *code = &func->code;
+    i64_t i, lbl0, lbl1;
 
-    // car = &as_list(object)[0];
+    if (arity < 2)
+        cerr(cc, object->id, ERR_LENGTH, "'map' takes at least two arguments");
 
-    // if (arity < 2)
-    //     cerr(cc, car->id, ERR_LENGTH, "'map' takes at least two arguments");
+    object = as_list(object) + 1;
+    car = object;
 
-    // arity -= 1;
+    arity -= 1;
 
-    // // reserve space for map result
-    // push_opcode(cc, car->id, code, OP_PUSH);
-    // push_const(cc, null());
+    // reserve space for map result (accumulator)
+    push_opcode(cc, car->id, code, OP_PUSH);
+    push_const(cc, null());
 
-    // // compile args
-    // for (i = 0; i < arity; i++)
-    // {
-    //     res = cc_compile_expr(true, cc, &as_list(object)[i + 2]);
+    // compile args
+    for (i = 0; i < arity; i++)
+    {
+        res = cc_compile_expr(true, cc, object + 1 + i);
 
-    //     if (res == CC_ERROR)
-    //         return CC_ERROR;
-    // }
+        if (res == CC_ERROR)
+            return CC_ERROR;
+    }
 
-    // push_opcode(cc, car->id, code, OP_ALLOC);
-    // lbl0 = code->adt->len;
-    // push_u8(code, 0);
-    // push_u8(code, arity);
-    // // additional check for zero length argument
-    // push_opcode(cc, car->id, code, OP_JNE);
-    // push_u64(code, 0);
-    // lbl1 = code->adt->len - sizeof(u64_t);
+    push_opcode(cc, car->id, code, OP_ALLOC);
+    push_u8(code, arity);
 
-    // // compile function
-    // res = cc_compile_expr(true, cc, &as_list(object)[1]);
+    // check if iteration is done
+    lbl0 = code->adt->len;
+    push_opcode(cc, car->id, code, OP_JNE);
+    push_u64(code, 0);
+    lbl1 = code->adt->len - sizeof(u64_t);
 
-    // addr = &as_list(&func->constants)[func->constants.adt->len - 1];
-    // func = as_function(addr);
+    push_opcode(cc, car->id, code, OP_MAP);
+    push_u8(code, arity);
 
-    // // specify type for alloc result as return type of the function
-    // *(type_t *)(as_string(code) + lbl0) = func->rettype < 0 ? -func->rettype : TYPE_LIST;
+    // compile function
+    res = cc_compile_call(cc, object, arity);
 
-    // arg_keys = &as_list(&func->args)[0];
-    // arg_vals = &as_list(&func->args)[1];
+    if (res == CC_ERROR)
+        return CC_ERROR;
 
-    // // check function arity
-    // if (arg_keys->adt->len != arity)
-    //     cerr(cc, car->id, ERR_LENGTH, "'map' function arity mismatch");
+    push_opcode(cc, car->id, code, OP_COLLECT);
+    push_u8(code, arity);
+    push_opcode(cc, car->id, code, OP_JMP);
+    push_u64(code, lbl0);
 
-    // // check function argument types
-    // for (i = 0; i < arity; i++)
-    // {
-    //     sym = as_vector_i64(arg_vals)[i];
-    //     type = env_get_type_by_typename(env, sym);
+    *(u64_t *)(as_string(code) + lbl1) = code->adt->len;
 
-    //     if (args[i] != type)
-    //         ccerr(cc, as_list(object)[i + 2].id, ERR_TYPE,
-    //               str_fmt(0, "argument type mismatch: expected %s, got %s",
-    //                       symbols_get(env_get_typename_by_type(env, type)),
-    //                       symbols_get(env_get_typename_by_type(env, args[i]))));
-    // }
+    // pop arguments
+    for (i = 0; i < arity; i++)
+        push_opcode(cc, car->id, code, OP_POP);
 
-    // lbl2 = code->adt->len;
-    // push_opcode(cc, car->id, code, OP_MAP);
-    // push_u8(code, arity);
-    // push_opcode(cc, car->id, code, OP_CALLF);
-    // push_opcode(cc, car->id, code, OP_COLLECT);
-    // push_u8(code, arity);
-    // push_opcode(cc, car->id, code, OP_JNE);
-    // push_u64(code, lbl2);
-    // // pop function
-    // push_opcode(cc, car->id, code, OP_POP);
-    // // pop arguments
-    // for (i = 0; i < arity; i++)
-    //     push_opcode(cc, car->id, code, OP_POP);
+    // additional one for ctx
+    func->stack_size += 2;
 
-    // *(u64_t *)(as_string(code) + lbl1) = code->adt->len;
+    push_opcode(cc, car->id, code, OP_CALL1);
+    push_u64(code, vector_flatten);
 
-    // // additional one for ctx
-    // func->stack_size += 2;
+    if (!has_consumer)
+        push_opcode(cc, car->id, code, OP_POP);
 
-    // if (!has_consumer)
-    //     push_opcode(cc, car->id, code, OP_POP);
-
-    return res;
+    return CC_OK;
 }
 
 cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
     cc_result_t res;
-    rf_object_t *car, *params, key, val, *keys, *vals, *tkeys, *tvals, mtkeys, mtvals;
+    rf_object_t *car, *params, key, val;
     function_t *func = as_function(&cc->function);
     rf_object_t *code = &func->code;
-    env_t *env = &runtime_get()->env;
 
     car = &as_list(object)[0];
 
@@ -498,10 +533,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
     if (params->type != TYPE_DICT)
         cerr(cc, car->id, ERR_LENGTH, "'select' takes dict of params");
 
-    keys = &as_list(params)[0];
-    vals = &as_list(params)[1];
-
-    key = symbol("from");
+    key = symboli64(KW_FROM);
     val = dict_get(params, &key);
 
     res = cc_compile_expr(true, cc, &val);
@@ -513,7 +545,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
     push_opcode(cc, car->id, code, OP_LATTACH);
 
     // compile filters
-    key = symbol("where");
+    key = symboli64(KW_WHERE);
     val = dict_get(params, &key);
 
     if (val.i64 != NULL_I64)
@@ -587,49 +619,6 @@ cc_result_t cc_compile_special_forms(bool_t has_consumer, cc_t *cc, rf_object_t 
     return res;
 }
 
-cc_result_t cc_compile_call(cc_t *cc, rf_object_t *car, u32_t arity)
-{
-    u32_t found_arity = arity;
-    rf_object_t *code = &as_function(&cc->function)->code, *records = &runtime_get()->env.functions;
-    env_record_t *rec = find_record(records, car, &found_arity);
-
-    if (!rec)
-        ccerr(cc, car->id, ERR_LENGTH, str_fmt(0, "function name/arity mismatch"));
-
-    // It is an instruction
-    if (rec->op < OP_INVALID)
-    {
-        push_opcode(cc, car->id, code, rec->op);
-        return CC_OK;
-    }
-
-    // It is a function call
-    switch (found_arity)
-    {
-    case 0:
-        push_opcode(cc, car->id, code, OP_CALL0);
-        break;
-    case 1:
-        push_opcode(cc, car->id, code, OP_CALL1);
-        break;
-    case 2:
-        push_opcode(cc, car->id, code, OP_CALL2);
-        break;
-    case 3:
-        push_opcode(cc, car->id, code, OP_CALL3);
-        break;
-    case 4:
-        push_opcode(cc, car->id, code, OP_CALL4);
-        break;
-    default:
-        push_opcode(cc, car->id, code, OP_CALLN);
-        push_opcode(cc, car->id, code, arity);
-    }
-
-    push_u64(code, rec->op);
-    return CC_OK;
-}
-
 cc_result_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
 {
     rf_object_t *car;
@@ -690,35 +679,12 @@ cc_result_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
         for (i = 0; i < arity; i++)
         {
             res = cc_compile_expr(true, cc, &as_list(object)[i + 1]);
+
             if (res == CC_ERROR)
                 return CC_ERROR;
         }
 
-        if (car->type == -TYPE_SYMBOL && car->i64 < 0 && car->i64 != KW_SELF)
-        {
-            res = cc_compile_call(cc, car, arity);
-
-            if (res == CC_ERROR)
-                return CC_ERROR;
-
-            if (res != CC_NONE)
-            {
-                if (!has_consumer)
-                    push_opcode(cc, car->id, code, OP_POP);
-
-                return res;
-            }
-        }
-
-        // otherwise it is a function call
-        res = cc_compile_expr(true, cc, car);
-        if (res == CC_ERROR)
-            return CC_ERROR;
-
-        push_opcode(cc, car->id, code, OP_CALLF);
-        push_opcode(cc, car->id, code, arity);
-
-        return CC_OK;
+        return cc_compile_call(cc, car, arity);
 
     default:
         if (!has_consumer)

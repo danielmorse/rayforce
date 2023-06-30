@@ -439,3 +439,18 @@ rf_object_t rf_guid_generate(rf_object_t *x)
         return error_type1(x->type, "guid_generate: unsupported type");
     }
 }
+
+rf_object_t rf_neg(rf_object_t *x)
+{
+    switch (MTYPE(x->type))
+    {
+    case MTYPE(-TYPE_I64):
+        return i64(-x->i64);
+
+    case MTYPE(-TYPE_F64):
+        return f64(-x->f64);
+
+    default:
+        return error_type1(x->type, "neg: unsupported type");
+    }
+}

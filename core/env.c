@@ -69,8 +69,9 @@ null_t init_functions(rf_object_t *records)
     REC(records, 1, "idesc",       rf_idesc);
     REC(records, 1, "asc",         rf_asc);
     REC(records, 1, "desc",        rf_desc);
-    REC(records, 1, "flatten",     list_flatten);
+    REC(records, 1, "flatten",     vector_flatten);
     REC(records, 1, "guid",        rf_guid_generate);
+    REC(records, 1, "neg",         rf_neg);
       
     // Binary         
     REC(records, 2, "==",          rf_eq);
@@ -146,8 +147,12 @@ null_t init_kw_symbols()
     assert(intern_keyword("try",   3)  == KW_TRY);
     assert(intern_keyword("catch", 5)  == KW_CATCH);
     assert(intern_keyword("throw", 5)  == KW_THROW);
-    assert(intern_keyword("select",6)  == KW_SELECT);
     assert(intern_keyword("map",   3)  == KW_MAP);
+    assert(intern_keyword("select",6)  == KW_SELECT);
+    assert(intern_keyword("from",  4)  == KW_FROM);
+    assert(intern_keyword("where", 5)  == KW_WHERE);
+    assert(intern_keyword("by",    2)  == KW_BY);
+    assert(intern_keyword("order", 5)  == KW_ORDER);
 }
 // clang-format on
 

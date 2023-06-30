@@ -80,12 +80,12 @@ vm_t *vm_new()
  */
 rf_object_t __attribute__((hot)) vm_exec(vm_t *vm, rf_object_t *fun)
 {
-    type_t type, c;
+    type_t c;
     function_t *f = as_function(fun);
     str_t code = as_string(&f->code);
     rf_object_t x1, x2, x3, x4, x5, *addr;
     i64_t t;
-    u64_t l;
+    u64_t l, p;
     i32_t i, j, b;
     nilary_t f0;
     unary_t f1;
@@ -293,13 +293,7 @@ op_calln:
 op_callf:
     /* Call stack of user function call looks as follows:
      * +-------------------+
-     * |      localn       |
-     * +-------------------+
-     * |       ...         |
-     * +-------------------+
-     * |      local2       |
-     * +-------------------+
-     * |      local1       |
+     * |        ...        |
      * +-------------------+
      * | ctx {ret, ip, sp} | <- bp
      * +-------------------+
@@ -420,42 +414,42 @@ op_trace:
     dispatch();
 op_alloc:
     b = vm->ip++;
-    type = *(type_t *)(code + vm->ip);
-    vm->ip += sizeof(type_t);
     c = code[vm->ip++];
-    vm->counter = stack_peek(vm)->adt->len;
+    l = stack_peek(vm)->adt->len;
     // allocate result and write to a preserved space on the stack
-    x1 = vector(type, vm->counter);
+    x1 = list(l);
+    x1.adt->len = 0;
     *stack_peek_n(vm, c) = x1;
-    stack_push(vm, bool(vm->counter > 0));
+    // push counter
+    stack_push(vm, i64(l));
     dispatch();
 op_map:
     b = vm->ip++;
     // arguments count
     c = code[vm->ip++];
-    j = 0;
+    l = stack_peek_n(vm, c)->adt->len;
     // push arguments
     for (i = 0; i < c; i++)
     {
-        addr = stack_peek_n(vm, c - i + j++);
-        l = addr->adt->len;
-        stack_push(vm, vector_get(addr, l - vm->counter));
+        addr = stack_peek_n(vm, c - i - 1);
+        stack_push(vm, vector_get(addr, l));
     }
-    // push function
-    x1 = rf_object_clone(stack_peek_n(vm, c));
-    stack_push(vm, x1);
     dispatch();
 op_collect:
     b = vm->ip++;
+    // arguments count
     c = code[vm->ip++];
-    // get the result from another iteration
+    // get the result from previous iteration
     x1 = stack_pop(vm);
-    // stack_debug(vm);
-    addr = stack_peek_n(vm, c + 1);
-    l = addr->adt->len;
-    vector_set(addr, l - vm->counter--, x1);
-    // push counter comparison value
-    stack_push(vm, bool(vm->counter == 0));
+    // load result
+    addr = stack_peek_n(vm, c);
+    l = addr->adt->len++;
+    // store result
+    vector_set(addr, l, x1);
+    // load first argument len
+    p = stack_peek_n(vm, c - 1)->adt->len;
+    // push counter
+    stack_push(vm, i64(p - l - 1));
     dispatch();
 }
 

@@ -355,17 +355,18 @@ type_list:
 rf_object_t vector_get(rf_object_t *vector, i64_t index)
 {
     i64_t l;
-    type_t type = vector->type;
+    type_t type = vector->type - TYPE_BOOL;
 
-    static null_t *types_table[] = {&&type_null, &&type_bool, &&type_i64, &&type_f64, &&type_symbol,
+    if (type < 0)
+        return null();
+
+    static null_t *types_table[] = {&&type_bool, &&type_i64, &&type_f64, &&type_symbol,
                                     &&type_timestamp, &&type_guid, &&type_char, &&type_list};
 
     l = vector->adt->len;
 
     goto *types_table[(i32_t)type];
 
-type_null:
-    return null();
 type_bool:
     if (index < l)
         return bool(as_vector_bool(vector)[index]);
@@ -403,81 +404,113 @@ type_list:
 null_t vector_set(rf_object_t *vector, i64_t index, rf_object_t value)
 {
     guid_t *g;
-    type_t type = vector->type;
+    type_t type = vector->type - TYPE_BOOL;
+    i64_t l;
 
-    static null_t *types_table[] = {&&type_null, &&type_bool, &&type_i64, &&type_f64, &&type_symbol,
+    if (type < 0)
+        return;
+
+    static null_t *types_table[] = {&&type_bool, &&type_i64, &&type_f64, &&type_symbol,
                                     &&type_timestamp, &&type_guid, &&type_char, &&type_list};
 
-    // if (type > TYPE_LIST)
-    // panic("vector_set: non-settable type");
-
-    if (index < 0 || index >= (i64_t)vector->adt->len)
-        return;
+    l = vector->adt->len;
 
     goto *types_table[(i32_t)type];
 
-type_null:
-    return;
 type_bool:
-    as_vector_bool(vector)[index] = value.bool;
+    if (index < l)
+        as_vector_bool(vector)[index] = value.bool;
     return;
 type_i64:
-    as_vector_i64(vector)[index] = value.i64;
+    if (index < l)
+        as_vector_i64(vector)[index] = value.i64;
     return;
 type_f64:
-    as_vector_f64(vector)[index] = value.f64;
+    if (index < l)
+        as_vector_f64(vector)[index] = value.f64;
     return;
 type_symbol:
-    as_vector_i64(vector)[index] = value.i64;
+    if (index < l)
+        as_vector_i64(vector)[index] = value.i64;
     return;
+
 type_timestamp:
-    as_vector_i64(vector)[index] = value.i64;
+    if (index < l)
+        as_vector_i64(vector)[index] = value.i64;
     return;
 type_guid:
-    g = as_vector_guid(vector);
-    memcpy(g + index, value.guid, sizeof(guid_t));
+    if (index < l)
+    {
+        g = as_vector_guid(vector);
+        memcpy(g + index, value.guid, sizeof(guid_t));
+    }
     return;
 type_char:
-    as_string(vector)[index] = value.schar;
+    if (index < l)
+        as_string(vector)[index] = value.schar;
     return;
 type_list:
-    as_list(vector)[index] = value;
+    if (index < l)
+        as_list(vector)[index] = value;
     return;
 }
 
 /*
  * Try to flatten list in a vector if all elements are of the same type
  */
-rf_object_t list_flatten(rf_object_t *list)
+rf_object_t vector_flatten(rf_object_t *x)
 {
-    i64_t len = list->adt->len;
+    i64_t i, l = x->adt->len;
     type_t type;
     rf_object_t vec;
 
-    if (len == 0)
-        return rf_object_clone(list);
+    if (l == 0)
+        return rf_object_clone(x);
 
-    type = as_list(list)[0].type;
+    type = as_list(x)[0].type;
 
     // Only scalar types inside a list can be flattened
     if (type > 0)
-        return rf_object_clone(list);
+        return rf_object_clone(x);
+
+    for (i = 1; i < l; i++)
+        if (as_list(x)[i].type != type)
+            return rf_object_clone(x);
 
     switch (type)
     {
+    case -TYPE_BOOL:
+        vec = vector_bool(l);
+        for (i = 0; i < l; i++)
+            as_vector_bool(&vec)[i] = as_list(x)[i].bool;
+        break;
     case -TYPE_I64:
-        flatten(list, vec, i64);
+        vec = vector_i64(l);
+        for (i = 0; i < l; i++)
+            as_vector_i64(&vec)[i] = as_list(x)[i].i64;
         break;
     case -TYPE_F64:
-        flatten(list, vec, f64);
+        vec = vector_f64(l);
+        for (i = 0; i < l; i++)
+            as_vector_f64(&vec)[i] = as_list(x)[i].f64;
         break;
     case -TYPE_SYMBOL:
-        flatten(list, vec, i64);
-        if (vec.type == TYPE_I64)
-            vec.type = TYPE_SYMBOL;
+        vec = vector_symbol(l);
+        for (i = 0; i < l; i++)
+            as_vector_i64(&vec)[i] = as_list(x)[i].i64;
+        break;
+    case -TYPE_TIMESTAMP:
+        vec = vector_timestamp(l);
+        for (i = 0; i < l; i++)
+            as_vector_i64(&vec)[i] = as_list(x)[i].i64;
+        break;
+    case -TYPE_GUID:
+        vec = vector_guid(l);
+        for (i = 0; i < l; i++)
+            as_vector_guid(&vec)[i] = *as_list(x)[i].guid;
         break;
     default:
-        return rf_object_clone(list);
+        return rf_object_clone(x);
     }
 
     return vec;
