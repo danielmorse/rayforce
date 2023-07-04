@@ -23,6 +23,7 @@
 
 #include <time.h>
 #include "runtime.h"
+#include "unary.h"
 #include "binary.h"
 #include "dict.h"
 #include "util.h"
@@ -983,6 +984,20 @@ rf_object_t rf_filter(rf_object_t *x, rf_object_t *y)
 
         return res;
 
+    case MTYPE2(TYPE_SYMBOL, TYPE_BOOL):
+        if (x->adt->len != y->adt->len)
+            return error(ERR_LENGTH, "filter: vector and filter vector must be of same length");
+
+        l = x->adt->len;
+        res = vector_symbol(l);
+        for (i = 0; i < l; i++)
+            if (as_vector_bool(y)[i])
+                as_vector_symbol(&res)[j++] = as_vector_symbol(x)[i];
+
+        vector_shrink(&res, j);
+
+        return res;
+
     case MTYPE2(TYPE_F64, TYPE_BOOL):
         if (x->adt->len != y->adt->len)
             return error(ERR_LENGTH, "filter: vector and filter vector must be of same length");
@@ -1156,11 +1171,17 @@ rf_object_t rf_in(rf_object_t *x, rf_object_t *y)
 
 rf_object_t rf_except(rf_object_t *x, rf_object_t *y)
 {
+    rf_object_t mask, res;
+
     switch (MTYPE2(x->type, y->type))
     {
     case MTYPE2(TYPE_I64, TYPE_I64):
     case MTYPE2(TYPE_SYMBOL, TYPE_SYMBOL):
-        return rf_find_I64_I64(x, y);
+        mask = rf_in(x, y);
+        mask = rf_not(&mask);
+        res = rf_filter(x, &mask);
+        rf_object_free(&mask);
+        return res;
     default:
         return error_type2(x->type, y->type, "except: unsupported types");
     }
