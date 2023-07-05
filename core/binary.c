@@ -1090,7 +1090,7 @@ rf_object_t rf_filter(rf_object_t *x, rf_object_t *y)
 rf_object_t rf_take(rf_object_t *x, rf_object_t *y)
 {
     i64_t i, j, l, *p;
-    rf_object_t res, col, cols, sym;
+    rf_object_t res, col, cols, sym, syms;
 
     switch (MTYPE2(x->type, y->type))
     {
@@ -1102,17 +1102,17 @@ rf_object_t rf_take(rf_object_t *x, rf_object_t *y)
 
         return res;
 
-    case MTYPE2(TYPE_SYMBOL, TYPE_TABLE):
-        l = x->adt->len;
-        p = as_vector_symbol(x);
+    case MTYPE2(TYPE_TABLE, TYPE_SYMBOL):
+        syms = rf_sect(&as_list(x)[0], y);
+        l = syms.adt->len;
         cols = list(l);
         for (i = 0; i < l; i++)
         {
-            sym = symboli64(p[i]);
-            as_list(&cols)[i] = dict_get(y, &sym);
+            sym = symboli64(as_vector_symbol(&syms)[i]);
+            as_list(&cols)[i] = dict_get(x, &sym);
         }
 
-        return table(rf_object_clone(x), cols);
+        return table(syms, cols);
 
     case MTYPE2(TYPE_I64, TYPE_I64):
         l = y->adt->len;
@@ -1167,6 +1167,23 @@ rf_object_t rf_in(rf_object_t *x, rf_object_t *y)
         default:
             return error_type2(x->type, y->type, "in: unsupported types");
         }
+}
+
+rf_object_t rf_sect(rf_object_t *x, rf_object_t *y)
+{
+    rf_object_t mask, res;
+
+    switch (MTYPE2(x->type, y->type))
+    {
+    case MTYPE2(TYPE_I64, TYPE_I64):
+    case MTYPE2(TYPE_SYMBOL, TYPE_SYMBOL):
+        mask = rf_in(x, y);
+        res = rf_filter(x, &mask);
+        rf_object_free(&mask);
+        return res;
+    default:
+        return error_type2(x->type, y->type, "sect: unsupported types");
+    }
 }
 
 rf_object_t rf_except(rf_object_t *x, rf_object_t *y)

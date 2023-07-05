@@ -517,41 +517,33 @@ cc_result_t cc_compile_map(bool_t has_consumer, cc_t *cc, rf_object_t *object, u
     return CC_OK;
 }
 
-rf_object_t find_used_columns(rf_object_t *params)
+null_t find_used_symbols(rf_object_t *lst, rf_object_t *syms)
 {
+    i64_t i, l;
 
-    // for (i = 0; i < l; i++)
-    // {
-    //     k = as_vector_symbol(&as_list(params)[0])[i];
-    //     if (k != KW_FROM && k != KW_WHERE)
-    //     {
-    //         val = as_list(&as_list(params)[1])[i];
-    //         if (val.type == TYPE_LIST)
-    //         {
-    //         }
-    //     }
-    // }
-    i64_t i, l, k;
-    rf_object_t key, val, cols;
-
-    cols = vector_symbol(0);
-    l = as_list(params)[0].adt->len;
-
-    for (i = 0; i < l; i++)
+    switch (lst->type)
     {
-        k = as_vector_symbol(&as_list(params)[0])[i];
-        if (k != KW_FROM && k != KW_WHERE)
-            vector_push(&cols, symboli64(as_vector_symbol(&as_list(params)[0])[i]));
+    case -TYPE_SYMBOL:
+        if (lst->i64 > 0)
+            vector_push(syms, *lst);
+        return;
+    case TYPE_LIST:
+        l = lst->adt->len;
+        if (l == 0)
+            return;
+        for (i = 0; i < l; i++)
+            find_used_symbols(&as_list(lst)[i], syms);
+        return;
+    default:
+        return;
     }
-
-    return cols;
 }
 
 cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
     cc_result_t res;
     i64_t i, l, k;
-    rf_object_t *car, *params, key, val, cols;
+    rf_object_t *car, *params, key, val, cols, syms;
     function_t *func = as_function(&cc->function);
     rf_object_t *code = &func->code;
 
@@ -576,8 +568,6 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
     if (res == CC_ERROR)
         return CC_ERROR;
 
-    // push_opcode(cc, car->id, code, OP_LATTACH);
-
     // compile filters
     key = symboli64(KW_WHERE);
     val = dict_get(params, &key);
@@ -585,11 +575,12 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
     if (val.type != TYPE_NULL)
     {
         // first determine which of columns are used in select
+        syms = vector_symbol(0);
+        find_used_symbols(&as_list(params)[1], &syms);
         push_opcode(cc, car->id, code, OP_PUSH);
-        push_const(cc, find_used_columns(params));
+        push_const(cc, syms);
 
         // remap table of columns
-        push_opcode(cc, car->id, code, OP_LDETACH);
         push_opcode(cc, car->id, code, OP_CALL2);
         push_u64(code, rf_take);
 
@@ -609,9 +600,9 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
         push_opcode(cc, car->id, code, OP_LDETACH);
         push_opcode(cc, car->id, code, OP_CALL2);
         push_u64(code, rf_take);
-
-        push_opcode(cc, car->id, code, OP_LATTACH);
     }
+
+    push_opcode(cc, car->id, code, OP_LATTACH);
 
     cols = vector_symbol(0);
     for (i = 0; i < l; i++)
