@@ -664,8 +664,6 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
                 val = as_list(&as_list(params)[1])[i];
                 res = cc_compile_expr(true, cc, &val);
 
-                rf_object_free(&val);
-
                 if (res == CC_ERROR)
                     return CC_ERROR;
             }
