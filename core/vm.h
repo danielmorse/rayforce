@@ -39,7 +39,10 @@ typedef enum vm_opcode_t
     OP_POP,       // Pop an rf_object from the stack
     OP_JNE,       // Jump if not equal
     OP_JMP,       // Jump
-    OP_CALL,      // Call primitive/lambda
+    OP_CALL1,     // Call unary
+    OP_CALL2,     // Call binary
+    OP_CALLN,     // Call vary
+    OP_CALLD,     // Dynamic call (call function from stack with n arguments)
     OP_RET,       // Return from lambda
     OP_TIMER_SET, // Start timer
     OP_TIMER_GET, // Get timer value

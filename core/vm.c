@@ -85,6 +85,7 @@ rf_object_t __attribute__((hot)) vm_exec(vm_t *vm, rf_object_t *fun)
     str_t code = as_string(&f->code);
     rf_object_t x0, x1, x2, x3, x4, x5, *addr;
     i64_t t;
+    u8_t n;
     u64_t l, p;
     i32_t i, j, b;
     unary_t f1;
@@ -98,9 +99,9 @@ rf_object_t __attribute__((hot)) vm_exec(vm_t *vm, rf_object_t *fun)
 
     // The indices of labels in the dispatch_table are the relevant opcodes
     static null_t *dispatch_table[] = {
-        &&op_halt, &&op_push, &&op_pop, &&op_jne, &&op_jmp, &&op_call, &&op_ret, &&op_timer_set, &&op_timer_get,
-        &&op_store, &&op_load, &&op_lset, &&op_lget, &&op_lattach, &&op_ldetach, &&op_try, &&op_catch, &&op_throw,
-        &&op_trace, &&op_alloc, &&op_map, &&op_collect};
+        &&op_halt, &&op_push, &&op_pop, &&op_jne, &&op_jmp, &&op_call1, &&op_call2, &&op_calln, &&op_calld, &&op_ret,
+        &&op_timer_set, &&op_timer_get, &&op_store, &&op_load, &&op_lset, &&op_lget, &&op_lattach, &&op_ldetach, &&op_try,
+        &&op_catch, &&op_throw, &&op_trace, &&op_alloc, &&op_map, &&op_collect};
 
 #define dispatch() goto *dispatch_table[(i32_t)code[vm->ip]]
 
@@ -189,7 +190,41 @@ op_jmp:
     load_u64(l, vm);
     vm->ip = l;
     dispatch();
-op_call:
+op_call1:
+    b = vm->ip++;
+    load_u64(l, vm);
+    f1 = (unary_t)l;
+    x2 = stack_pop(vm);
+    x1 = f1(&x2);
+    rf_object_free(&x2);
+    unwrap(x1, b);
+    stack_push(vm, x1);
+    dispatch();
+op_call2:
+    b = vm->ip++;
+    load_u64(l, vm);
+    f2 = (binary_t)l;
+    x3 = stack_pop(vm);
+    x2 = stack_pop(vm);
+    x1 = f2(&x2, &x3);
+    rf_object_free(&x2);
+    rf_object_free(&x3);
+    unwrap(x1, b);
+    stack_push(vm, x1);
+    dispatch();
+op_calln:
+    b = vm->ip++;
+    n = code[vm->ip++];
+    load_u64(l, vm);
+    fn = (vary_t)l;
+    addr = (rf_object_t *)(&vm->stack[vm->sp - n]);
+    x1 = fn(addr, n);
+    for (i = 0; i < n; i++)
+        stack_pop_free(vm); // pop args
+    unwrap(x1, b);
+    stack_push(vm, x1);
+    dispatch();
+op_calld:
     b = vm->ip++;
     addr = stack_peek(vm);
     switch (addr->type)
@@ -455,8 +490,8 @@ str_t vm_code_fmt(rf_object_t *fun)
             str_fmt_into(&s, &l, &o, 0, "\n");
             ip += sizeof(rf_object_t);
             break;
-        case OP_CALL:
-            str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] call ", c++, ip++);
+        case OP_CALL1:
+            str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] call1 ", c++, ip++);
             break;
         case OP_TIMER_SET:
             str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] timer_set\n", c++, ip++);

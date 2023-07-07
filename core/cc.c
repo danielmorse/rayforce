@@ -104,10 +104,6 @@ rf_object_t cc_compile_lambda(bool_t top, str_t name, rf_object_t args, rf_objec
         return CC_ERROR;                                            \
     }
 
-#define cc_unary(x) ((rf_object_t){.type = TYPE_UNARY, .i64 = (i64_t)(x)})
-#define cc_binary(x) ((rf_object_t){.type = TYPE_BINARY, .i64 = (i64_t)(x)})
-#define cc_lambda(x) ((rf_object_t){.type = -TYPE_LAMBDA, .i64 = (i64_t)(x)})
-
 cc_result_t cc_compile_quote(bool_t has_consumer, cc_t *cc, rf_object_t *object)
 {
     rf_object_t *car = &as_list(object)[0];
@@ -164,9 +160,8 @@ cc_result_t cc_compile_set(bool_t has_consumer, cc_t *cc, rf_object_t *object, u
     if (res == CC_ERROR)
         return CC_ERROR;
 
-    push_opcode(cc, car->id, code, OP_PUSH);
-    push_const(cc, cc_binary(rf_set_variable));
-    push_opcode(cc, car->id, code, OP_CALL);
+    push_opcode(cc, car->id, code, OP_CALL2);
+    push_u64(code, rf_set_variable);
 
     if (!has_consumer)
         push_opcode(cc, car->id, code, OP_POP);
@@ -368,29 +363,26 @@ cc_result_t cc_compile_call(cc_t *cc, rf_object_t *car, u8_t arity)
     case TYPE_UNARY:
         if (arity != 1)
             cerr(cc, car->id, ERR_LENGTH, str_fmt(0, "unary function expects 1 argument"));
-        break;
+        push_opcode(cc, car->id, code, OP_CALL1);
+        push_u64(code, rec.i64);
+        return CC_OK;
     case TYPE_BINARY:
         if (arity != 2)
             cerr(cc, car->id, ERR_LENGTH, str_fmt(0, "binary function expects 2 arguments"));
-        break;
+        push_opcode(cc, car->id, code, OP_CALL2);
+        push_u64(code, rec.i64);
+        return CC_OK;
     case -TYPE_LAMBDA:
-        push_opcode(cc, car->id, code, OP_PUSH);
-        push_const(cc, rec);
-        push_opcode(cc, car->id, code, OP_CALL);
+        push_opcode(cc, car->id, code, OP_CALLN);
         push_opcode(cc, car->id, code, arity);
+        push_u64(code, rec.i64);
         return CC_OK;
     default:
         cc_compile_expr(true, cc, car);
-        push_opcode(cc, car->id, code, OP_CALL);
+        push_opcode(cc, car->id, code, OP_CALLD);
         push_opcode(cc, car->id, code, arity);
         return CC_OK;
     }
-
-    push_opcode(cc, car->id, code, OP_PUSH);
-    push_const(cc, rec);
-    push_opcode(cc, car->id, code, OP_CALL);
-
-    return CC_OK;
 }
 
 cc_result_t cc_compile_map(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
@@ -454,7 +446,7 @@ cc_result_t cc_compile_map(bool_t has_consumer, cc_t *cc, rf_object_t *object, u
     // additional one for ctx
     func->stack_size += 2;
 
-    push_opcode(cc, car->id, code, OP_CALL);
+    push_opcode(cc, car->id, code, OP_CALL1);
     push_u64(code, vector_flatten);
 
     if (!has_consumer)
@@ -538,7 +530,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
         {
             push_opcode(cc, car->id, code, OP_PUSH);
             push_const(cc, syms);
-            push_opcode(cc, car->id, code, OP_CALL);
+            push_opcode(cc, car->id, code, OP_CALL2);
             push_u64(code, rf_take);
         }
         else
@@ -555,12 +547,12 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
             return CC_ERROR;
         }
 
-        push_opcode(cc, car->id, code, OP_CALL);
+        push_opcode(cc, car->id, code, OP_CALL1);
         push_u64(code, rf_where);
 
         // remap table of columns (by applying filters)
         push_opcode(cc, car->id, code, OP_LDETACH);
-        push_opcode(cc, car->id, code, OP_CALL);
+        push_opcode(cc, car->id, code, OP_CALL2);
         push_u64(code, rf_take);
     }
 
@@ -581,17 +573,17 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
             return CC_ERROR;
         }
 
-        push_opcode(cc, car->id, code, OP_CALL);
+        push_opcode(cc, car->id, code, OP_CALL1);
         push_u64(code, rf_group);
 
         // detach and drop table from env
         push_opcode(cc, car->id, code, OP_LDETACH);
         push_opcode(cc, car->id, code, OP_PUSH);
         push_const(cc, syms);
-        push_opcode(cc, car->id, code, OP_CALL);
+        push_opcode(cc, car->id, code, OP_CALL2);
         push_u64(code, rf_take);
 
-        push_opcode(cc, car->id, code, OP_CALL);
+        push_opcode(cc, car->id, code, OP_CALL2);
         push_u64(code, rf_take);
     }
 
@@ -615,11 +607,11 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
             }
         }
 
-        push_opcode(cc, car->id, code, OP_CALL);
+        push_opcode(cc, car->id, code, OP_CALLN);
         push_opcode(cc, car->id, code, (u8_t)cols.adt->len);
         push_u64(code, rf_list);
 
-        push_opcode(cc, car->id, code, OP_CALL);
+        push_opcode(cc, car->id, code, OP_CALL2);
         push_u64(code, rf_table);
 
         // detach and drop table from env
