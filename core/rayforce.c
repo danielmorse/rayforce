@@ -307,10 +307,14 @@ null_t __attribute__((hot)) rf_object_free(rf_object_t *object)
     {
         if (object->guid == NULL)
             return;
+
         rf_free(object->guid);
 
         return;
     }
+
+    if (!is_rc(object))
+        return;
 
     if (is_null(object))
         return;
@@ -382,6 +386,9 @@ rf_object_t rf_object_cow(rf_object_t *object)
     if (!is_rc(object))
         return *object;
 
+    if (is_null(object))
+        return *object;
+
     if (rf_object_rc(object) == 1)
         return rf_object_clone(object);
 
@@ -418,8 +425,6 @@ rf_object_t rf_object_cow(rf_object_t *object)
         memcpy(as_string(&new), as_string(object), object->adt->len);
         return new;
     case TYPE_LIST:
-        if (object->adt == NULL)
-            return *object;
         l = object->adt->len;
         new = list(l);
         new.adt->attrs = object->adt->attrs;

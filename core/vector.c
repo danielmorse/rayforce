@@ -86,6 +86,9 @@ rf_object_t vector_push(rf_object_t *vec, rf_object_t value)
     if (!is_vector(vec))
         return error(ERR_TYPE, "vector push: can not push to scalar");
 
+    if (is_null(vec))
+        return error(ERR_TYPE, "vector push: can not push to a null");
+
     l = vec->adt->len;
 
     // if (l == 0)
@@ -143,7 +146,7 @@ rf_object_t vector_pop(rf_object_t *vec)
 {
     guid_t *g;
 
-    if (!is_vector(vec) || vec->adt->len == 0)
+    if (!is_vector(vec) || is_null(vec) || vec->adt->len == 0)
         return null();
 
     switch (vec->type)
@@ -172,61 +175,69 @@ rf_object_t vector_pop(rf_object_t *vec)
     }
 }
 
-null_t vector_reserve(rf_object_t *vector, u32_t len)
+null_t vector_reserve(rf_object_t *vec, u32_t len)
 {
-    switch (vector->type)
+    switch (vec->type)
     {
     case TYPE_BOOL:
-        reserve(vector, bool_t, len);
+        reserve(vec, bool_t, len);
         return;
     case TYPE_I64:
-        reserve(vector, i64_t, len);
+        reserve(vec, i64_t, len);
         return;
     case TYPE_F64:
-        reserve(vector, f64_t, len);
+        reserve(vec, f64_t, len);
         return;
     case TYPE_SYMBOL:
-        reserve(vector, i64_t, len);
+        reserve(vec, i64_t, len);
         return;
     case TYPE_TIMESTAMP:
-        reserve(vector, i64_t, len);
+        reserve(vec, i64_t, len);
         return;
     case TYPE_GUID:
-        reserve(vector, guid_t, len);
+        reserve(vec, guid_t, len);
         return;
     case TYPE_CHAR:
-        reserve(vector, char_t, len);
+        reserve(vec, char_t, len);
         return;
     case TYPE_LIST:
-        reserve(vector, rf_object_t, len);
+        if (vec->adt == NULL)
+            panic_type("vector reserve: can not reserve a null", vec->type);
+        reserve(vec, rf_object_t, len);
         return;
     default:
-        panic_type("vector reserve: unknown type", vector->type);
+        panic_type("vector reserve: unknown type", vec->type);
     }
 }
 
-null_t vector_grow(rf_object_t *vector, u32_t len)
+null_t vector_grow(rf_object_t *vec, u32_t len)
 {
-    // calculate size of vector with new length
-    i64_t new_size = capacity(len * size_of_val(vector->type) + sizeof(header_t));
+    if (is_null(vec))
+        panic_type("vector grow: can not reserve a null", vec->type);
 
-    rf_realloc(vector->adt, new_size);
-    vector->adt->len = len;
+    // calculate size of vector with new length
+    i64_t new_size = capacity(len * size_of_val(vec->type) + sizeof(header_t));
+
+    rf_realloc(vec->adt, new_size);
+    vec->adt->len = len;
 }
 
-null_t vector_shrink(rf_object_t *vector, u32_t len)
+null_t vector_shrink(rf_object_t *vec, u32_t len)
 {
-    if (vector->adt->len == len)
+    if (is_null(vec))
+        panic_type("vector shrink: can not reserve a null", vec->type);
+
+    if (vec->adt->len == len)
         return;
 
     // calculate size of vector with new length
-    i64_t new_size = capacity(len * size_of_val(vector->type) + sizeof(header_t));
+    i64_t new_size = capacity(len * size_of_val(vec->type) + sizeof(header_t));
 
-    rf_realloc(vector->adt, new_size);
-    vector->adt->len = len;
+    rf_realloc(vec->adt, new_size);
+    vec->adt->len = len;
 }
 
-i64_t vector_find(rf_object_t *vector, rf_object_t *key)
+i64_t vector_find(rf_object_t *vec, rf_object_t *key)
 {
     char_t kc, *vc;
     bool_t kb, *vb;
@@ -236,80 +247,77 @@ i64_t vector_find(rf_object_t *vector, rf_object_t *key)
     i64_t i, l;
     guid_t *kg, *vg;
 
-    if (key->type != -vector->type && vector->type != TYPE_LIST)
-        return vector->adt->len;
+    if (is_null(vec))
+        panic("vector find: can not find in a null");
 
-    switch (vector->type)
+    if (!is_vector(vec))
+        panic("vector find: can not find in a null");
+
+    l = vec->adt->len;
+
+    if (key->type != -vec->type && vec->type != TYPE_LIST)
+        return l;
+
+    switch (vec->type)
     {
     case TYPE_BOOL:
-        l = vector->adt->len;
-        vb = as_vector_bool(vector);
+        vb = as_vector_bool(vec);
         kb = key->bool;
         for (i = 0; i < l; i++)
             if (vb[i] == kb)
                 return i;
         return l;
     case TYPE_I64:
-        l = vector->adt->len;
-        vi = as_vector_i64(vector);
+        vi = as_vector_i64(vec);
         ki = key->i64;
         for (i = 0; i < l; i++)
             if (vi[i] == ki)
                 return i;
         return l;
     case TYPE_F64:
-        l = vector->adt->len;
-        vf = as_vector_f64(vector);
+        vf = as_vector_f64(vec);
         kf = key->f64;
         for (i = 0; i < l; i++)
             if (vf[i] == kf)
                 return i;
         return l;
     case TYPE_SYMBOL:
-        l = vector->adt->len;
-        vi = as_vector_symbol(vector);
+        vi = as_vector_symbol(vec);
         ki = key->i64;
         for (i = 0; i < l; i++)
             if (vi[i] == ki)
                 return i;
         return l;
     case TYPE_TIMESTAMP:
-        l = vector->adt->len;
-        vi = as_vector_timestamp(vector);
+        vi = as_vector_timestamp(vec);
         ki = key->i64;
         for (i = 0; i < l; i++)
             if (vi[i] == ki)
                 return i;
         return l;
     case TYPE_GUID:
-        l = vector->adt->len;
-        vg = as_vector_guid(vector);
+        vg = as_vector_guid(vec);
         kg = key->guid;
         for (i = 0; i < l; i++)
             if (memcmp(vg + i, kg, sizeof(guid_t)) == 0)
                 return i;
         return l;
     case TYPE_CHAR:
-        l = vector->adt->len;
-        vc = as_string(vector);
+        vc = as_string(vec);
         kc = key->schar;
         for (i = 0; i < l; i++)
             if (vc[i] == kc)
                 return i;
         return l;
     case TYPE_LIST:
-        if (is_null(vector))
-            return 0;
-
-        l = vector->adt->len;
-        vl = as_list(vector);
+        vl = as_list(vec);
         kl = key;
         for (i = 0; i < l; i++)
             if (rf_object_eq(&vl[i], kl))
                 return i;
         return l;
     default:
-        return vector->adt->len;
+        return l;
     }
 }
 
@@ -319,6 +327,9 @@ rf_object_t vector_get(rf_object_t *vec, i64_t index)
 
     if (!is_vector(vec))
         return error(ERR_TYPE, "vector get: can not get from scalar");
+
+    if (is_null(vec))
+        return error(ERR_TYPE, "vector get: can not get from null");
 
     l = vec->adt->len;
 
@@ -353,8 +364,6 @@ rf_object_t vector_get(rf_object_t *vec, i64_t index)
             return schar(as_string(vec)[index]);
         return schar(0);
     case TYPE_LIST:
-        if (vec->adt == NULL)
-            return *vec;
         if (index < l)
             return rf_object_clone(&as_list(vec)[index]);
         return null();
