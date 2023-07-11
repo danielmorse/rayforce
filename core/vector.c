@@ -453,6 +453,66 @@ rf_object_t vector_set(rf_object_t *vec, i64_t index, rf_object_t value)
 }
 
 /*
+ * same as vector_set, but does not check bounds and does not free old value in case of list
+ */
+null_t vector_write(rf_object_t *vec, i64_t index, rf_object_t value)
+{
+    guid_t *g;
+    i64_t i, l;
+    rf_object_t lst;
+
+    l = vec->adt->len;
+
+    // change vector type to a list
+    if (vec->type != -value.type && vec->type != TYPE_LIST)
+    {
+        lst = list(l);
+
+        for (i = 0; i < index; i++)
+            as_list(&lst)[i] = vector_get(vec, i);
+
+        as_list(&lst)[index] = value;
+
+        rf_object_free(vec);
+
+        *vec = lst;
+
+        return;
+    }
+
+    switch (vec->type)
+    {
+    case TYPE_BOOL:
+        as_vector_bool(vec)[index] = value.bool;
+        break;
+    case TYPE_I64:
+        as_vector_i64(vec)[index] = value.i64;
+        break;
+    case TYPE_F64:
+        as_vector_f64(vec)[index] = value.f64;
+        break;
+    case TYPE_SYMBOL:
+        as_vector_i64(vec)[index] = value.i64;
+        break;
+    case TYPE_TIMESTAMP:
+        as_vector_i64(vec)[index] = value.i64;
+        break;
+    case TYPE_GUID:
+        g = as_vector_guid(vec);
+        memcpy(g + index, value.guid, sizeof(guid_t));
+        break;
+    case TYPE_CHAR:
+        as_string(vec)[index] = value.schar;
+        break;
+    case TYPE_LIST:
+        as_list(vec)[index] = value;
+        break;
+    default:
+        panic_type("vector_set: unknown type", vec->type);
+    }
+}
+
+/*
  * Try to flatten list in a vector if all elements are of the same type
  */
 rf_object_t vector_flatten(rf_object_t *x)

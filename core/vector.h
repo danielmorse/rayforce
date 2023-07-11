@@ -87,6 +87,7 @@ rf_object_t vector_flatten(rf_object_t *object);
 rf_object_t vector_get(rf_object_t *vec, i64_t index);
 rf_object_t vector_filter(rf_object_t *vec, bool_t mask[], i64_t len);
 rf_object_t vector_set(rf_object_t *vec, i64_t index, rf_object_t value);
+null_t vector_write(rf_object_t *vec, i64_t index, rf_object_t value);
 rf_object_t vector_push(rf_object_t *vec, rf_object_t object);
 rf_object_t list_push(rf_object_t *vec, rf_object_t object);
 rf_object_t rf_list(rf_object_t *x, u32_t n);

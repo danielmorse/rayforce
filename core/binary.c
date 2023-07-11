@@ -37,8 +37,48 @@
 // Atomic binary functions (iterates through list of arguments down to atoms)
 rf_object_t rf_call_binary_atomic(binary_t f, rf_object_t *x, rf_object_t *y)
 {
-    if (x->type > 0 && y->type > 0)
-        return f(x, y);
+    i64_t i, l;
+    rf_object_t res, item, a, b;
+
+    if (x->type == TYPE_LIST && is_vector(y) || y->type == TYPE_LIST && is_vector(x))
+    {
+        l = x->adt->len;
+        if (l != y->adt->len)
+            return error(ERR_LENGTH, "binary: vectors must be of the same length");
+
+        a = vector_get(x, 0);
+        b = vector_get(y, 0);
+        item = rf_call_binary_atomic(f, &a, &b);
+        rf_object_free(&a);
+        rf_object_free(&b);
+
+        if (item.type == TYPE_ERROR)
+            return item;
+
+        res = list(l);
+
+        vector_write(&res, 0, item);
+
+        for (i = 1; i < l; i++)
+        {
+            a = vector_get(x, i);
+            b = vector_get(y, i);
+            item = rf_call_binary_atomic(f, &a, &b);
+            rf_object_free(&a);
+            rf_object_free(&b);
+
+            if (item.type == TYPE_ERROR)
+            {
+                res.adt->len = i;
+                rf_object_free(&res);
+                return item;
+            }
+
+            vector_write(&res, i, item);
+        }
+
+        return res;
+    }
 
     return f(x, y);
 }
@@ -156,6 +196,14 @@ rf_object_t rf_add(rf_object_t *x, rf_object_t *y)
 
     case MTYPE2(-TYPE_F64, -TYPE_F64):
         return (f64(ADDF64(x->f64, y->f64)));
+
+    case MTYPE2(-TYPE_I64, TYPE_I64):
+        l = y->adt->len;
+        vec = vector_i64(l);
+        for (i = 0; i < l; i++)
+            as_vector_i64(&vec)[i] = ADDI64(x->i64, as_vector_i64(y)[i]);
+
+        return vec;
 
     case MTYPE2(TYPE_I64, -TYPE_I64):
         l = x->adt->len;

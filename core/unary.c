@@ -61,16 +61,7 @@ rf_object_t rf_call_unary_atomic(unary_t f, rf_object_t *x)
         else
             res = list(l);
 
-        res.adt->len = 1;
-
-        item = vector_set(&res, 0, item);
-
-        if (item.type == TYPE_ERROR)
-        {
-            res.adt->len--;
-            rf_object_free(&res);
-            return item;
-        }
+        vector_write(&res, 0, item);
 
         for (i = 1; i < l; i++)
         {
@@ -78,20 +69,12 @@ rf_object_t rf_call_unary_atomic(unary_t f, rf_object_t *x)
 
             if (item.type == TYPE_ERROR)
             {
+                res.adt->len = i;
                 rf_object_free(&res);
                 return item;
             }
 
-            res.adt->len++;
-
-            item = vector_set(&res, i, item);
-
-            if (item.type == TYPE_ERROR)
-            {
-                res.adt->len--;
-                rf_object_free(&res);
-                return item;
-            }
+            vector_set(&res, i, item);
         }
 
         return res;
