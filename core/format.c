@@ -272,13 +272,13 @@ i32_t vector_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, rf_obj
     return n;
 }
 
-i32_t list_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, rf_object_t *rf_object)
+i32_t list_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t limit, rf_object_t *rf_object)
 {
     if (rf_object->adt == NULL)
         return str_fmt_into(dst, len, offset, limit, "()");
 
     i32_t i, n = str_fmt_into(dst, len, offset, limit, "("),
-             list_height = rf_object->adt->len, indent = 0;
+             list_height = rf_object->adt->len;
 
     if (list_height > LIST_MAX_HEIGHT)
         list_height = LIST_MAX_HEIGHT;
@@ -288,7 +288,7 @@ i32_t list_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, rf_objec
     for (i = 0; i < list_height; i++)
     {
         maxn(n, str_fmt_into(dst, len, offset, 0, "\n%*.*s", indent, indent, PADDING));
-        maxn(n, rf_object_fmt_into(dst, len, offset, MAX_ROW_WIDTH, &as_list(rf_object)[i]));
+        maxn(n, rf_object_fmt_into(dst, len, offset, indent, MAX_ROW_WIDTH, &as_list(rf_object)[i]));
     }
 
     if (list_height < (i32_t)rf_object->adt->len)
@@ -313,19 +313,20 @@ i32_t string_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, rf_obj
     return n;
 }
 
-i32_t dict_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, rf_object_t *rf_object)
+i32_t dict_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t limit, rf_object_t *rf_object)
 {
     rf_object_t *keys = &as_list(rf_object)[0], *vals = &as_list(rf_object)[1], v;
-    i32_t i, m, n = str_fmt_into(dst, len, offset, limit, "{"),
-                dict_height = keys->adt->len, indent = 0;
+    i32_t i, m, n, dict_height = keys->adt->len;
+
+    if (dict_height == 0)
+        return str_fmt_into(dst, len, offset, limit, "{}");
+
+    n = str_fmt_into(dst, len, offset, limit, "{");
 
     if (dict_height > LIST_MAX_HEIGHT)
         dict_height = LIST_MAX_HEIGHT;
 
-    indent = *offset + 2;
-
-    if (dict_height)
-        maxn(n, str_fmt_into(dst, len, offset, limit, "\n"));
+    indent += 2;
 
     for (i = 0; i < dict_height; i++)
     {
@@ -333,13 +334,13 @@ i32_t dict_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, rf_objec
 
         maxn(n, str_fmt_into(dst, len, offset, 0, "\n%*.*s", indent, indent, PADDING));
         v = vector_get(keys, i);
-        maxn(n, rf_object_fmt_into(dst, len, offset, MAX_ROW_WIDTH, &v));
+        maxn(n, rf_object_fmt_into(dst, len, offset, indent, MAX_ROW_WIDTH, &v));
         rf_object_free(&v);
 
         m += str_fmt_into(dst, len, offset, MAX_ROW_WIDTH, ": ");
 
         v = vector_get(vals, i);
-        maxn(n, rf_object_fmt_into(dst, len, offset, MAX_ROW_WIDTH, &v));
+        maxn(n, rf_object_fmt_into(dst, len, offset, indent, MAX_ROW_WIDTH, &v));
         rf_object_free(&v);
     }
 
@@ -348,7 +349,7 @@ i32_t dict_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, rf_objec
 
     indent -= 2;
 
-    maxn(n, str_fmt_into(dst, len, offset, limit, "%*.*s}", indent, indent, PADDING));
+    maxn(n, str_fmt_into(dst, len, offset, limit, "\n%*.*s}", indent, indent, PADDING));
 
     return n;
 }
@@ -359,7 +360,7 @@ i32_t table_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, rf_obje
     UNUSED(limit);
 
     i64_t *header = as_vector_symbol(&as_list(rf_object)[0]);
-    rf_object_t *columns = &as_list(rf_object)[1], column_widths;
+    rf_object_t *columns = &as_list(rf_object)[1], column_widths, c;
     i32_t table_width, table_height;
     str_t s, formatted_columns[TABLE_MAX_WIDTH][TABLE_MAX_HEIGHT] = {{NULL}};
     i32_t i, j, l, o, n = str_fmt_into(dst, len, offset, 0, "|");
@@ -389,24 +390,9 @@ i32_t table_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, rf_obje
             l = 0;
             o = 0;
 
-            switch (column->type)
-            {
-            case TYPE_BOOL:
-                maxn(n, bool_fmt_into(&s, &l, &o, MAX_ROW_WIDTH, as_vector_bool(column)[j]));
-                break;
-            case TYPE_I64:
-                maxn(n, i64_fmt_into(&s, &l, &o, MAX_ROW_WIDTH, as_vector_i64(column)[j]));
-                break;
-            case TYPE_F64:
-                maxn(n, f64_fmt_into(&s, &l, &o, MAX_ROW_WIDTH, as_vector_f64(column)[j]));
-                break;
-            case TYPE_SYMBOL:
-                maxn(n, symbol_fmt_into(&s, &l, &o, MAX_ROW_WIDTH, as_vector_symbol(column)[j]));
-                break;
-            default:
-                maxn(n, rf_object_fmt_into(&s, &l, &o, MAX_ROW_WIDTH, &as_list(column)[j]));
-                break;
-            }
+            c = vector_get(column, j);
+            maxn(n, rf_object_fmt_into(&s, &l, &o, 0, MAX_ROW_WIDTH, &c));
+            rf_object_free(&c);
 
             formatted_columns[i][j] = s;
             maxn(as_vector_i64(&column_widths)[i], n);
@@ -485,7 +471,7 @@ i32_t lambda_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, rf_obj
     return str_fmt_into(dst, len, offset, 0, "<lambda>");
 }
 
-i32_t rf_object_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, rf_object_t *object)
+i32_t rf_object_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t limit, rf_object_t *object)
 {
     switch (object->type)
     {
@@ -518,9 +504,9 @@ i32_t rf_object_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, rf_
     case TYPE_CHAR:
         return string_fmt_into(dst, len, offset, limit, object);
     case TYPE_LIST:
-        return list_fmt_into(dst, len, offset, limit, object);
+        return list_fmt_into(dst, len, offset, indent, limit, object);
     case TYPE_DICT:
-        return dict_fmt_into(dst, len, offset, limit, object);
+        return dict_fmt_into(dst, len, offset, indent, limit, object);
     case TYPE_TABLE:
         return table_fmt_into(dst, len, offset, limit, object);
     case TYPE_UNARY:
@@ -543,7 +529,7 @@ str_t rf_object_fmt(rf_object_t *object)
 {
     i32_t len = 0, offset = 0, limit = MAX_ROW_WIDTH;
     str_t dst = NULL;
-    rf_object_fmt_into(&dst, &len, &offset, limit, object);
+    rf_object_fmt_into(&dst, &len, &offset, 0, limit, object);
     if (dst == NULL)
         panic("format: returns null");
 
@@ -595,7 +581,7 @@ str_t rf_object_fmt_n(rf_object_t *x, u32_t n)
         sz -= (end + 1 - start);
         start = end + 1;
 
-        rf_object_fmt_into(&s, &l, &o, 0, b);
+        rf_object_fmt_into(&s, &l, &o, 0, 0, b);
     }
 
     if (sz > 0 && memchr(start, '%', sz))
