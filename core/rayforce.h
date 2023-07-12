@@ -137,6 +137,7 @@ CASSERT(sizeof(struct guid_t) == 16, rayforce_h)
 typedef struct rf_object_t
 {
     type_t type;
+    u8_t flags;
     u32_t id;
     union
     {

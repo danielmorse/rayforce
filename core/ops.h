@@ -38,6 +38,11 @@
 #define TYPE_THROW (TYPE_ERROR - 4)
 // none type
 #define TYPE_NONE (TYPE_ERROR - 5)
+// FLAGS
+#define FLAG_NONE 0
+#define FLAG_LEFT_ATOMIC 1
+#define FLAG_RIGHT_ATOMIC 2
+#define FLAG_ATOMIC 4
 
 #define align8(x) ((str_t)(((u64_t)x + 7) & ~7))
 // --

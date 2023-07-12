@@ -40,7 +40,11 @@ typedef enum vm_opcode_t
     OP_JNE,       // Jump if not equal
     OP_JMP,       // Jump
     OP_CALL1,     // Call unary
+    OP_CALL1A,    // Call unary atomic
     OP_CALL2,     // Call binary
+    OP_CALL2LA,   // Call binary left atomic
+    OP_CALL2RA,   // Call binary right atomic
+    OP_CALL2A,    // Call binary atomic
     OP_CALLN,     // Call vary
     OP_CALLD,     // Dynamic call (call function from stack with n arguments)
     OP_RET,       // Return from lambda

@@ -100,9 +100,10 @@ rf_object_t __attribute__((hot)) vm_exec(vm_t *vm, rf_object_t *fun)
 
     // The indices of labels in the dispatch_table are the relevant opcodes
     static null_t *dispatch_table[] = {
-        &&op_halt, &&op_push, &&op_pop, &&op_jne, &&op_jmp, &&op_call1, &&op_call2, &&op_calln, &&op_calld, &&op_ret,
-        &&op_timer_set, &&op_timer_get, &&op_store, &&op_load, &&op_lset, &&op_lget, &&op_lattach, &&op_ldetach, &&op_try,
-        &&op_catch, &&op_throw, &&op_trace, &&op_alloc, &&op_map, &&op_collect};
+        &&op_halt, &&op_push, &&op_pop, &&op_jne, &&op_jmp, &&op_call1, &&op_call1a, &&op_call2,
+        &&op_call2la, &&op_call2ra, &&op_call2a, &&op_calln, &&op_calld, &&op_ret, &&op_timer_set,
+        &&op_timer_get, &&op_store, &&op_load, &&op_lset, &&op_lget, &&op_lattach, &&op_ldetach,
+        &&op_try, &&op_catch, &&op_throw, &&op_trace, &&op_alloc, &&op_map, &&op_collect};
 
 #define dispatch() goto *dispatch_table[(i32_t)code[vm->ip]]
 
@@ -195,12 +196,54 @@ op_call1:
     b = vm->ip++;
     load_u64(l, vm);
     x2 = stack_pop(vm);
+    x1 = ((unary_t)l)(&x2);
+    rf_object_free(&x2);
+    unwrap(x1, b);
+    stack_push(vm, x1);
+    dispatch();
+op_call1a:
+    b = vm->ip++;
+    load_u64(l, vm);
+    x2 = stack_pop(vm);
     x1 = rf_call_unary_atomic((unary_t)l, &x2);
     rf_object_free(&x2);
     unwrap(x1, b);
     stack_push(vm, x1);
     dispatch();
 op_call2:
+    b = vm->ip++;
+    load_u64(l, vm);
+    x3 = stack_pop(vm);
+    x2 = stack_pop(vm);
+    x1 = ((binary_t)l)(&x2, &x3);
+    rf_object_free(&x2);
+    rf_object_free(&x3);
+    unwrap(x1, b);
+    stack_push(vm, x1);
+    dispatch();
+op_call2la:
+    b = vm->ip++;
+    load_u64(l, vm);
+    x3 = stack_pop(vm);
+    x2 = stack_pop(vm);
+    x1 = rf_call_binary_left_atomic((binary_t)l, &x2, &x3);
+    rf_object_free(&x2);
+    rf_object_free(&x3);
+    unwrap(x1, b);
+    stack_push(vm, x1);
+    dispatch();
+op_call2ra:
+    b = vm->ip++;
+    load_u64(l, vm);
+    x3 = stack_pop(vm);
+    x2 = stack_pop(vm);
+    x1 = rf_call_binary_right_atomic((binary_t)l, &x2, &x3);
+    rf_object_free(&x2);
+    rf_object_free(&x3);
+    unwrap(x1, b);
+    stack_push(vm, x1);
+    dispatch();
+op_call2a:
     b = vm->ip++;
     load_u64(l, vm);
     x3 = stack_pop(vm);

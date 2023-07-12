@@ -353,6 +353,7 @@ type_t cc_compile_catch(cc_t *cc, rf_object_t *object, u32_t arity)
 
 cc_result_t cc_compile_call(cc_t *cc, rf_object_t *car, u8_t arity)
 {
+    i8_t op;
     rf_object_t *code = &as_lambda(&cc->lambda)->code, rec;
 
     rec = dict_get(&runtime_get()->env.functions, car);
@@ -362,24 +363,40 @@ cc_result_t cc_compile_call(cc_t *cc, rf_object_t *car, u8_t arity)
     case TYPE_UNARY:
         if (arity != 1)
             cerr(cc, car->id, ERR_LENGTH, str_fmt(0, "unary function expects 1 argument"));
-        push_opcode(cc, car->id, code, OP_CALL1);
+
+        op = (rec.flags & FLAG_ATOMIC) ? OP_CALL1A : OP_CALL1;
+        push_opcode(cc, car->id, code, op);
         push_u64(code, rec.i64);
+
         return CC_OK;
     case TYPE_BINARY:
         if (arity != 2)
             cerr(cc, car->id, ERR_LENGTH, str_fmt(0, "binary function expects 2 arguments"));
-        push_opcode(cc, car->id, code, OP_CALL2);
+
+        if (rec.flags & FLAG_ATOMIC)
+            op = OP_CALL2A;
+        else if (rec.flags & FLAG_LEFT_ATOMIC)
+            op = OP_CALL2LA;
+        else if (rec.flags & FLAG_RIGHT_ATOMIC)
+            op = OP_CALL2RA;
+        else
+            op = OP_CALL2;
+
+        push_opcode(cc, car->id, code, op);
         push_u64(code, rec.i64);
+
         return CC_OK;
     case TYPE_VARY:
         push_opcode(cc, car->id, code, OP_CALLN);
         push_opcode(cc, car->id, code, arity);
         push_u64(code, rec.i64);
+
         return CC_OK;
     default:
         cc_compile_expr(true, cc, car);
         push_opcode(cc, car->id, code, OP_CALLD);
         push_opcode(cc, car->id, code, arity);
+
         return CC_OK;
     }
 }
