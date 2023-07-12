@@ -37,7 +37,7 @@
 rf_object_t rf_call_binary_left_atomic(binary_t f, rf_object_t *x, rf_object_t *y)
 {
     u64_t i, l;
-    rf_object_t res, item, a, b;
+    rf_object_t res, item, a;
 
     if (x->type == TYPE_LIST)
     {
@@ -78,7 +78,7 @@ rf_object_t rf_call_binary_left_atomic(binary_t f, rf_object_t *x, rf_object_t *
 rf_object_t rf_call_binary_right_atomic(binary_t f, rf_object_t *x, rf_object_t *y)
 {
     u64_t i, l;
-    rf_object_t res, item, a, b;
+    rf_object_t res, item, b;
 
     if (y->type == TYPE_LIST)
     {
