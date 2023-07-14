@@ -67,7 +67,7 @@ null_t free_env(env_t *env);
 
 i64_t env_get_typename_by_type(env_t *env, type_t type);
 str_t env_get_typename(type_t type);
-type_t env_get_type_by_typename(env_t *env, i64_t name);
+type_t env_get_type_by_typename(env_t *env, rf_object_t sym);
 rf_object_t env_set(env_t *env, rf_object_t *key, rf_object_t val);
 rf_object_t env_get(env_t *env, rf_object_t *key);
 

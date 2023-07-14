@@ -336,7 +336,7 @@ i32_t dict_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t l
     }
 
     if (dict_height < (i32_t)keys->adt->len)
-        maxn(n, str_fmt_into(dst, len, offset, 0, "%*.*s..\n", indent, indent, PADDING));
+        maxn(n, str_fmt_into(dst, len, offset, 0, "\n%*.*s..", indent, indent, PADDING));
 
     indent -= 2;
 

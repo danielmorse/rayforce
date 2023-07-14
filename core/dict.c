@@ -76,23 +76,7 @@ rf_object_t dict_set(rf_object_t *dict, rf_object_t *key, rf_object_t val)
         return val;
     }
 
-    switch (vals->type)
-    {
-    case TYPE_I64:
-        as_vector_i64(vals)[index] = val.i64;
-        break;
-    case TYPE_F64:
-        as_vector_f64(vals)[index] = val.f64;
-        break;
-    case TYPE_SYMBOL:
-        as_vector_i64(vals)[index] = val.i64;
-        break;
-    case TYPE_LIST:
-        as_list(vals)[index] = rf_object_clone(&val);
-        break;
-    default:
-        panic("dict set: unsupported type");
-    }
+    vector_set(vals, index, rf_object_clone(&val));
 
     return val;
 }

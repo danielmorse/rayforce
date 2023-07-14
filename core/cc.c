@@ -515,7 +515,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
     for (i = 0; i < l; i++)
     {
         k = as_vector_symbol(&as_list(params)[0])[i];
-        if (k != KW_FROM && k != KW_WHERE && k != KW_BY)
+        if (k != KW_FROM && k != KW_WHERE)
         {
             find_used_symbols(&as_list(&as_list(params)[1])[i], &syms);
             vector_push(&cols, symboli64(k));
@@ -528,22 +528,24 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
     val = dict_get(params, &key);
     if (!is_null(&val))
     {
-        // remap table of columns (if specified)
-        if (cols.adt->len > 0)
-        {
-            push_opcode(cc, car->id, code, OP_PUSH);
-            push_const(cc, syms);
-            push_opcode(cc, car->id, code, OP_CALL2);
-            push_opcode(cc, car->id, code, 0);
-            push_u64(code, rf_take);
-        }
-        else
-            rf_object_free(&syms);
-
         push_opcode(cc, car->id, code, OP_LATTACH);
 
         res = cc_compile_expr(true, cc, &val);
         rf_object_free(&val);
+
+        // remap table of columns (if specified)
+        if (cols.adt->len > 0)
+        {
+            push_opcode(cc, car->id, code, OP_LDETACH);
+            push_opcode(cc, car->id, code, OP_PUSH);
+            push_const(cc, syms);
+            push_opcode(cc, car->id, code, OP_CALL2);
+            push_opcode(cc, car->id, code, FLAG_RIGHT_ATOMIC);
+            push_u64(code, rf_take);
+            push_opcode(cc, car->id, code, OP_LATTACH);
+        }
+        else
+            rf_object_free(&syms);
 
         if (res == CC_ERROR)
         {
@@ -558,7 +560,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
         // remap table of columns (by applying filters)
         push_opcode(cc, car->id, code, OP_LDETACH);
         push_opcode(cc, car->id, code, OP_CALL2);
-        push_opcode(cc, car->id, code, 0);
+        push_opcode(cc, car->id, code, FLAG_RIGHT_ATOMIC);
         push_u64(code, rf_take);
     }
 
@@ -572,27 +574,32 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
         res = cc_compile_expr(true, cc, &val);
         rf_object_free(&val);
 
+        push_opcode(cc, car->id, code, OP_PUSH);
+
+        if (val.type == -TYPE_SYMBOL)
+        {
+            push_const(cc, val);
+        }
+        else
+        {
+            push_const(cc, symbol("x1"));
+        }
+
         if (res == CC_ERROR)
         {
             rf_object_free(&cols);
             return CC_ERROR;
         }
 
-        push_opcode(cc, car->id, code, OP_CALL1);
-        push_opcode(cc, car->id, code, 0);
-        push_u64(code, rf_group);
-        push_opcode(cc, car->id, code, OP_POP);
+        push_opcode(cc, car->id, code, OP_GROUP);
 
         // detach and drop table from env
         push_opcode(cc, car->id, code, OP_LDETACH);
-        push_opcode(cc, car->id, code, OP_PUSH);
-        push_const(cc, syms);
-        push_opcode(cc, car->id, code, OP_CALL2);
-        push_opcode(cc, car->id, code, 0);
-        push_u64(code, rf_take);
 
-        // push_opcode(cc, car->id, code, OP_CALL2);
-        // push_u64(code, rf_take);
+        push_opcode(cc, car->id, code, OP_CALL2);
+        push_opcode(cc, car->id, code, FLAG_RIGHT_ATOMIC);
+        push_u64(code, rf_take);
+        return CC_OK;
     }
 
     // compile mappings (if specified)
@@ -605,7 +612,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
         for (i = 0; i < l; i++)
         {
             k = as_vector_symbol(&as_list(params)[0])[i];
-            if (k != KW_FROM && k != KW_WHERE && k != KW_BY)
+            if (k != KW_FROM && k != KW_WHERE)
             {
                 val = as_list(&as_list(params)[1])[i];
                 res = cc_compile_expr(true, cc, &val);
@@ -617,7 +624,9 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
 
         push_opcode(cc, car->id, code, OP_CALLN);
         push_opcode(cc, car->id, code, (u8_t)cols.adt->len);
+        push_opcode(cc, car->id, code, 0);
         push_u64(code, rf_list);
+        return CC_OK;
 
         push_opcode(cc, car->id, code, OP_CALL2);
         push_opcode(cc, car->id, code, 0);

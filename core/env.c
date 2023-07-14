@@ -88,6 +88,7 @@ null_t init_functions(rf_object_t *functions)
     regf(functions,  "guid",      TYPE_UNARY,    FLAG_ATOMIC,    rf_guid_generate);
     regf(functions,  "neg",       TYPE_UNARY,    FLAG_ATOMIC,    rf_neg);
     regf(functions,  "where",     TYPE_UNARY,    FLAG_ATOMIC,    rf_where);
+    regf(functions,  "key",       TYPE_UNARY,    FLAG_NONE,      rf_key);
     regf(functions,  "value",     TYPE_UNARY,    FLAG_NONE,      rf_value);
     
     // Binary        
@@ -112,11 +113,12 @@ null_t init_functions(rf_object_t *functions)
     regf(functions,  "find",      TYPE_BINARY,   FLAG_ATOMIC,    rf_find);
     regf(functions,  "concat",    TYPE_BINARY,   FLAG_NONE,      rf_concat);
     regf(functions,  "filter",    TYPE_BINARY,   FLAG_ATOMIC,    rf_filter);
-    regf(functions,  "take",      TYPE_BINARY,   FLAG_ATOMIC,    rf_take);
+    regf(functions,  "take",      TYPE_BINARY,   FLAG_RIGHT_ATOMIC,      rf_take);
     regf(functions,  "in",        TYPE_BINARY,   FLAG_ATOMIC,    rf_in);
     regf(functions,  "sect",      TYPE_BINARY,   FLAG_ATOMIC,    rf_sect);
     regf(functions,  "except",    TYPE_BINARY,   FLAG_ATOMIC,    rf_except);
     regf(functions,  "rand",      TYPE_BINARY,   FLAG_ATOMIC,    rf_rand);
+    regf(functions,  "as",        TYPE_BINARY,   FLAG_NONE,      rf_cast);
     
     // Lambdas       
     // regf(function s, "env",        rf_env);
@@ -215,16 +217,17 @@ i64_t env_get_typename_by_type(env_t *env, type_t type)
     return n.i64;
 }
 
-type_t env_get_type_by_typename(env_t *env, i64_t name)
+type_t env_get_type_by_typename(env_t *env, rf_object_t sym)
 {
     i64_t i, l;
     l = as_list(&env->typenames)[1].adt->len;
 
-    for (i = 0; i < l; i++)
-        if (as_list(&as_list(&env->typenames)[1])[i].i64 == name)
-            return (type_t)as_list(&as_list(&env->typenames)[0])[i].i64;
+    i = vector_find(&as_list(&env->typenames)[1], &sym);
 
-    return TYPE_NONE;
+    if (i == l)
+        return TYPE_NONE;
+
+    return (type_t)as_vector_i64(&as_list(&env->typenames)[0])[i];
 }
 
 str_t env_get_typename(type_t type)

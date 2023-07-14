@@ -554,6 +554,17 @@ rf_object_t rf_where(rf_object_t *x)
     }
 }
 
+rf_object_t rf_key(rf_object_t *x)
+{
+    switch (MTYPE(x->type))
+    {
+    case MTYPE(TYPE_DICT):
+        return rf_object_clone(&as_list(x)[0]);
+    default:
+        return rf_object_clone(x);
+    }
+}
+
 rf_object_t rf_value(rf_object_t *x)
 {
     switch (MTYPE(x->type))
