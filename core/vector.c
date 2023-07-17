@@ -460,18 +460,6 @@ null_t vector_write(rf_object_t *vec, i64_t index, rf_object_t value)
 
     l = vec->adt->len;
 
-    // if (index == 0)
-    // {
-    //     if (is_scalar(&value) && vec->type != -value.type)
-    //     {
-    //         lst = vector(-value.type, l);
-    //         vector_write(&lst, 0, value);
-    //         rf_object_free(vec);
-    //         *vec = lst;
-    //         return;
-    //     }
-    // }
-
     // change vector type to a list
     if (vec->type != -value.type && vec->type != TYPE_LIST)
     {

@@ -361,6 +361,8 @@ op_group:
     b = vm->ip++;
     x4 = stack_pop(vm);
     x3 = stack_pop(vm);
+    debug_object(&x4);
+    debug_object(&x3);
     x2 = rf_group(&x3);
     rf_object_free(&x3);
     unwrap(x2, b);

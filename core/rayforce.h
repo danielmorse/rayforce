@@ -199,7 +199,7 @@ extern null_t rf_object_free(rf_object_t *rf_object);
 #define as_list(object)             ((rf_object_t *)(as_string(object)))
 
 // Checkers
-#define is_null(object)   ((object)->type == TYPE_NULL)
+extern bool_t is_null(rf_object_t *object);
 #define is_error(object)  ((object)->type == TYPE_ERROR)
 #define is_scalar(object) ((object)->type < 0)
 #define is_vector(object) ((object)->type > 0 && (object)->type < TYPE_TABLE)

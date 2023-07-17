@@ -1786,3 +1786,58 @@ rf_object_t rf_cast(rf_object_t *x, rf_object_t *y)
 
     return res;
 }
+
+rf_object_t rf_group_table(rf_object_t *x, rf_object_t *y)
+{
+    i64_t i, j, l, m;
+    rf_object_t res, col, c;
+
+    switch (MTYPE2(x->type, y->type))
+    {
+    case MTYPE2(TYPE_I64, TYPE_TABLE):
+        l = as_list(y)[0].adt->len;
+        res = list(l);
+
+        for (i = 0; i < l; i++)
+        {
+            c = rf_take(&as_list(&as_list(y)[1])[i], x);
+            if (c.type == TYPE_ERROR)
+            {
+                res.adt->len = i;
+                rf_object_free(&res);
+                return c;
+            }
+
+            if (is_scalar(&c))
+                c = rf_enlist(&c, 1);
+
+            as_list(&res)[i] = c;
+        }
+
+        return table(rf_object_clone(&as_list(y)[0]), res);
+
+    case MTYPE2(TYPE_LIST, TYPE_TABLE):
+        l = as_list(y)[0].adt->len;
+        m = x->adt->len;
+        res = list(l);
+
+        for (i = 0; i < l; i++)
+        {
+            c = rf_call_binary_right_atomic(&rf_take, &as_list(&as_list(y)[1])[i], x);
+
+            if (c.type == TYPE_ERROR)
+            {
+                res.adt->len = i;
+                rf_object_free(&res);
+                return c;
+            }
+
+            as_list(&res)[i] = c;
+        }
+
+        return table(rf_object_clone(&as_list(y)[0]), res);
+
+    default:
+        return error_type2(x->type, y->type, "group: unsupported types");
+    }
+}

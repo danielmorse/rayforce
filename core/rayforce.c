@@ -198,6 +198,16 @@ rf_object_t table(rf_object_t keys, rf_object_t vals)
     return t;
 }
 
+bool_t is_null(rf_object_t *object)
+{
+    return (object->type == TYPE_NULL) ||
+           (object->type == -TYPE_I64 && object->i64 == NULL_I64) ||
+           (object->type == -TYPE_SYMBOL && object->i64 == NULL_I64) ||
+           (object->type == -TYPE_F64 && object->f64 == NULL_F64) ||
+           (object->type == -TYPE_TIMESTAMP && object->i64 == NULL_I64) ||
+           (object->type == -TYPE_CHAR && object->schar == '\0');
+}
+
 bool_t rf_object_eq(rf_object_t *a, rf_object_t *b)
 {
     i64_t i, l;
@@ -240,7 +250,6 @@ bool_t rf_object_eq(rf_object_t *a, rf_object_t *b)
         return true;
     }
 
-    // printf("** Eq: Invalid type\n");
     return false;
 }
 

@@ -480,27 +480,11 @@ null_t find_used_symbols(rf_object_t *lst, rf_object_t *syms)
     }
 }
 
-cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+cc_result_t cc_compile_from(cc_t *cc, rf_object_t *params)
 {
     cc_result_t res;
-    i64_t i, l, k;
-    rf_object_t *car, *params, key, val, cols, syms;
-    lambda_t *func = as_lambda(&cc->lambda);
-    rf_object_t *code = &func->code;
+    rf_object_t *car, key, val;
 
-    car = &as_list(object)[0];
-
-    if (arity == 0)
-        cerr(cc, car->id, ERR_LENGTH, "'select' takes at least two arguments");
-
-    params = &as_list(object)[1];
-
-    if (params->type != TYPE_DICT)
-        cerr(cc, car->id, ERR_LENGTH, "'select' takes dict of params");
-
-    l = as_list(params)[0].adt->len;
-
-    // compile from
     key = symboli64(KW_FROM);
     val = dict_get(params, &key);
     res = cc_compile_expr(true, cc, &val);
@@ -509,19 +493,16 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
     if (res == CC_ERROR)
         return CC_ERROR;
 
-    // determine which of columns are used in select and which names will be used for result columns
-    cols = vector_symbol(0);
-    syms = vector_symbol(0);
-    for (i = 0; i < l; i++)
-    {
-        k = as_vector_symbol(&as_list(params)[0])[i];
-        if (k != KW_FROM && k != KW_WHERE)
-        {
-            find_used_symbols(&as_list(&as_list(params)[1])[i], &syms);
-            vector_push(&cols, symboli64(k));
-        }
-    }
-    // debug_object(&syms);
+    return CC_OK;
+}
+
+cc_result_t cc_compile_where(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+{
+    cc_result_t res;
+    i64_t i, l;
+    rf_object_t *car, *params, key, val, cols, syms, k, v;
+    lambda_t *func = as_lambda(&cc->lambda);
+    rf_object_t *code = &func->code;
 
     // compile filters
     key = symboli64(KW_WHERE);
@@ -540,7 +521,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
             push_opcode(cc, car->id, code, OP_PUSH);
             push_const(cc, syms);
             push_opcode(cc, car->id, code, OP_CALL2);
-            push_opcode(cc, car->id, code, FLAG_RIGHT_ATOMIC);
+            push_opcode(cc, car->id, code, 0);
             push_u64(code, rf_take);
             push_opcode(cc, car->id, code, OP_LATTACH);
         }
@@ -560,9 +541,20 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
         // remap table of columns (by applying filters)
         push_opcode(cc, car->id, code, OP_LDETACH);
         push_opcode(cc, car->id, code, OP_CALL2);
-        push_opcode(cc, car->id, code, FLAG_RIGHT_ATOMIC);
-        push_u64(code, rf_take);
+        push_opcode(cc, car->id, code, 0);
+        push_u64(code, rf_group_table);
     }
+
+    return CC_OK;
+}
+
+cc_result_t cc_compile_by(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+{
+    cc_result_t res;
+    i64_t i, l;
+    rf_object_t *car, *params, key, val, cols, syms, k, v;
+    lambda_t *func = as_lambda(&cc->lambda);
+    rf_object_t *code = &func->code;
 
     // group by
     key = symboli64(KW_BY);
@@ -595,12 +587,70 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
 
         // detach and drop table from env
         push_opcode(cc, car->id, code, OP_LDETACH);
+        return CC_OK;
+        push_opcode(cc, car->id, code, OP_PUSH);
+        push_const(cc, syms);
+        push_opcode(cc, car->id, code, OP_CALL2);
+        push_opcode(cc, car->id, code, 0);
+        push_u64(code, rf_take);
 
         push_opcode(cc, car->id, code, OP_CALL2);
-        push_opcode(cc, car->id, code, FLAG_RIGHT_ATOMIC);
-        push_u64(code, rf_take);
-        return CC_OK;
+        push_opcode(cc, car->id, code, 0);
+        push_u64(code, rf_group_table);
     }
+
+    return CC_OK;
+}
+
+cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+{
+    cc_result_t res;
+    i64_t i, l;
+    rf_object_t *car, *params, key, val, cols, syms, k, v;
+    lambda_t *func = as_lambda(&cc->lambda);
+    rf_object_t *code = &func->code;
+
+    car = &as_list(object)[0];
+
+    if (arity == 0)
+        cerr(cc, car->id, ERR_LENGTH, "'select' takes at least two arguments");
+
+    params = &as_list(object)[1];
+
+    if (params->type != TYPE_DICT)
+        cerr(cc, car->id, ERR_LENGTH, "'select' takes dict of params");
+
+    l = as_list(params)[0].adt->len;
+
+    res = cc_compile_from(cc, params);
+
+    if (res == CC_ERROR)
+        return CC_ERROR;
+
+    // determine which of columns are used in select and which names will be used for result columns
+    cols = vector_symbol(0);
+    syms = vector_symbol(0);
+    for (i = 0; i < l; i++)
+    {
+        k = vector_get(&as_list(params)[0], i);
+        if (k.i64 != KW_FROM && k.i64 != KW_WHERE)
+        {
+            v = dict_get(params, &k);
+            find_used_symbols(&v, &syms);
+            rf_object_free(&v);
+            vector_push(&cols, k);
+        }
+    }
+
+    res = cc_compile_where(has_consumer, cc, object, arity);
+
+    if (res == CC_ERROR)
+        return CC_ERROR;
+
+    res = cc_compile_by(has_consumer, cc, object, arity);
+
+    if (res == CC_ERROR)
+        return CC_ERROR;
 
     // compile mappings (if specified)
     if (cols.adt->len > 0)
@@ -611,8 +661,8 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
 
         for (i = 0; i < l; i++)
         {
-            k = as_vector_symbol(&as_list(params)[0])[i];
-            if (k != KW_FROM && k != KW_WHERE)
+            k = vector_get(&as_list(params)[0], i);
+            if (k.i64 != KW_FROM && k.i64 != KW_WHERE && k.i64 != KW_BY)
             {
                 val = as_list(&as_list(params)[1])[i];
                 res = cc_compile_expr(true, cc, &val);
