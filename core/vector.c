@@ -502,99 +502,84 @@ null_t vector_write(rf_object_t *vec, i64_t index, rf_object_t value)
     }
 }
 
-rf_object_t vector_filter(rf_object_t *x, bool_t mask[], i64_t len)
+rf_object_t vector_filter(rf_object_t *vec, bool_t mask[], i64_t len)
 {
     i64_t i, j = 0, l, ol;
-    rf_object_t vec;
+    rf_object_t res;
 
     debug_assert(is_vector(vec));
 
-    switch (x->type)
+    l = vec->adt->len;
+    ol = (len == NULL_I64) ? (i64_t)vec->adt->len : len;
+
+    switch (vec->type)
     {
     case TYPE_BOOL:
-        l = x->adt->len;
-        ol = (len == NULL_I64) ? (i64_t)x->adt->len : len;
-        vec = vector_bool(ol);
+        res = vector_bool(ol);
         for (i = 0; (j < ol && i < l); i++)
             if (mask[i])
-                as_vector_bool(&vec)[j++] = as_vector_bool(x)[i];
+                as_vector_bool(&res)[j++] = as_vector_bool(vec)[i];
         if (len == NULL_I64)
-            vector_shrink(&vec, j);
-        return vec;
+            vector_shrink(&res, j);
+        return res;
     case TYPE_I64:
-        l = x->adt->len;
-        ol = (len == NULL_I64) ? (i64_t)x->adt->len : len;
-        vec = vector_i64(ol);
+        res = vector_i64(ol);
         for (i = 0; (j < ol && i < l); i++)
             if (mask[i])
-                as_vector_i64(&vec)[j++] = as_vector_i64(x)[i];
+                as_vector_i64(&res)[j++] = as_vector_i64(vec)[i];
         if (len == NULL_I64)
-            vector_shrink(&vec, j);
-        return vec;
+            vector_shrink(&res, j);
+        return res;
     case TYPE_F64:
-        l = x->adt->len;
-        ol = (len == NULL_I64) ? (i64_t)x->adt->len : len;
-        vec = vector_f64(ol);
+        res = vector_f64(ol);
         for (i = 0; (j < ol && i < l); i++)
             if (mask[i])
-                as_vector_f64(&vec)[j++] = as_vector_f64(x)[i];
+                as_vector_f64(&res)[j++] = as_vector_f64(vec)[i];
         if (len == NULL_I64)
-            vector_shrink(&vec, j);
-        return vec;
+            vector_shrink(&res, j);
+        return res;
     case TYPE_SYMBOL:
-        l = x->adt->len;
-        ol = (len == NULL_I64) ? (i64_t)x->adt->len : len;
-        vec = vector_symbol(ol);
+        res = vector_symbol(ol);
         for (i = 0; (j < ol && i < l); i++)
             if (mask[i])
-                as_vector_i64(&vec)[j++] = as_vector_i64(x)[i];
+                as_vector_i64(&res)[j++] = as_vector_i64(vec)[i];
         if (len == NULL_I64)
-            vector_shrink(&vec, j);
-        return vec;
+            vector_shrink(&res, j);
+        return res;
     case TYPE_TIMESTAMP:
-        l = x->adt->len;
-        ol = (len == NULL_I64) ? (i64_t)x->adt->len : len;
-        vec = vector_timestamp(ol);
+        res = vector_timestamp(ol);
         for (i = 0; (j < ol && i < l); i++)
             if (mask[i])
-                as_vector_i64(&vec)[j++] = as_vector_i64(x)[i];
+                as_vector_i64(&res)[j++] = as_vector_i64(vec)[i];
         if (len == NULL_I64)
-            vector_shrink(&vec, j);
-        return vec;
+            vector_shrink(&res, j);
+        return res;
     case TYPE_GUID:
-        l = x->adt->len;
-        ol = (len == NULL_I64) ? (i64_t)x->adt->len : len;
-        vec = vector_guid(ol);
+        res = vector_guid(ol);
         for (i = 0; (j < ol && i < l); i++)
             if (mask[i])
-                as_vector_guid(&vec)[j++] = as_vector_guid(x)[i];
+                as_vector_guid(&res)[j++] = as_vector_guid(vec)[i];
         if (len == NULL_I64)
-            vector_shrink(&vec, j);
-        return vec;
+            vector_shrink(&res, j);
+        return res;
     case TYPE_CHAR:
-        l = x->adt->len;
-        ol = (len == NULL_I64) ? (i64_t)x->adt->len : len;
-        vec = string(ol);
+        res = string(ol);
         for (i = 0; (j < ol && i < l); i++)
             if (mask[i])
-                as_string(&vec)[j++] = as_string(x)[i];
+                as_string(&res)[j++] = as_string(vec)[i];
         if (len == NULL_I64)
-            vector_shrink(&vec, j);
-        return vec;
+            vector_shrink(&res, j);
+        return res;
     case TYPE_LIST:
-        if (is_null(x))
-            return null();
-        l = x->adt->len;
-        ol = (len == NULL_I64) ? (i64_t)x->adt->len : len;
-        vec = list(ol);
+        res = list(ol);
         for (i = 0; (j < ol && i < l); i++)
             if (mask[i])
-                as_list(&vec)[j++] = rf_object_clone(&as_list(x)[i]);
+                as_list(&res)[j++] = rf_object_clone(&as_list(vec)[i]);
         if (len == NULL_I64)
-            vector_shrink(&vec, j);
-        return vec;
+            vector_shrink(&res, j);
+        return res;
     default:
-        panic_type("vector_filter: unknown type", x->type);
+        panic_type("vector_filter: unknown type", vec->type);
     }
 }
 
