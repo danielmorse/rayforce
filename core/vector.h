@@ -83,7 +83,6 @@
 i64_t size_of_val(type_t type);
 i64_t vector_find(rf_object_t *vec, rf_object_t *key);
 
-rf_object_t vector_flatten(rf_object_t *object);
 rf_object_t vector_get(rf_object_t *vec, i64_t index);
 rf_object_t vector_filter(rf_object_t *vec, bool_t mask[], i64_t len);
 rf_object_t vector_set(rf_object_t *vec, i64_t index, rf_object_t value);

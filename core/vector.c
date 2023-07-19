@@ -113,8 +113,7 @@ rf_object_t _push(rf_object_t *vec, rf_object_t value)
 
 rf_object_t list_push(rf_object_t *vec, rf_object_t value)
 {
-    if (!is_vector(vec))
-        panic("vector push: can not push to a non-vector");
+    debug_assert(is_vector(vec));
 
     if (vec->type != -value.type && vec->type != TYPE_LIST)
         panic("vector push: can not push to a non-list");
@@ -127,8 +126,7 @@ rf_object_t vector_push(rf_object_t *vec, rf_object_t value)
     u64_t i, l;
     rf_object_t lst;
 
-    if (!is_vector(vec))
-        panic("vector push: can not push to a non-vector");
+    debug_assert(is_vector(vec));
 
     l = vec->adt->len;
 
@@ -230,8 +228,7 @@ null_t vector_reserve(rf_object_t *vec, u32_t len)
 
 null_t vector_grow(rf_object_t *vec, u32_t len)
 {
-    if (!is_vector(vec))
-        panic_type("vector grow: can not reserve a null", vec->type);
+    debug_assert(is_vector(vec));
 
     // calculate size of vector with new length
     i64_t new_size = capacity(len * size_of_val(vec->type) + sizeof(header_t));
@@ -242,8 +239,7 @@ null_t vector_grow(rf_object_t *vec, u32_t len)
 
 null_t vector_shrink(rf_object_t *vec, u32_t len)
 {
-    if (!is_vector(vec))
-        panic_type("vector shrink: can not reserve a null", vec->type);
+    debug_assert(is_vector(vec));
 
     if (vec->adt->len == len)
         return;
@@ -265,8 +261,7 @@ i64_t vector_find(rf_object_t *vec, rf_object_t *key)
     i64_t i, l;
     guid_t *kg, *vg;
 
-    if (!is_vector(vec))
-        panic("vector find: can not find in a null");
+    debug_assert(is_vector(vec));
 
     l = vec->adt->len;
 
@@ -340,8 +335,7 @@ rf_object_t vector_get(rf_object_t *vec, i64_t index)
 {
     i64_t l;
 
-    if (!is_vector(vec))
-        return error(ERR_TYPE, "vector get: can not get from scalar");
+    debug_assert(is_vector(vec));
 
     l = vec->adt->len;
 
@@ -390,8 +384,7 @@ rf_object_t vector_set(rf_object_t *vec, i64_t index, rf_object_t value)
     i64_t i, l;
     rf_object_t lst;
 
-    if (!is_vector(vec))
-        return error(ERR_TYPE, "vector set: can not set to a non-vector");
+    debug_assert(is_vector(vec));
 
     l = vec->adt->len;
 
@@ -509,74 +502,12 @@ null_t vector_write(rf_object_t *vec, i64_t index, rf_object_t value)
     }
 }
 
-/*
- * Try to flatten list in a vector if all elements are of the same type
- */
-rf_object_t vector_flatten(rf_object_t *x)
-{
-    i64_t i, l = x->adt->len;
-    type_t type;
-    rf_object_t vec;
-
-    if (l == 0)
-        return rf_object_clone(x);
-
-    type = as_list(x)[0].type;
-
-    // Only scalar types inside a list can be flattened
-    if (type > 0)
-        return rf_object_clone(x);
-
-    for (i = 1; i < l; i++)
-        if (as_list(x)[i].type != type)
-            return rf_object_clone(x);
-
-    switch (type)
-    {
-    case -TYPE_BOOL:
-        vec = vector_bool(l);
-        for (i = 0; i < l; i++)
-            as_vector_bool(&vec)[i] = as_list(x)[i].bool;
-        break;
-    case -TYPE_I64:
-        vec = vector_i64(l);
-        for (i = 0; i < l; i++)
-            as_vector_i64(&vec)[i] = as_list(x)[i].i64;
-        break;
-    case -TYPE_F64:
-        vec = vector_f64(l);
-        for (i = 0; i < l; i++)
-            as_vector_f64(&vec)[i] = as_list(x)[i].f64;
-        break;
-    case -TYPE_SYMBOL:
-        vec = vector_symbol(l);
-        for (i = 0; i < l; i++)
-            as_vector_i64(&vec)[i] = as_list(x)[i].i64;
-        break;
-    case -TYPE_TIMESTAMP:
-        vec = vector_timestamp(l);
-        for (i = 0; i < l; i++)
-            as_vector_i64(&vec)[i] = as_list(x)[i].i64;
-        break;
-    case -TYPE_GUID:
-        vec = vector_guid(l);
-        for (i = 0; i < l; i++)
-            as_vector_guid(&vec)[i] = *as_list(x)[i].guid;
-        break;
-    default:
-        return rf_object_clone(x);
-    }
-
-    return vec;
-}
-
 rf_object_t vector_filter(rf_object_t *x, bool_t mask[], i64_t len)
 {
     i64_t i, j = 0, l, ol;
     rf_object_t vec;
 
-    if (!is_vector(x))
-        return error(ERR_TYPE, "vector filter: can not filter scalar");
+    debug_assert(is_vector(vec));
 
     switch (x->type)
     {

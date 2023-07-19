@@ -87,10 +87,10 @@ rf_object_t __attribute__((hot)) vm_exec(vm_t *vm, rf_object_t *fun)
     type_t c;
     lambda_t *f = as_lambda(fun);
     str_t code = as_string(&f->code);
-    rf_object_t x0, x1, x2, x3, x4, x5, *addr;
+    rf_object_t x0, x1, x2, x3, *addr;
     i64_t t;
     u8_t n, flags;
-    u64_t l, p, m;
+    u64_t l, p;
     i32_t i, j, b;
     ctx_t ctx;
 

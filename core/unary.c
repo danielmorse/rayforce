@@ -111,6 +111,9 @@ rf_object_t rf_type(rf_object_t *x)
 
 rf_object_t rf_count(rf_object_t *x)
 {
+    if (is_vector(x))
+        return i64(x->adt->len);
+
     switch (x->type)
     {
     case TYPE_TABLE:

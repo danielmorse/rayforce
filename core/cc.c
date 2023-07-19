@@ -657,6 +657,21 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
         push_u64(code, rf_value);
 
         push_opcode(cc, car->id, code, OP_LPOP);
+
+        // remove column used for grouping from result
+        push_opcode(cc, object->id, code, OP_DUP);
+        push_opcode(cc, car->id, code, OP_CALL1);
+        push_opcode(cc, car->id, code, 0);
+        push_u64(code, rf_key);
+        push_opcode(cc, car->id, code, OP_PUSH);
+        push_const(cc, vector_get(&cols, 0));
+        push_opcode(cc, car->id, code, OP_CALL2);
+        push_opcode(cc, car->id, code, 0);
+        push_u64(code, rf_except);
+        push_opcode(cc, car->id, code, OP_CALL2);
+        push_opcode(cc, car->id, code, 0);
+        push_u64(code, rf_take);
+
         push_opcode(cc, car->id, code, OP_SWAP);
 
         // apply grouping

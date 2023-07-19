@@ -39,7 +39,7 @@
 #define FORMAT_TRAILER_SIZE 4
 #define F64_PRECISION 2
 #define TABLE_MAX_WIDTH 10  // Maximum number of columns
-#define TABLE_MAX_HEIGHT 10 // Maximum number of rows
+#define TABLE_MAX_HEIGHT 20 // Maximum number of rows
 #define LIST_MAX_HEIGHT 5   // Maximum number of list/dict rows
 #define maxn(n, e)         \
     {                      \
@@ -92,6 +92,7 @@ i32_t str_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, str_t fmt
         {
             if (*dst != NULL)
                 rf_free(*dst);
+
             panic("str_fmt_into: OOM");
         }
 
@@ -379,7 +380,7 @@ i32_t table_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, rf_obj
             o = 0;
 
             c = vector_get(column, j);
-            maxn(n, rf_object_fmt_into(&s, &l, &o, 0, MAX_ROW_WIDTH, &c));
+            maxn(n, rf_object_fmt_into(&s, &l, &o, 0, 10, &c));
             rf_object_free(&c);
 
             formatted_columns[i][j] = s;

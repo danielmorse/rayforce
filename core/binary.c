@@ -1461,7 +1461,7 @@ rf_object_t rf_filter(rf_object_t *x, rf_object_t *y)
 
 rf_object_t rf_take(rf_object_t *x, rf_object_t *y)
 {
-    u64_t i, l;
+    u64_t i, l, m;
     rf_object_t res, cols, sym, c;
 
     switch (MTYPE2(x->type, y->type))
@@ -1474,6 +1474,15 @@ rf_object_t rf_take(rf_object_t *x, rf_object_t *y)
     case MTYPE2(TYPE_SYMBOL, -TYPE_I64):
         return vector_get(x, y->i64);
 
+    case MTYPE2(-TYPE_I64, TYPE_I64):
+        l = y->adt->len;
+        m = x->i64;
+        res = vector_i64(m);
+
+        for (i = 0; i < m; i++)
+            as_vector_i64(&res)[i] = as_vector_i64(y)[i % l];
+
+        return res;
     case MTYPE2(-TYPE_I64, TYPE_NULL):
         l = x->i64;
         res = list(l);
@@ -1628,10 +1637,25 @@ rf_object_t rf_sect(rf_object_t *x, rf_object_t *y)
 
 rf_object_t rf_except(rf_object_t *x, rf_object_t *y)
 {
+    i64_t i, j = 0, l;
     rf_object_t mask, res;
 
     switch (MTYPE2(x->type, y->type))
     {
+    case MTYPE2(TYPE_I64, -TYPE_I64):
+    case MTYPE2(TYPE_SYMBOL, -TYPE_SYMBOL):
+        l = x->adt->len;
+        res = vector(x->type, l);
+
+        for (i = 0; i < l; i++)
+        {
+            if (as_vector_i64(x)[i] != y->i64)
+                as_vector_i64(&res)[j++] = as_vector_i64(x)[i];
+        }
+
+        vector_shrink(&res, j);
+
+        return res;
     case MTYPE2(TYPE_I64, TYPE_I64):
     case MTYPE2(TYPE_SYMBOL, TYPE_SYMBOL):
         mask = rf_in(x, y);
@@ -1808,18 +1832,22 @@ rf_object_t rf_cast(rf_object_t *x, rf_object_t *y)
 
 rf_object_t rf_group_Table(rf_object_t *x, rf_object_t *y)
 {
-    i64_t i, l;
+    i64_t i, j, m, l;
     rf_object_t res, val;
 
     switch (MTYPE2(x->type, y->type))
     {
     case MTYPE2(TYPE_TABLE, TYPE_LIST):
         l = as_list(x)[1].adt->len;
+        m = y->adt->len;
         res = list(l);
 
         for (i = 0; i < l; i++)
         {
-            val = rf_call_binary_right_atomic(rf_take, &as_list(&as_list(x)[1])[i], y);
+            val = list(m);
+            for (j = 0; j < m; j++)
+                as_list(&val)[j] = rf_take(&as_list(&as_list(x)[1])[i], &as_list(y)[j]);
+
             as_list(&res)[i] = val;
         }
 
