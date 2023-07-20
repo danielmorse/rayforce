@@ -744,12 +744,30 @@ rf_object_t rf_eq(rf_object_t *x, rf_object_t *y)
 
         return vec;
 
+    case MTYPE2(-TYPE_I64, TYPE_I64):
+        l = y->adt->len;
+        vec = vector_bool(l);
+
+        for (i = 0; i < l; i++)
+            as_vector_bool(&vec)[i] = x->i64 == as_vector_i64(y)[i];
+
+        return vec;
+
     case MTYPE2(TYPE_SYMBOL, -TYPE_SYMBOL):
         l = x->adt->len;
         vec = vector_bool(l);
 
         for (i = 0; i < l; i++)
             as_vector_bool(&vec)[i] = as_vector_symbol(x)[i] == y->i64;
+
+        return vec;
+
+    case MTYPE2(-TYPE_SYMBOL, TYPE_SYMBOL):
+        l = y->adt->len;
+        vec = vector_bool(l);
+
+        for (i = 0; i < l; i++)
+            as_vector_bool(&vec)[i] = x->i64 == as_vector_symbol(y)[i];
 
         return vec;
 
