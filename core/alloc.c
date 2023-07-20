@@ -122,7 +122,6 @@ alloc_t rf_alloc_get()
 null_t rf_alloc_cleanup()
 {
     i32_t i, order;
-    null_t *base;
     node_t *node, *next;
 
     // All the nodes remains are pools, so just munmap them
@@ -132,11 +131,10 @@ null_t rf_alloc_cleanup()
         while (node)
         {
             next = node->next;
-            base = blockaddr(node->base);
             order = blockorder(node->base);
             if (order != i)
             {
-                debug("order: %d node: %p base: %p\n", i, node, base);
+                debug("order: %d node: %p\n", i, node);
                 return;
             }
 
