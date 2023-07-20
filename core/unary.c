@@ -74,7 +74,7 @@ rf_object_t rf_call_unary_atomic(unary_t f, rf_object_t *x)
                 return item;
             }
 
-            vector_set(&res, i, item);
+            vector_write(&res, i, item);
         }
 
         return res;
