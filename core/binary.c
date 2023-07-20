@@ -34,6 +34,45 @@
 #include "hash.h"
 #include "set.h"
 
+rf_object_t call_binary(binary_t f, rf_object_t *x, rf_object_t *y)
+{
+    rf_object_t cx, cy, res;
+
+    // no need to cast
+    if (x->type == y->type || x->type == -y->type)
+        return f(x, y);
+
+    switch (MTYPE2(x->type, y->type))
+    {
+    case MTYPE2(-TYPE_I64, -TYPE_F64):
+        cx = f64(x->i64);
+        return f(&cx, y);
+    case MTYPE2(-TYPE_F64, -TYPE_I64):
+        cy = f64(y->i64);
+        return f(x, &cy);
+    case MTYPE2(-TYPE_I64, TYPE_F64):
+        cx = f64(x->i64);
+        return f(&cx, y);
+    case MTYPE2(-TYPE_F64, TYPE_I64):
+        cx = symbol("F64");
+        cy = rf_cast(&cx, y);
+        res = f(x, &cy);
+        rf_object_free(&cy);
+        return res;
+    case MTYPE2(TYPE_I64, -TYPE_F64):
+        cx = symbol("F64");
+        cy = rf_cast(&cx, x);
+        res = f(y, &cy);
+        rf_object_free(&cy);
+        return res;
+    case MTYPE2(TYPE_F64, -TYPE_I64):
+        cy = f64(y->i64);
+        return f(x, &cy);
+    default:
+        return f(x, y);
+    }
+}
+
 rf_object_t rf_call_binary_left_atomic(binary_t f, rf_object_t *x, rf_object_t *y)
 {
     u64_t i, l;
@@ -72,7 +111,7 @@ rf_object_t rf_call_binary_left_atomic(binary_t f, rf_object_t *x, rf_object_t *
         return res;
     }
 
-    return f(x, y);
+    return call_binary(f, x, y);
 }
 
 rf_object_t rf_call_binary_right_atomic(binary_t f, rf_object_t *x, rf_object_t *y)
@@ -113,7 +152,7 @@ rf_object_t rf_call_binary_right_atomic(binary_t f, rf_object_t *x, rf_object_t 
         return res;
     }
 
-    return f(x, y);
+    return call_binary(f, x, y);
 }
 
 // Atomic binary functions (iterates through list of arguments down to atoms)
@@ -228,7 +267,7 @@ rf_object_t rf_call_binary_atomic(binary_t f, rf_object_t *x, rf_object_t *y)
         return res;
     }
 
-    return f(x, y);
+    return call_binary(f, x, y);
 }
 
 rf_object_t rf_call_binary(u8_t flags, binary_t f, rf_object_t *x, rf_object_t *y)
@@ -242,7 +281,7 @@ rf_object_t rf_call_binary(u8_t flags, binary_t f, rf_object_t *x, rf_object_t *
     case FLAG_RIGHT_ATOMIC:
         return rf_call_binary_right_atomic(f, x, y);
     default:
-        return f(x, y);
+        return call_binary(f, x, y);
     }
 }
 
@@ -387,6 +426,14 @@ rf_object_t rf_add(rf_object_t *x, rf_object_t *y)
         vec = vector_i64(l);
         for (i = 0; i < l; i++)
             as_vector_i64(&vec)[i] = ADDI64(x->i64, as_vector_i64(y)[i]);
+
+        return vec;
+
+    case MTYPE2(-TYPE_F64, TYPE_F64):
+        l = y->adt->len;
+        vec = vector_f64(l);
+        for (i = 0; i < l; i++)
+            as_vector_f64(&vec)[i] = ADDF64(x->f64, as_vector_f64(y)[i]);
 
         return vec;
 
@@ -744,12 +791,30 @@ rf_object_t rf_eq(rf_object_t *x, rf_object_t *y)
 
         return vec;
 
+    case MTYPE2(TYPE_F64, -TYPE_F64):
+        l = x->adt->len;
+        vec = vector_bool(l);
+
+        for (i = 0; i < l; i++)
+            as_vector_bool(&vec)[i] = as_vector_f64(x)[i] == y->f64;
+
+        return vec;
+
     case MTYPE2(-TYPE_I64, TYPE_I64):
         l = y->adt->len;
         vec = vector_bool(l);
 
         for (i = 0; i < l; i++)
             as_vector_bool(&vec)[i] = x->i64 == as_vector_i64(y)[i];
+
+        return vec;
+
+    case MTYPE2(-TYPE_F64, TYPE_F64):
+        l = y->adt->len;
+        vec = vector_bool(l);
+
+        for (i = 0; i < l; i++)
+            as_vector_bool(&vec)[i] = x->f64 == as_vector_f64(y)[i];
 
         return vec;
 
@@ -780,6 +845,30 @@ rf_object_t rf_eq(rf_object_t *x, rf_object_t *y)
 
         for (i = 0; i < l; i++)
             as_vector_bool(&vec)[i] = as_vector_i64(x)[i] == as_vector_i64(y)[i];
+
+        return vec;
+
+    case MTYPE2(TYPE_F64, TYPE_F64):
+        if (x->adt->len != y->adt->len)
+            return error(ERR_LENGTH, "eq: vectors of different length");
+
+        l = x->adt->len;
+        vec = vector_bool(l);
+
+        for (i = 0; i < l; i++)
+            as_vector_bool(&vec)[i] = as_vector_f64(x)[i] == as_vector_f64(y)[i];
+
+        return vec;
+
+    case MTYPE2(TYPE_LIST, TYPE_LIST):
+        if (x->adt->len != y->adt->len)
+            return error(ERR_LENGTH, "eq: lists of different length");
+
+        l = x->adt->len;
+        vec = vector_bool(l);
+
+        for (i = 0; i < l; i++)
+            as_vector_bool(&vec)[i] = rf_eq(&as_list(x)[i], &as_list(y)[i]).bool;
 
         return vec;
 
