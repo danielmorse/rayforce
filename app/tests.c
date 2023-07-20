@@ -278,6 +278,8 @@ null_t test_alloc_free()
     rf_free(ptr2);
     rf_free(ptr3);
     rf_free(ptr1);
+
+    rf_alloc_gc();
 }
 
 i32_t main()

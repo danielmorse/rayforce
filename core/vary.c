@@ -53,6 +53,13 @@ rf_object_t rf_call_vary(u8_t flags, vary_t f, rf_object_t *x, i64_t n)
     }
 }
 
+rf_object_t rf_gc(rf_object_t *x, i64_t n)
+{
+    UNUSED(x);
+    UNUSED(n);
+    return i64(rf_alloc_gc());
+}
+
 rf_object_t rf_format(rf_object_t *x, i64_t n)
 {
     str_t s = rf_object_fmt_n(x, n);

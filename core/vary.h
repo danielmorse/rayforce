@@ -29,6 +29,7 @@
 typedef rf_object_t (*vary_t)(rf_object_t *, i64_t n);
 
 rf_object_t rf_call_vary(u8_t flags, vary_t f, rf_object_t *x, i64_t n);
+rf_object_t rf_gc(rf_object_t *x, i64_t n);
 rf_object_t rf_format(rf_object_t *x, i64_t n);
 rf_object_t rf_print(rf_object_t *x, i64_t n);
 rf_object_t rf_println(rf_object_t *x, i64_t n);

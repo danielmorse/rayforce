@@ -125,6 +125,7 @@ null_t init_functions(rf_object_t *functions)
     // Lambdas       
     // regf(function s, "env",        rf_env);
     // regf(function s, "memstat",    rf_memstat);
+    regf(functions,  "gc",        TYPE_VARY,     FLAG_NONE,         rf_gc);
     regf(functions,  "list",      TYPE_VARY,     FLAG_NONE,         rf_list);
     regf(functions,  "enlist",    TYPE_VARY,     FLAG_NONE,         rf_enlist);
     regf(functions,  "format",    TYPE_VARY,     FLAG_NONE,         rf_format);

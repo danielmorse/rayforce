@@ -186,6 +186,8 @@ null_t *rf_realloc(null_t *ptr, u64_t new_size)
     return realloc(ptr, new_size);
 }
 
+i64_t rf_alloc_gc() { return 0; }
+
 null_t rf_alloc_mrequest(u64_t size) {}
 
 #else
@@ -425,6 +427,48 @@ null_t *rf_realloc(null_t *block, u64_t new_size)
     }
 
     return block;
+}
+
+i64_t rf_alloc_gc()
+{
+    i64_t i, order, total = 0;
+    node_t *node, *prev, *next;
+
+    for (i = 0; i <= MAX_POOL_ORDER; i++)
+    {
+        prev = NULL;
+        node = _ALLOC->freelist[i];
+        while (node)
+        {
+            next = node->next;
+            order = blockorder(node->base);
+            if (order == i)
+            {
+                if (prev != NULL)
+                    prev->next = next;
+                else
+                    _ALLOC->freelist[i] = next;
+
+                mmap_free(node, blocksize(order));
+                total += blocksize(order);
+
+                if (_ALLOC->freelist[i] == NULL)
+                    _ALLOC->avail &= ~blocksize(order);
+
+                // As node is now freed, move onto the next node.
+                node = next;
+            }
+            else
+            {
+                prev = node;
+                node = next;
+            }
+        }
+    }
+
+    print_blocks();
+
+    return total;
 }
 
 null_t rf_alloc_mrequest(u64_t size)

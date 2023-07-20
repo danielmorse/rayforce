@@ -74,6 +74,7 @@ extern null_t    rf_free(null_t *block);
 extern null_t    rf_alloc_mrequest(u64_t size);
 extern alloc_t   rf_alloc_init();
 extern alloc_t   rf_alloc_get();
+extern i64_t     rf_alloc_gc();
 extern null_t    rf_alloc_cleanup();
 extern memstat_t rf_alloc_memstat();
 // clang-format on
