@@ -46,9 +46,8 @@
 typedef enum cc_result_t
 {
     CC_OK,
-    CC_NONE,
-    CC_NULL,
     CC_ERROR,
+    CC_NULL,
 } cc_result_t;
 
 cc_result_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object);
@@ -111,7 +110,7 @@ cc_result_t cc_compile_quote(bool_t has_consumer, cc_t *cc, rf_object_t *object)
     rf_object_t *code = &func->code;
 
     if (!has_consumer)
-        return CC_NONE;
+        return CC_NULL;
 
     push_opcode(cc, car->id, code, OP_PUSH);
     push_const(cc, rf_object_clone(&as_list(object)[1]));
@@ -401,7 +400,7 @@ cc_result_t cc_compile_call(cc_t *cc, rf_object_t *car, u8_t arity)
 
 cc_result_t cc_compile_map(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
-    cc_result_t res = CC_NONE;
+    cc_result_t res = CC_NULL;
     rf_object_t *car;
     lambda_t *func = as_lambda(&cc->lambda);
     rf_object_t *code = &func->code;
@@ -741,7 +740,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
  */
 cc_result_t cc_compile_special_forms(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
-    cc_result_t res = CC_NONE;
+    cc_result_t res = CC_NULL;
     rf_object_t *car = &as_list(object)[0];
 
     switch (car->i64)
@@ -788,13 +787,13 @@ cc_result_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
     i64_t id;
     lambda_t *func = as_lambda(&cc->lambda);
     rf_object_t *code = &func->code;
-    cc_result_t res = CC_NONE;
+    cc_result_t res = CC_NULL;
 
     switch (object->type)
     {
     case -TYPE_SYMBOL:
         if (!has_consumer)
-            return CC_NONE;
+            return CC_NULL;
 
         // self is a special case
         if (object->i64 == KW_SELF)
@@ -846,7 +845,7 @@ cc_result_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
         // special forms compilation need to be done before arguments compilation
         res = cc_compile_special_forms(has_consumer, cc, object, arity);
 
-        if (res == CC_ERROR || res != CC_NONE)
+        if (res == CC_ERROR || res != CC_NULL)
             return res;
 
         // compile arguments
@@ -871,7 +870,7 @@ cc_result_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
     default:
     other:
         if (!has_consumer)
-            return CC_NONE;
+            return CC_NULL;
 
         push_opcode(cc, object->id, code, OP_PUSH);
         push_const(cc, rf_object_clone(object));
