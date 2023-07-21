@@ -43,16 +43,6 @@
 #define stack_malloc(size) alloca(size)
 #endif
 
-typedef enum cc_result_t
-{
-    CC_OK,
-    CC_ERROR,
-    CC_NULL,
-} cc_result_t;
-
-cc_result_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object);
-rf_object_t cc_compile_lambda(bool_t top, str_t name, rf_object_t args, rf_object_t *body, u32_t id, i32_t len, debuginfo_t *debuginfo);
-
 #define push_u8(c, x)                            \
     {                                            \
         vector_reserve((c), 1);                  \
@@ -338,17 +328,12 @@ type_t cc_compile_catch(cc_t *cc, rf_object_t *object, u32_t arity)
     lambda_t *func = as_lambda(&cc->lambda);
     rf_object_t *code = &func->code;
 
-    if (car->i64 == symbol("catch").i64)
-    {
-        if (arity != 0)
-            cerr(cc, car->id, ERR_LENGTH, "'catch': expects 0 arguments");
+    if (arity != 0)
+        cerr(cc, car->id, ERR_LENGTH, "'catch': expects 0 arguments");
 
-        push_opcode(cc, car->id, code, OP_CATCH);
+    push_opcode(cc, car->id, code, OP_CATCH);
 
-        return TYPE_CHAR;
-    }
-
-    return TYPE_NONE;
+    return CC_OK;
 }
 
 cc_result_t cc_compile_call(cc_t *cc, rf_object_t *car, u8_t arity)
@@ -732,6 +717,52 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
     return CC_OK;
 }
 
+cc_result_t cc_compile_eval(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+{
+    cc_result_t res;
+    rf_object_t *car = &as_list(object)[0];
+    lambda_t *func = as_lambda(&cc->lambda);
+    rf_object_t *code = &func->code;
+
+    if (arity != 1)
+        cerr(cc, car->id, ERR_LENGTH, "'eval' takes one argument");
+
+    res = cc_compile_expr(true, cc, &as_list(object)[1]);
+
+    if (res == CC_ERROR)
+        return CC_ERROR;
+
+    push_opcode(cc, car->id, code, OP_EVAL);
+
+    if (!has_consumer)
+        push_opcode(cc, car->id, code, OP_POP);
+
+    return CC_OK;
+}
+
+cc_result_t cc_compile_load(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
+{
+    cc_result_t res;
+    rf_object_t *car = &as_list(object)[0];
+    lambda_t *func = as_lambda(&cc->lambda);
+    rf_object_t *code = &func->code;
+
+    if (arity != 1)
+        cerr(cc, car->id, ERR_LENGTH, "'load' takes one argument");
+
+    res = cc_compile_expr(true, cc, &as_list(object)[1]);
+
+    if (res == CC_ERROR)
+        return CC_ERROR;
+
+    push_opcode(cc, car->id, code, OP_FLOAD);
+
+    if (!has_consumer)
+        push_opcode(cc, car->id, code, OP_POP);
+
+    return CC_OK;
+}
+
 /*
  * Special forms are those that are not in a table of lambdas because of their special nature.
  * return TYPE_ERROR if there is an error
@@ -740,44 +771,37 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, rf_object_t *object
  */
 cc_result_t cc_compile_special_forms(bool_t has_consumer, cc_t *cc, rf_object_t *object, u32_t arity)
 {
-    cc_result_t res = CC_NULL;
     rf_object_t *car = &as_list(object)[0];
 
     switch (car->i64)
     {
     case KW_QUOTE:
-        res = cc_compile_quote(has_consumer, cc, object);
-        break;
+        return cc_compile_quote(has_consumer, cc, object);
     case KW_TIME:
-        res = cc_compile_time(cc, object, arity);
-        break;
+        return cc_compile_time(cc, object, arity);
     case KW_SET:
-        res = cc_compile_set(has_consumer, cc, object, arity);
-        break;
+        return cc_compile_set(has_consumer, cc, object, arity);
     case KW_LET:
-        res = cc_compile_let(has_consumer, cc, object, arity);
-        break;
+        return cc_compile_let(has_consumer, cc, object, arity);
     case KW_FN:
-        res = cc_compile_fn(cc, object, arity);
-        break;
+        return cc_compile_fn(cc, object, arity);
     case KW_IF:
-        res = cc_compile_cond(has_consumer, cc, object, arity);
-        break;
+        return cc_compile_cond(has_consumer, cc, object, arity);
     case KW_MAP:
-        res = cc_compile_map(has_consumer, cc, object, arity);
-        break;
+        return cc_compile_map(has_consumer, cc, object, arity);
     case KW_TRY:
-        res = cc_compile_try(has_consumer, cc, object, arity);
-        break;
+        return cc_compile_try(has_consumer, cc, object, arity);
     case KW_THROW:
-        res = cc_compile_throw(cc, object, arity);
-        break;
+        return cc_compile_throw(cc, object, arity);
     case KW_SELECT:
-        res = cc_compile_select(has_consumer, cc, object, arity);
-        break;
+        return cc_compile_select(has_consumer, cc, object, arity);
+    case KW_EVAL:
+        return cc_compile_eval(has_consumer, cc, object, arity);
+    case KW_LOAD:
+        return cc_compile_load(has_consumer, cc, object, arity);
+    default:
+        return CC_NULL;
     }
-
-    return res;
 }
 
 cc_result_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
@@ -886,10 +910,23 @@ cc_result_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object)
 rf_object_t cc_compile_lambda(bool_t top, str_t name, rf_object_t args,
                               rf_object_t *body, u32_t id, i32_t len, debuginfo_t *debuginfo)
 {
+    debuginfo_t *pi, di;
+
+    if (debuginfo == NULL)
+    {
+        di = debuginfo_new("top-level", name);
+        pi = &di;
+    }
+    else
+    {
+        di = debuginfo_new(debuginfo->filename, name);
+        pi = debuginfo;
+    }
+
     cc_t cc = {
         .top_level = top,
-        .debuginfo = debuginfo,
-        .lambda = lambda(args, string(0), debuginfo_new(debuginfo->filename, name)),
+        .debuginfo = pi,
+        .lambda = lambda(args, string(0), di),
     };
 
     cc_result_t res;

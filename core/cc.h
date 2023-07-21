@@ -27,6 +27,13 @@
 #include "rayforce.h"
 #include "debuginfo.h"
 
+typedef enum cc_result_t
+{
+    CC_OK,
+    CC_ERROR,
+    CC_NULL,
+} cc_result_t;
+
 /*
  * Context for compiling lambda
  */
@@ -38,6 +45,9 @@ typedef struct cc_t
     debuginfo_t *debuginfo; // debuginfo from parse phase
 } cc_t;
 
+cc_result_t cc_compile_expr(bool_t has_consumer, cc_t *cc, rf_object_t *object);
+rf_object_t cc_compile_lambda(bool_t top, str_t name, rf_object_t args,
+                              rf_object_t *body, u32_t id, i32_t len, debuginfo_t *debuginfo);
 rf_object_t cc_compile(rf_object_t *body, debuginfo_t *debuginfo);
 
 #endif

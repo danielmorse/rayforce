@@ -39,6 +39,7 @@ null_t runtime_init(u16_t slaves)
     _RUNTIME->slaves = slaves;
     _RUNTIME->symbols = symbols_new();
     _RUNTIME->env = create_env();
+    _RUNTIME->vm = vm_new();
 }
 
 null_t runtime_cleanup()
@@ -46,6 +47,7 @@ null_t runtime_cleanup()
     symbols_free(_RUNTIME->symbols);
     mmap_free(_RUNTIME->symbols, sizeof(symbols_t));
     free_env(&_RUNTIME->env);
+    vm_free(&_RUNTIME->vm);
     mmap_free(_RUNTIME, ALIGNUP(sizeof(struct runtime_t), PAGE_SIZE));
     rf_alloc_cleanup();
 }

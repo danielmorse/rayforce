@@ -98,18 +98,13 @@ alloc_t rf_alloc_init()
         _ALLOC->freelist32 = block32;
     }
 
-    // // fill linked list of 64 bytes blocks
+    // fill linked list of 64 bytes blocks
     for (i = NUM_64_BLOCKS - 1; i >= 0; i--)
     {
         null_t *block64 = _ALLOC->blocks64 + i * 64;
         *(null_t **)block64 = _ALLOC->freelist64;
         _ALLOC->freelist64 = block64;
     }
-
-    node_t *node = (node_t *)rf_alloc_add_pool(MAX_ORDER);
-    node->next = NULL;
-    _ALLOC->freelist[MAX_ORDER] = node;
-    _ALLOC->avail = 1ull << MAX_ORDER;
 
     return _ALLOC;
 }

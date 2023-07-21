@@ -27,6 +27,7 @@
 #include "rayforce.h"
 #include "alloc.h"
 #include "env.h"
+#include "vm.h"
 
 /*
  * Runtime structure.
@@ -36,6 +37,7 @@ typedef struct runtime_t
     u16_t slaves;       // Number of slave threads.
     symbols_t *symbols; // Symbols pool.
     env_t env;          // Environment.
+    vm_t vm;            // Virtual machine.
 } *runtime_t;
 
 extern null_t runtime_init(u16_t slaves);

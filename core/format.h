@@ -26,6 +26,25 @@
 
 #include "rayforce.h"
 
+#define RED "\033[1;31m"
+#define TOMATO "\033[1;38;5;9m"
+#define GREEN "\033[1;32m"
+#define YELLOW "\033[1;33m"
+#define BLUE "\033[1;34m"
+#define MAGENTA "\033[1;35m"
+#define CYAN "\033[1;36m"
+#define WHITE "\033[1;37m"
+#define BLACK "\033[1;30m"
+#define GRAY "\033[1;38;5;8m"
+#define ORANGE "\033[1;38;5;202m"
+#define PURPLE "\033[1;38;5;141m"
+#define TEAL "\033[1;38;5;45m"
+#define AQUA "\033[1;38;5;37m"
+#define SALAD "\033[1;38;5;118m"
+#define DARK_CYAN "\033[1;38;5;30m"
+#define BOLD "\033[1m"
+#define RESET "\033[0m"
+
 extern i32_t str_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, str_t fmt, ...);
 extern str_t str_fmt(i32_t limit, str_t fmt, ...);
 extern str_t rf_object_fmt(rf_object_t *rf_object);

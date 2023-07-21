@@ -61,6 +61,8 @@ typedef enum vm_opcode_t
     OP_ALLOC,     // Allocate rf_object
     OP_MAP,       // Map lambda over array
     OP_COLLECT,   // Collect array of results
+    OP_EVAL,      // Compile/evaluate list of expressions as a lambda
+    OP_FLOAD,     // Load source file
 
     OP_INVALID, // Invalid opcode
 } vm_opcode_t;
@@ -79,7 +81,7 @@ typedef struct vm_t
     rf_object_t *stack; // Stack of arguments
 } vm_t;
 
-vm_t *vm_new();
+vm_t vm_new();
 rf_object_t vm_exec(vm_t *vm, rf_object_t *fun) __attribute__((__noinline__));
 null_t vm_free(vm_t *vm);
 str_t vm_code_fmt(rf_object_t *fun);

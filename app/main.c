@@ -27,9 +27,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <unistd.h>
 #include <signal.h>
 #include "../core/mmap.h"
 #include "../core/rayforce.h"
@@ -45,26 +42,6 @@
 #include "../core/alloc.h"
 
 #define LINE_SIZE 2048
-
-#define RED "\033[1;31m"
-#define TOMATO "\033[1;38;5;9m"
-#define GREEN "\033[1;32m"
-#define YELLOW "\033[1;33m"
-#define BLUE "\033[1;34m"
-#define MAGENTA "\033[1;35m"
-#define CYAN "\033[1;36m"
-#define WHITE "\033[1;37m"
-#define BLACK "\033[1;30m"
-#define GRAY "\033[1;38;5;8m"
-#define ORANGE "\033[1;38;5;202m"
-#define PURPLE "\033[1;38;5;141m"
-#define TEAL "\033[1;38;5;45m"
-#define AQUA "\033[1;38;5;37m"
-#define SALAD "\033[1;38;5;118m"
-#define DARK_CYAN "\033[1;38;5;30m"
-#define BOLD "\033[1m"
-#define RESET "\033[0m"
-
 #define PROMPT "> "
 #define VERSION "0.0.1"
 #define LOGO "\n\
@@ -73,53 +50,6 @@
   ▒█░▒█ ▀░░▀ ▄▄▄█ ▒█░░░ ▀▀▀▀ ▀░▀▀ ▀▀▀ ▀▀▀ | Official: https://github.com/singaraiona/rayforce\n\n"
 
 static volatile bool_t running = true;
-
-typedef struct file_t
-{
-    i32_t fd;
-    str_t buf;
-    i32_t len;
-} file_t;
-
-file_t file_open(str_t filename)
-{
-    file_t f = {
-        .fd = 0,
-        .buf = NULL,
-        .len = 0,
-    };
-
-    struct stat st;
-
-    f.fd = open(filename, O_RDONLY); // open the file for reading
-
-    if (f.fd == -1)
-    { // error handling if file does not exist
-        printf("Error opening the file.\n");
-        return f;
-    }
-
-    fstat(f.fd, &st); // get the size of the file
-
-    f.buf = mmap_file(st.st_size, PROT_READ, f.fd);
-
-    if (f.buf == MAP_FAILED)
-    {
-        // error handling if memory-mapping fails
-        printf("Error mapping the file.\n");
-        return f;
-    }
-
-    f.len = st.st_size;
-
-    return f;
-}
-
-null_t file_close(file_t f)
-{
-    mmap_free(f.buf, f.len); // unmap the buffer
-    close(f.fd);             // close the file
-}
 
 null_t usage()
 {
@@ -186,6 +116,13 @@ null_t print_error(rf_object_t *error, str_t filename, str_t source, u32_t len)
         break;
     default:
         error_desc = "unknown";
+    }
+
+    if (!source)
+    {
+        printf("%s** [E%.3d] error%s: %s\n %s-->%s %s:%d:%d\n    %s %s %s\n", TOMATO, error->adt->code, RESET,
+               error_desc, CYAN, RESET, filename, span.end_line, span.end_column, TOMATO, as_string(error), RESET);
+        return;
     }
 
     printf("%s** [E%.3d] error%s: %s\n %s-->%s %s:%d:%d\n    %s|%s\n", TOMATO, error->adt->code, RESET,
@@ -288,7 +225,7 @@ rf_object_t parse_cmdline(i32_t argc, str_t argv[])
     return dict(keys, vals);
 }
 
-null_t repl(str_t name, parser_t *parser, vm_t *vm, str_t buf, i32_t len)
+null_t repl(str_t name, parser_t *parser, str_t buf, i32_t len)
 {
     rf_object_t parsed, compiled, executed;
     str_t formatted = NULL;
@@ -317,7 +254,7 @@ null_t repl(str_t name, parser_t *parser, vm_t *vm, str_t buf, i32_t len)
     // release rc's of parsed asap
     rf_object_free(&parsed);
 
-    executed = vm_exec(vm, &compiled);
+    executed = vm_exec(&runtime_get()->vm, &compiled);
     rf_object_free(&compiled);
 
     if (is_error(&executed))
@@ -357,28 +294,27 @@ i32_t main(i32_t argc, str_t argv[])
 
     runtime_init(0);
 
-    rf_object_t args = parse_cmdline(argc, argv), filename, symfile = symbol("file");
+    rf_object_t args = parse_cmdline(argc, argv), filename, symfile = symbol("file"), file;
     str_t line, ptr;
     parser_t parser = parser_new();
-    vm_t *vm;
-    file_t file;
 
 #if defined(__linux__) || defined(__APPLE__) && defined(__MACH__)
     print_logo();
 #endif
 
     line = (str_t)mmap_malloc(LINE_SIZE);
-    vm = vm_new();
+
     // load file
     filename = dict_get(&args, &symfile);
     if (!is_null(&filename))
     {
-        file = file_open(as_string(&filename));
-        if (file.buf != NULL)
-        {
-            repl(as_string(&filename), &parser, vm, file.buf, file.len);
-            file_close(file);
-        }
+        file = rf_fread(&filename);
+        if (file.type == TYPE_ERROR)
+            print_error(&file, as_string(&filename), NULL, 0);
+        else
+            repl(as_string(&filename), &parser, as_string(&file), file.adt->len);
+
+        rf_object_free(&file);
     }
     // --
 
@@ -391,13 +327,12 @@ i32_t main(i32_t argc, str_t argv[])
         if (!ptr)
             break;
 
-        repl("top-level", &parser, vm, line, LINE_SIZE);
+        repl("top-level", &parser, line, LINE_SIZE);
     }
 
     rf_object_free(&args);
     parser_free(&parser);
     mmap_free(line, LINE_SIZE);
-    vm_free(vm);
 
     runtime_cleanup();
 

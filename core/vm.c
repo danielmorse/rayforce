@@ -37,6 +37,7 @@
 #include "unary.h"
 #include "binary.h"
 #include "vary.h"
+#include "cc.h"
 
 #define stack_push(v, x) (v->stack[v->sp++] = x)
 #define stack_pop(v) (v->stack[--v->sp])
@@ -66,15 +67,15 @@ typedef struct ctx_t
 
 CASSERT(sizeof(struct ctx_t) == sizeof(struct rf_object_t), vm_c)
 
-vm_t *vm_new()
+vm_t vm_new()
 {
-    vm_t *vm = (vm_t *)mmap_malloc(sizeof(struct vm_t));
+    rf_object_t *stack = (rf_object_t *)mmap_stack(VM_STACK_SIZE);
 
-    memset(vm, 0, sizeof(struct vm_t));
-
-    vm->trace = 0;
-    vm->acc = null();
-    vm->stack = (rf_object_t *)mmap_stack(VM_STACK_SIZE);
+    vm_t vm = {
+        .trace = 0,
+        .acc = null(),
+        .stack = stack,
+    };
 
     return vm;
 }
@@ -103,7 +104,7 @@ rf_object_t __attribute__((hot)) vm_exec(vm_t *vm, rf_object_t *fun)
         &&op_halt, &&op_push, &&op_pop, &&op_swap, &&op_dup, &&op_jne, &&op_jmp, &&op_call1, &&op_call2, &&op_calln,
         &&op_calld, &&op_ret, &&op_timer_set, &&op_timer_get, &&op_store, &&op_load, &&op_lset,
         &&op_lget, &&op_lpush, &&op_lpop, &&op_try, &&op_catch, &&op_throw,
-        &&op_trace, &&op_alloc, &&op_map, &&op_collect};
+        &&op_trace, &&op_alloc, &&op_map, &&op_collect, &&op_eval, &&op_fload};
 
 #define dispatch() goto *dispatch_table[(i32_t)code[vm->ip]]
 
@@ -244,6 +245,7 @@ made_calln:
 op_calld:
     b = vm->ip++;
     n = code[vm->ip++];
+made_calld:
     addr = stack_peek(vm);
     switch (addr->type)
     {
@@ -269,11 +271,11 @@ op_calld:
     case TYPE_LAMBDA:
         /* Call stack of user lambda call looks as follows:
          * +-------------------+
-         * |        ...        |
+         * |       ...         |
          * +-------------------+
          * | ctx {ret, ip, sp} | <- bp
          * +-------------------+
-         * |    <lambda>     |
+         * |     <lambda>      |
          * +-------------------+
          * |       argn        |
          * +-------------------+
@@ -445,6 +447,29 @@ op_collect:
     // push counter
     stack_push(vm, i64(p - l - 1));
     dispatch();
+op_eval:
+    b = vm->ip++;
+    x1 = stack_pop(vm);
+    if (x1.type != TYPE_LIST)
+    {
+        rf_object_free(&x1);
+        unwrap(error(ERR_TYPE, "eval: expects list"), b);
+    }
+    x2 = cc_compile_lambda(false, "anonymous", vector_symbol(0), as_list(&x1), x1.id, x1.adt->len, NULL);
+    rf_object_free(&x1);
+    unwrap(x2, b);
+    stack_push(vm, x2);
+    n = 0;
+    goto made_calld;
+op_fload:
+    b = vm->ip++;
+    x1 = stack_pop(vm);
+    x2 = rf_read_parse_compile(&x1);
+    rf_object_free(&x1);
+    unwrap(x2, b);
+    stack_push(vm, x2);
+    n = 0;
+    goto made_calld;
 }
 
 null_t vm_free(vm_t *vm)
@@ -453,7 +478,6 @@ null_t vm_free(vm_t *vm)
     while (vm->sp)
         stack_pop_free(vm);
     mmap_free(vm->stack, VM_STACK_SIZE);
-    mmap_free(vm, sizeof(struct vm_t));
 }
 
 /*

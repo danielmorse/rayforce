@@ -35,7 +35,9 @@
 #include "set.h"
 #include "env.h"
 #include "group.h"
+#include "parse.h"
 #include "fs.h"
+#include "cc.h"
 
 // Atomic unary functions (iterates through list of argumen items down to atoms)
 rf_object_t rf_call_unary_atomic(unary_t f, rf_object_t *x)
@@ -624,5 +626,48 @@ rf_object_t rf_fread(rf_object_t *x)
         return res;
     default:
         return error_type1(x->type, "fread: unsupported type");
+    }
+}
+
+rf_object_t rf_parse(rf_object_t *x)
+{
+    parser_t parser;
+    rf_object_t res;
+
+    switch (MTYPE(x->type))
+    {
+    case MTYPE(TYPE_CHAR):
+        parser = parser_new();
+        res = parse(&parser, "top-level", as_string(x));
+        parser_free(&parser);
+        return res;
+    default:
+        return error_type1(x->type, "parse: unsupported type");
+    }
+}
+
+rf_object_t rf_read_parse_compile(rf_object_t *x)
+{
+    parser_t parser;
+    rf_object_t red, par, com;
+
+    switch (MTYPE(x->type))
+    {
+    case MTYPE(TYPE_CHAR):
+        red = rf_fread(x);
+        if (red.type == TYPE_ERROR)
+            return red;
+
+        parser = parser_new();
+        par = parse(&parser, as_string(x), as_string(&red));
+        rf_object_free(&red);
+        com = cc_compile_lambda(false, as_string(x), vector_symbol(0),
+                                as_list(&par), par.id, par.adt->len, &parser.debuginfo);
+        rf_object_free(&par);
+        parser_free(&parser);
+
+        return com;
+    default:
+        return error_type1(x->type, "read parse compile: unsupported type");
     }
 }

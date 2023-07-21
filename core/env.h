@@ -51,6 +51,8 @@
 #define KW_WHERE -14
 #define KW_BY -15
 #define KW_ORDER -16
+#define KW_EVAL -17
+#define KW_LOAD -18
 
 /*
  *  Environment

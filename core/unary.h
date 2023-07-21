@@ -51,5 +51,7 @@ rf_object_t rf_where(rf_object_t *x);
 rf_object_t rf_key(rf_object_t *x);
 rf_object_t rf_value(rf_object_t *x);
 rf_object_t rf_fread(rf_object_t *x);
+rf_object_t rf_parse(rf_object_t *x);
+rf_object_t rf_read_parse_compile(rf_object_t *x);
 
 #endif
