@@ -90,6 +90,7 @@ null_t init_functions(rf_object_t *functions)
     regf(functions,  "where",     TYPE_UNARY,    FLAG_ATOMIC,       rf_where);
     regf(functions,  "key",       TYPE_UNARY,    FLAG_NONE,         rf_key);
     regf(functions,  "value",     TYPE_UNARY,    FLAG_NONE,         rf_value);
+    regf(functions,  "fread",     TYPE_UNARY,    FLAG_NONE,         rf_fread);
     
     // Binary           
     regf(functions,  "==",        TYPE_BINARY,   FLAG_ATOMIC,       rf_eq);

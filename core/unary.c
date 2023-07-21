@@ -35,6 +35,7 @@
 #include "set.h"
 #include "env.h"
 #include "group.h"
+#include "fs.h"
 
 // Atomic unary functions (iterates through list of argumen items down to atoms)
 rf_object_t rf_call_unary_atomic(unary_t f, rf_object_t *x)
@@ -582,5 +583,46 @@ rf_object_t rf_value(rf_object_t *x)
         return rf_object_clone(&as_list(x)[1]);
     default:
         return rf_object_clone(x);
+    }
+}
+
+rf_object_t rf_fread(rf_object_t *x)
+{
+    i64_t fd, size;
+    str_t fmsg;
+    rf_object_t res, err;
+
+    switch (MTYPE(x->type))
+    {
+    case MTYPE(TYPE_CHAR):
+        fd = fs_fopen(as_string(x), O_RDONLY);
+
+        // error handling if file does not exist
+        if (fd == -1)
+        {
+            fmsg = str_fmt(0, "file: '%s' does not exist", as_string(x));
+            err = error(ERR_NOT_EXIST, fmsg);
+            rf_free(fmsg);
+            return err;
+        }
+
+        size = fs_fsize(fd);
+
+        res = string(size);
+
+        if (read(fd, as_string(&res), size) != size)
+        {
+            fmsg = str_fmt(0, "file: '%s' read error", as_string(x));
+            err = error(ERR_IO, fmsg);
+            rf_free(fmsg);
+            close(fd);
+            return err;
+        }
+
+        fs_fclose(fd);
+
+        return res;
+    default:
+        return error_type1(x->type, "fread: unsupported type");
     }
 }

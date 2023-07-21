@@ -21,35 +21,17 @@
  *   SOFTWARE.
  */
 
-#ifndef MONAD_H
-#define MONAD_H
+#ifndef FS_H
+#define FS_H
 
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <sys/stat.h>
 #include "rayforce.h"
 
-typedef rf_object_t (*unary_t)(rf_object_t *);
+i64_t fs_fopen(str_t path, i64_t flags);
+i64_t fs_fsize(i64_t fd);
+i64_t fs_fclose(i64_t fd);
 
-rf_object_t rf_call_unary(u8_t flags, unary_t f, rf_object_t *x);
-rf_object_t rf_get_variable(rf_object_t *x);
-rf_object_t rf_type(rf_object_t *x);
-rf_object_t rf_count(rf_object_t *x);
-rf_object_t rf_til(rf_object_t *x);
-rf_object_t rf_distinct(rf_object_t *x);
-rf_object_t rf_group(rf_object_t *x);
-rf_object_t rf_group_remap(rf_object_t *x);
-rf_object_t rf_sum(rf_object_t *x);
-rf_object_t rf_avg(rf_object_t *x);
-rf_object_t rf_min(rf_object_t *x);
-rf_object_t rf_max(rf_object_t *x);
-rf_object_t rf_not(rf_object_t *x);
-rf_object_t rf_iasc(rf_object_t *x);
-rf_object_t rf_idesc(rf_object_t *x);
-rf_object_t rf_asc(rf_object_t *x);
-rf_object_t rf_desc(rf_object_t *x);
-rf_object_t rf_guid_generate(rf_object_t *x);
-rf_object_t rf_neg(rf_object_t *x);
-rf_object_t rf_where(rf_object_t *x);
-rf_object_t rf_key(rf_object_t *x);
-rf_object_t rf_value(rf_object_t *x);
-rf_object_t rf_fread(rf_object_t *x);
-
-#endif
+#endif // FS_H

@@ -145,20 +145,41 @@ null_t print_error(rf_object_t *error, str_t filename, str_t source, u32_t len)
 
     switch (error->adt->code)
     {
+    case ERR_INIT:
+        error_desc = "init";
+        break;
     case ERR_PARSE:
         error_desc = "parse";
+        break;
+    case ERR_FORMAT:
+        error_desc = "format";
         break;
     case ERR_TYPE:
         error_desc = "type";
         break;
-    case ERR_INDEX:
-        error_desc = "index";
-        break;
     case ERR_LENGTH:
         error_desc = "length";
         break;
+    case ERR_INDEX:
+        error_desc = "index";
+        break;
+    case ERR_ALLOC:
+        error_desc = "alloc";
+        break;
+    case ERR_IO:
+        error_desc = "io";
+        break;
+    case ERR_NOT_FOUND:
+        error_desc = "not found";
+        break;
+    case ERR_NOT_EXIST:
+        error_desc = "not exist";
+        break;
+    case ERR_NOT_IMPLEMENTED:
+        error_desc = "not implemented";
+        break;
     case ERR_STACK_OVERFLOW:
-        error_desc = "stack";
+        error_desc = "stack overflow";
         break;
     case ERR_THROW:
         error_desc = "throw";
