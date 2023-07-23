@@ -83,7 +83,7 @@ rf_object __attribute__((hot)) vm_exec(vm_t *vm, rf_object fun)
 {
     type_t c;
     lambda_t *f = as_lambda(fun);
-    str_t code = as_string(&f->code);
+    str_t code = as_string(f->code);
     rf_object x0, x1, x2, x3, *addr;
     i64_t t;
     u8_t n, flags;
@@ -194,7 +194,7 @@ op_calln:
     flags = code[vm->ip++];
     load_u64(l, vm);
 made_calln:
-    addr = (rf_object_t *)(&vm->stack[vm->sp - n]);
+    addr = (rf_object *)(&vm->stack[vm->sp - n]);
     x1 = rf_call_vary(flags, (vary_t)l, addr, n);
     for (i = 0; i < n; i++)
         drop(stack_pop(vm)); // pop args
@@ -206,7 +206,7 @@ op_calld:
     n = code[vm->ip++];
 made_calld:
     addr = stack_peek(vm);
-    switch (addr->type)
+    switch (*addr->type)
     {
     case TYPE_UNARY:
         if (n != 1)

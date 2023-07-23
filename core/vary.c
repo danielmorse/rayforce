@@ -29,7 +29,7 @@
 #include "ops.h"
 #include "util.h"
 
-rf_object_t rf_call_vary_atomic(vary_t f, rf_object_t *x, i64_t n)
+rf_objectrf_call_vary_atomic(vary_t f, rf_object*x, i64_t n)
 {
     i64_t i, lists = 0;
 
@@ -43,7 +43,7 @@ rf_object_t rf_call_vary_atomic(vary_t f, rf_object_t *x, i64_t n)
         return f(x, n);
 }
 
-rf_object_t rf_call_vary(u8_t flags, vary_t f, rf_object_t *x, i64_t n)
+rf_objectrf_call_vary(u8_t flags, vary_t f, rf_object*x, i64_t n)
 {
     switch (flags)
     {
@@ -54,17 +54,17 @@ rf_object_t rf_call_vary(u8_t flags, vary_t f, rf_object_t *x, i64_t n)
     }
 }
 
-rf_object_t rf_gc(rf_object_t *x, i64_t n)
+rf_objectrf_gc(rf_object*x, i64_t n)
 {
     UNUSED(x);
     UNUSED(n);
     return i64(rf_alloc_gc());
 }
 
-rf_object_t rf_format(rf_object_t *x, i64_t n)
+rf_objectrf_format(rf_object*x, i64_t n)
 {
     str_t s = rf_object_fmt_n(x, n);
-    rf_object_t ret;
+    rf_objectret;
 
     if (!s)
         return error(ERR_TYPE, "malformed format string");
@@ -75,7 +75,7 @@ rf_object_t rf_format(rf_object_t *x, i64_t n)
     return ret;
 }
 
-rf_object_t rf_print(rf_object_t *x, i64_t n)
+rf_objectrf_print(rf_object*x, i64_t n)
 {
     str_t s = rf_object_fmt_n(x, n);
 
@@ -88,7 +88,7 @@ rf_object_t rf_print(rf_object_t *x, i64_t n)
     return null();
 }
 
-rf_object_t rf_println(rf_object_t *x, i64_t n)
+rf_objectrf_println(rf_object*x, i64_t n)
 {
     str_t s = rf_object_fmt_n(x, n);
 

@@ -40,10 +40,10 @@ typedef struct parser_t
     i64_t column;          // current column
 } __attribute__((aligned(16))) parser_t;
 
-rf_object_t advance(parser_t *parser);
+rf_object advance(parser_t *parser);
 
 parser_t parser_new();
 null_t parser_free(parser_t *parser);
-rf_object_t parse(parser_t *parser, str_t filename, str_t input);
+rf_object parse(parser_t *parser, str_t filename, str_t input);
 
 #endif

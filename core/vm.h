@@ -69,13 +69,13 @@ typedef enum vm_opcode_t
 
 typedef struct vm_t
 {
-    i8_t halted;     // Halt flag
-    u8_t trace;      // Trace flag (print stack trace on error limited to n frames)
-    i32_t ip;        // Instruction pointer
-    i32_t sp;        // Stack pointer
-    i32_t bp;        // Base pointer (beginning on stack frame)
-    i64_t timer;     // Timer for execution time
-    rf_object stack; // Stack of arguments
+    i8_t halted;      // Halt flag
+    u8_t trace;       // Trace flag (print stack trace on error limited to n frames)
+    i32_t ip;         // Instruction pointer
+    i32_t sp;         // Stack pointer
+    i32_t bp;         // Base pointer (beginning on stack frame)
+    i64_t timer;      // Timer for execution time
+    rf_object *stack; // Stack of arguments
 } vm_t;
 
 vm_t vm_new();

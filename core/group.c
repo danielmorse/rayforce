@@ -47,10 +47,10 @@ bool_t pos_update(i64_t key, i64_t val, null_t *seed, i64_t *tkey, i64_t *tval)
     // contains count of elements (replace with vector)
     if ((*tval & (1ll << 62)) == 0)
     {
-        rf_object_t *vv = (rf_object_t *)seed;
-        rf_object_t v = I64(*tval);
-        as_I64(&v)[0] = val;
-        v.adt->len = 1;
+        rf_object *vv = (rf_object *)seed;
+        rf_object v = I64(*tval);
+        as_I64(v)[0] = val;
+        v->len = 1;
         *vv = v;
         *tval = (i64_t)seed | 1ll << 62;
 
@@ -58,23 +58,23 @@ bool_t pos_update(i64_t key, i64_t val, null_t *seed, i64_t *tkey, i64_t *tval)
     }
 
     // contains vector
-    rf_object_t *vv = (rf_object_t *)(*tval & ~(1ll << 62));
+    rf_object vv = (rf_object)(*tval & ~(1ll << 62));
     i64_t *v = as_I64(vv);
-    v[vv->adt->len++] = val;
+    v[vv->len++] = val;
     return true;
 }
 
-rf_object_t rf_distinct_I64(rf_object_t *x)
+rf_object rf_distinct_I64(rf_object x)
 {
-    i64_t i, j = 0, p = 0, w = 0, xl = x->adt->len;
+    i64_t i, j = 0, p = 0, w = 0, xl = x->len;
     i64_t n = 0, range, inrange = 0, min, max, *m, *iv1 = as_I64(x), *ov;
-    rf_object_t mask, vec;
+    rf_object mask, vec;
     set_t *set;
 
     if (xl == 0)
         return I64(0);
 
-    if (x->adt->attrs.flags & VEC_ATTR_DISTINCT)
+    if (x->flags & VEC_ATTR_DISTINCT)
         return clone(x);
 
     max = min = iv1[0];
@@ -91,7 +91,7 @@ rf_object_t rf_distinct_I64(rf_object_t *x)
     }
 
     vec = I64(xl);
-    ov = as_I64(&vec);
+    ov = as_I64(vec);
 
     if (xl <= 10000)
         goto set;
@@ -101,7 +101,7 @@ rf_object_t rf_distinct_I64(rf_object_t *x)
     {
         range = max - min + 1;
         mask = I64(range / 64);
-        m = as_I64(&mask);
+        m = as_I64(mask);
 
         for (i = 0; i < range / 64; i++)
             m[i] = 0;
@@ -119,10 +119,10 @@ rf_object_t rf_distinct_I64(rf_object_t *x)
             }
         }
 
-        drop(&mask);
-        vector_shrink(&vec, j);
+        drop(mask);
+        vector_shrink(vec, j);
 
-        vec.adt->attrs.flags |= VEC_ATTR_DISTINCT;
+        vec->flags |= VEC_ATTR_DISTINCT;
 
         return vec;
     }
@@ -132,7 +132,7 @@ rf_object_t rf_distinct_I64(rf_object_t *x)
     {
         range = MAX_LINEAR_VALUE;
         mask = I64(range / 64);
-        m = as_I64(&mask);
+        m = as_I64(mask);
 
         for (i = 0; i < range / 64; i++)
             m[i] = 0;
@@ -161,9 +161,9 @@ rf_object_t rf_distinct_I64(rf_object_t *x)
             }
         }
 
-        vec.adt->attrs.flags |= VEC_ATTR_DISTINCT;
-        vector_shrink(&vec, j);
-        drop(&mask);
+        vec->flags |= VEC_ATTR_DISTINCT;
+        vector_shrink(vec, j);
+        drop(mask);
         set_free(set);
 
         return vec;
@@ -177,17 +177,17 @@ set:
         if (set_insert(set, normalize(iv1[i])))
             ov[j++] = iv1[i];
 
-    vec.adt->attrs.flags |= VEC_ATTR_DISTINCT;
-    vector_shrink(&vec, j);
+    vec->flags |= VEC_ATTR_DISTINCT;
+    vector_shrink(vec, j);
     set_free(set);
 
     return vec;
 }
 
-rf_object_t rf_group_I64(rf_object_t *x)
+rf_object rf_group_I64(rf_object x)
 {
-    i64_t i, j = 0, xl = x->adt->len, *iv1 = as_I64(x), *kv, range, inrange = 0, min, max, *m, n;
-    rf_object_t keys, vals, mask, *vv;
+    i64_t i, j = 0, xl = x->len, *iv1 = as_I64(x), *kv, range, inrange = 0, min, max, *m, n;
+    rf_object keys, vals, mask, *vv;
     ht_t *ht;
 
     if (xl == 0)
@@ -214,13 +214,13 @@ rf_object_t rf_group_I64(rf_object_t *x)
     {
         range = max - min + 1;
         mask = I64(range);
-        m = as_I64(&mask);
+        m = as_I64(mask);
 
         keys = I64(xl);
         vals = list(xl);
 
-        kv = as_I64(&keys);
-        vv = as_list(&vals);
+        kv = as_I64(keys);
+        vv = as_list(vals);
 
         for (i = 0; i < range; i++)
             m[i] = 0;
@@ -240,24 +240,24 @@ rf_object_t rf_group_I64(rf_object_t *x)
             n = normalize(iv1[i]);
             if (m[n] & (1ll << 62))
             {
-                rf_object_t *v = (rf_object_t *)(m[n] & ~(1ll << 62));
-                as_I64(v)[v->adt->len++] = i;
+                rf_object v = (rf_object)(m[n] & ~(1ll << 62));
+                as_I64(v)[v->len++] = i;
             }
             else
             {
-                rf_object_t v = I64(m[n]);
-                as_I64(&v)[0] = i;
-                v.adt->len = 1;
+                rf_object v = I64(m[n]);
+                as_I64(v)[0] = i;
+                v->len = 1;
                 vv[j] = v;
                 m[n] = (i64_t)(vv + j) | 1ll << 62;
                 j++;
             }
         }
 
-        drop(&mask);
+        drop(mask);
 
-        vector_shrink(&keys, j);
-        vector_shrink(&vals, j);
+        vector_shrink(keys, j);
+        vector_shrink(vals, j);
 
         return dict(keys, vals);
     }
@@ -267,13 +267,13 @@ rf_object_t rf_group_I64(rf_object_t *x)
     {
         range = MAX_LINEAR_VALUE;
         mask = I64(range);
-        m = as_I64(&mask);
+        m = as_I64(mask);
 
         keys = I64(xl);
         vals = list(xl);
 
-        kv = as_I64(&keys);
-        vv = as_list(&vals);
+        kv = as_I64(keys);
+        vv = as_list(vals);
 
         for (i = 0; i < range; i++)
             m[i] = 0;
@@ -305,14 +305,14 @@ rf_object_t rf_group_I64(rf_object_t *x)
             {
                 if (m[n] & (1ll << 62))
                 {
-                    rf_object_t *v = (rf_object_t *)(m[n] & ~(1ll << 62));
-                    as_I64(v)[v->adt->len++] = i;
+                    rf_object v = (rf_object)(m[n] & ~(1ll << 62));
+                    as_I64(v)[v->len++] = i;
                 }
                 else
                 {
-                    rf_object_t v = I64(m[n]);
-                    as_I64(&v)[0] = i;
-                    v.adt->len = 1;
+                    rf_object v = I64(m[n]);
+                    as_I64(v)[0] = i;
+                    v->len = 1;
                     vv[j] = v;
                     m[n] = (i64_t)(vv + j) | 1ll << 62;
                     j++;
@@ -325,11 +325,11 @@ rf_object_t rf_group_I64(rf_object_t *x)
             }
         }
 
-        drop(&mask);
+        drop(mask);
         ht_free(ht);
 
-        vector_shrink(&keys, j);
-        vector_shrink(&vals, j);
+        vector_shrink(keys, j);
+        vector_shrink(vals, j);
 
         return dict(keys, vals);
     }
@@ -344,8 +344,8 @@ hash:
     keys = I64(ht->count);
     vals = list(ht->count);
 
-    kv = as_I64(&keys);
-    vv = as_list(&vals);
+    kv = as_I64(keys);
+    vv = as_list(vals);
 
     // finally, fill vectors with positions
     for (i = 0; i < xl; i++)

@@ -75,9 +75,9 @@
 #define ALIGNUP(x, a) (((x) + (a)-1) & ~((a)-1))
 
 bool_t rfi_is_nan(f64_t x);
-bool_t rfi_eq(rf_object_t *x, rf_object_t *y);
-bool_t rfi_lt(rf_object_t *x, rf_object_t *y);
-bool_t rfi_as_bool(rf_object_t *x);
+bool_t rfi_eq(rf_object x, rf_object y);
+bool_t rfi_lt(rf_object x, rf_object y);
+bool_t rfi_as_bool(rf_object x);
 
 i64_t rfi_round_f64(f64_t x);
 i64_t rfi_floor_f64(f64_t x);

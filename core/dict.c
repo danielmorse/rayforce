@@ -53,30 +53,30 @@ rf_object dict_get(rf_object dict, rf_object key)
     return vector_get(vals, i);
 }
 
-rf_object_t dict_set(rf_object_t *dict, rf_object_t *key, rf_object_t val)
+rf_object dict_set(rf_object dict, rf_object key, rf_object val)
 {
-    rf_object_t *keys = &as_list(dict)[0];
-    rf_object_t *vals = &as_list(dict)[1];
+    rf_object keys = as_list(dict)[0];
+    rf_object vals = as_list(dict)[1];
     i64_t index = vector_find(keys, key);
 
-    if (index == (i64_t)keys->adt->len)
+    if (index == (i64_t)keys->len)
     {
         vector_push(keys, clone(key));
-        vector_push(vals, clone(&val));
+        vector_push(vals, clone(val));
         return val;
     }
 
-    vector_set(vals, index, clone(&val));
+    vector_set(vals, index, clone(val));
 
     return val;
 }
 
-null_t dict_clear(rf_object_t *dict)
+null_t dict_clear(rf_object dict)
 {
-    rf_object_t *keys = &as_list(dict)[0];
-    rf_object_t *vals = &as_list(dict)[1];
+    rf_object keys = as_list(dict)[0];
+    rf_object vals = as_list(dict)[1];
 
-    if (keys->adt->len == 0)
+    if (keys->len == 0)
         return;
 
     vector_clear(keys);

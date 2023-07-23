@@ -194,11 +194,11 @@ null_t insertion_sort_desc(i64_t array[], i64_t indices[], i64_t left, i64_t rig
 null_t counting_sort_asc(i64_t array[], i64_t indices[], i64_t len, i64_t min, i64_t max)
 {
     i64_t i, j = 0, n, p, range, *m;
-    rf_object_t mask;
+    rf_object mask;
 
     range = max - min + 1;
     mask = I64(range);
-    m = as_I64(&mask);
+    m = as_I64(mask);
 
     memset(m, 0, range * sizeof(i64_t));
 
@@ -226,17 +226,17 @@ null_t counting_sort_asc(i64_t array[], i64_t indices[], i64_t len, i64_t min, i
         indices[m[n]++] = i;
     }
 
-    drop(&mask);
+    drop(mask);
 }
 
 null_t counting_sort_desc(i64_t array[], i64_t indices[], i64_t len, i64_t min, i64_t max)
 {
     i64_t i, j = 0, n, p, range, *m;
-    rf_object_t mask;
+    rf_object mask;
 
     range = max - min + 1;
     mask = I64(range);
-    m = as_I64(&mask);
+    m = as_I64(mask);
 
     memset(m, 0, range * sizeof(i64_t));
 
@@ -264,23 +264,23 @@ null_t counting_sort_desc(i64_t array[], i64_t indices[], i64_t len, i64_t min, 
         indices[m[n]++] = i;
     }
 
-    drop(&mask);
+    drop(mask);
 }
 
-rf_object_t rf_sort_asc(rf_object_t *vec)
+rf_object rf_sort_asc(rf_object vec)
 {
-    i64_t i, len = vec->adt->len, out_of_order = 0, inrange = 0, min, max;
-    rf_object_t indices = I64(len);
-    i64_t *iv = as_I64(vec), *ov = as_I64(&indices);
+    i64_t i, len = vec->len, out_of_order = 0, inrange = 0, min, max;
+    rf_object indices = I64(len);
+    i64_t *iv = as_I64(vec), *ov = as_I64(indices);
 
-    if (vec->adt->attrs.flags & VEC_ATTR_ASC)
+    if (vec->flags & VEC_ATTR_ASC)
     {
         for (i = 0; i < len; i++)
             ov[i] = i;
         return indices;
     }
 
-    if (vec->adt->attrs.flags & VEC_ATTR_DESC)
+    if (vec->flags & VEC_ATTR_DESC)
     {
         for (i = 0; i < len; i++)
             ov[i] = len - i - 1;
@@ -306,7 +306,7 @@ rf_object_t rf_sort_asc(rf_object_t *vec)
     // ascending order
     if (out_of_order == 0)
     {
-        vec->adt->attrs.flags |= VEC_ATTR_ASC;
+        vec->flags |= VEC_ATTR_ASC;
         for (i = 0; i < len; i++)
             ov[i] = i;
         return indices;
@@ -315,7 +315,7 @@ rf_object_t rf_sort_asc(rf_object_t *vec)
     // descending order
     if (out_of_order == len - 1)
     {
-        vec->adt->attrs.flags |= VEC_ATTR_DESC;
+        vec->flags |= VEC_ATTR_DESC;
         for (i = 0; i < len; i++)
             ov[i] = len - i - 1;
         return indices;
@@ -348,20 +348,20 @@ rf_object_t rf_sort_asc(rf_object_t *vec)
     return indices;
 }
 
-rf_object_t rf_sort_desc(rf_object_t *vec)
+rf_object rf_sort_desc(rf_object vec)
 {
-    i64_t i, len = vec->adt->len, out_of_order = 0, inrange = 0, min, max;
-    rf_object_t indices = I64(len);
-    i64_t *iv = as_I64(vec), *ov = as_I64(&indices);
+    i64_t i, len = vec->len, out_of_order = 0, inrange = 0, min, max;
+    rf_object indices = I64(len);
+    i64_t *iv = as_I64(vec), *ov = as_I64(indices);
 
-    if (vec->adt->attrs.flags & VEC_ATTR_DESC)
+    if (vec->flags & VEC_ATTR_DESC)
     {
         for (i64_t i = 0; i < len; i++)
             ov[i] = i;
         return indices;
     }
 
-    if (vec->adt->attrs.flags & VEC_ATTR_ASC)
+    if (vec->flags & VEC_ATTR_ASC)
     {
         for (i64_t i = 0; i < len; i++)
             ov[i] = len - i - 1;
@@ -387,7 +387,7 @@ rf_object_t rf_sort_desc(rf_object_t *vec)
     // descending order
     if (out_of_order == 0)
     {
-        vec->adt->attrs.flags |= VEC_ATTR_DESC;
+        vec->flags |= VEC_ATTR_DESC;
         for (i64_t i = 0; i < len; i++)
             ov[i] = i;
         return indices;
@@ -396,7 +396,7 @@ rf_object_t rf_sort_desc(rf_object_t *vec)
     // ascending order
     if (out_of_order == len - 1)
     {
-        vec->adt->attrs.flags |= VEC_ATTR_ASC;
+        vec->flags |= VEC_ATTR_ASC;
         for (i64_t i = 0; i < len; i++)
             ov[i] = len - i - 1;
         return indices;

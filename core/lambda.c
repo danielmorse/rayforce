@@ -25,12 +25,10 @@
 #include "string.h"
 #include "alloc.h"
 
-rf_object_t lambda(rf_object_t args, rf_object_t code, debuginfo_t debuginfo)
+rf_object lambda(rf_object args, rf_object code, debuginfo_t debuginfo)
 {
-    header_t *adt = rf_malloc(sizeof(header_t) + sizeof(lambda_t));
-    lambda_t *f = (lambda_t *)(adt + 1);
-
-    adt->rc = 1;
+    rf_object obj = rf_malloc(sizeof(struct rf_object_t));
+    lambda_t *f = (lambda_t *)rf_malloc(sizeof(lambda_t));
 
     f->args = args;
     f->locals = list(0);
@@ -39,10 +37,9 @@ rf_object_t lambda(rf_object_t args, rf_object_t code, debuginfo_t debuginfo)
     f->debuginfo = debuginfo;
     f->stack_size = 0;
 
-    rf_object_t fun = {
-        .type = TYPE_LAMBDA,
-        .adt = adt,
-    };
+    obj->type = TYPE_LAMBDA;
+    obj->rc = 1;
+    obj->ptr = f;
 
-    return fun;
+    return obj;
 }

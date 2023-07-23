@@ -28,25 +28,25 @@
 #include "util.h"
 
 /*
- * Creates new rf_object_t string from a C string.
+ * Creates new rf_objectstring from a C string.
  * Guarantees that the string is null-terminated.
  */
 rf_object string(i64_t len)
 {
     rf_object string = vector(TYPE_CHAR, len + 1);
-    as_string(&string)[len] = '\0';
-    string.adt->len = len;
+    as_string(string)[len] = '\0';
+    string->len = len;
     return string;
 }
 
 /*
- * Creates new rf_object_t string from a C string.
+ * Creates new rf_objectstring from a C string.
  */
-rf_object_t string_from_str(str_t str, i32_t len)
+rf_object string_from_str(str_t str, i32_t len)
 {
-    rf_object_t s = string(len);
+    rf_object s = string(len);
     if (len > 0)
-        strncpy(as_string(&s), str, len);
+        strncpy(as_string(s), str, len);
 
     return s;
 }

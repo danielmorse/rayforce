@@ -31,14 +31,14 @@
 
 typedef struct lambda_t
 {
-    rf_object_t args;      // vector of arguments names
-    rf_object_t locals;    // list of dicts of local variables
-    rf_object_t code;      // string of bytecode
-    rf_object_t constants; // list of lambda constants
+    rf_object args;        // vector of arguments names
+    rf_object locals;      // list of dicts of local variables
+    rf_object code;        // string of bytecode
+    rf_object constants;   // list of lambda constants
     debuginfo_t debuginfo; // debuginfo from cc phase
     i32_t stack_size;      // size of stack frame
 } lambda_t;
 
-rf_object_t lambda(rf_object_t args, rf_object_t code, debuginfo_t debuginfo);
+rf_object lambda(rf_object args, rf_object code, debuginfo_t debuginfo);
 
 #endif

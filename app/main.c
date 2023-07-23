@@ -79,7 +79,7 @@ rf_object parse_cmdline(i32_t argc, str_t argv[])
             if (argv[opt] == NULL)
                 usage();
 
-            vector_push(&keys, symbol("file"));
+            vector_push(keys, symbol("file"));
             len = strlen(argv[opt]);
             str = string(len);
             strncpy(as_string(str), argv[opt], len);

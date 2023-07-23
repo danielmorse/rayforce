@@ -96,9 +96,9 @@ rf_object _push(rf_object vec, rf_object value)
     case TYPE_CHAR:
         push(vec, char_t, value->schar);
         return null();
-    case TYPE_LIST:
-        push(vec, rf_object, clone(value));
-        return null();
+    // case TYPE_LIST:
+    //     push(vec, rf_object, clone(value));
+    //     return null();
     default:
         panic("vector push: can not push to a unknown type");
     }
@@ -143,7 +143,7 @@ rf_object vector_push(rf_object vec, rf_object value)
 
             drop(vec);
 
-            *vec = lst;
+            vec = lst;
             return null();
         }
     }
@@ -251,7 +251,7 @@ i64_t vector_find(rf_object vec, rf_object key)
     // bool_t kb, *vb;
     // i64_t ki, *vi;
     // f64_t kf, *vf;
-    // rf_object_t *kl, *vl;
+    // rf_object*kl, *vl;
     // i64_t i, l;
     // guid_t *kg, *vg;
 
@@ -445,7 +445,7 @@ null_t vector_write(rf_object vec, i64_t index, rf_object value)
 {
     // guid_t *g;
     // i64_t i, l;
-    // rf_object_t lst;
+    // rf_objectlst;
 
     // l = vec->adt->len;
 
@@ -586,7 +586,7 @@ null_t vector_clear(rf_object vec)
     // if (vec->type == TYPE_LIST)
     // {
     //     i64_t i, l = vec->adt->len;
-    //     rf_object_t *list = as_list(vec);
+    //     rf_object*list = as_list(vec);
 
     //     for (i = 0; i < l; i++)
     //         drop(&list[i]);

@@ -26,12 +26,12 @@
 
 #include "rayforce.h"
 
-typedef rf_object_t (*vary_t)(rf_object_t *, i64_t n);
+typedef rf_object(*vary_t)(rf_object*, i64_t n);
 
-rf_object_t rf_call_vary(u8_t flags, vary_t f, rf_object_t *x, i64_t n);
-rf_object_t rf_gc(rf_object_t *x, i64_t n);
-rf_object_t rf_format(rf_object_t *x, i64_t n);
-rf_object_t rf_print(rf_object_t *x, i64_t n);
-rf_object_t rf_println(rf_object_t *x, i64_t n);
+rf_objectrf_call_vary(u8_t flags, vary_t f, rf_object*x, i64_t n);
+rf_objectrf_gc(rf_object*x, i64_t n);
+rf_objectrf_format(rf_object*x, i64_t n);
+rf_objectrf_print(rf_object*x, i64_t n);
+rf_objectrf_println(rf_object*x, i64_t n);
 
 #endif

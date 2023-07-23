@@ -216,7 +216,7 @@ rf_object rf_sum(rf_object x)
     }
 }
 
-rf_object_t rf_avg(rf_object_t *x)
+rf_objectrf_avg(rf_object*x)
 {
     i32_t i;
     i64_t l, isum, *iv, n = 0;
@@ -261,7 +261,7 @@ rf_object_t rf_avg(rf_object_t *x)
     }
 }
 
-rf_object_t rf_min(rf_object_t *x)
+rf_objectrf_min(rf_object*x)
 {
     i32_t i;
     i64_t l, imin, *iv;
@@ -342,7 +342,7 @@ rf_object_t rf_min(rf_object_t *x)
     }
 }
 
-rf_object_t rf_max(rf_object_t *x)
+rf_objectrf_max(rf_object*x)
 {
     i32_t i;
     i64_t l, imax, *iv;
@@ -394,11 +394,11 @@ rf_object_t rf_max(rf_object_t *x)
     }
 }
 
-rf_object_t rf_not(rf_object_t *x)
+rf_objectrf_not(rf_object*x)
 {
     i32_t i;
     i64_t l;
-    rf_object_t res;
+    rf_objectres;
 
     switch (MTYPE(x->type))
     {
@@ -418,7 +418,7 @@ rf_object_t rf_not(rf_object_t *x)
     }
 }
 
-rf_object_t rf_iasc(rf_object_t *x)
+rf_objectrf_iasc(rf_object*x)
 {
     switch (MTYPE(x->type))
     {
@@ -430,7 +430,7 @@ rf_object_t rf_iasc(rf_object_t *x)
     }
 }
 
-rf_object_t rf_idesc(rf_object_t *x)
+rf_objectrf_idesc(rf_object*x)
 {
     switch (MTYPE(x->type))
     {
@@ -442,9 +442,9 @@ rf_object_t rf_idesc(rf_object_t *x)
     }
 }
 
-rf_object_t rf_asc(rf_object_t *x)
+rf_objectrf_asc(rf_object*x)
 {
-    rf_object_t idx = rf_sort_asc(x);
+    rf_objectidx = rf_sort_asc(x);
     i64_t l, i;
 
     switch (MTYPE(x->type))
@@ -463,9 +463,9 @@ rf_object_t rf_asc(rf_object_t *x)
     }
 }
 
-rf_object_t rf_desc(rf_object_t *x)
+rf_objectrf_desc(rf_object*x)
 {
-    rf_object_t idx = rf_sort_desc(x);
+    rf_objectidx = rf_sort_desc(x);
     i64_t l, i;
 
     switch (MTYPE(x->type))
@@ -484,10 +484,10 @@ rf_object_t rf_desc(rf_object_t *x)
     }
 }
 
-rf_object_t rf_guid_generate(rf_object_t *x)
+rf_objectrf_guid_generate(rf_object*x)
 {
     i64_t i, count;
-    rf_object_t vec;
+    rf_objectvec;
     guid_t *g;
 
     switch (MTYPE(x->type))
@@ -507,9 +507,9 @@ rf_object_t rf_guid_generate(rf_object_t *x)
     }
 }
 
-rf_object_t rf_neg(rf_object_t *x)
+rf_objectrf_neg(rf_object*x)
 {
-    rf_object_t res;
+    rf_objectres;
     i64_t i, l;
 
     switch (MTYPE(x->type))
@@ -538,12 +538,12 @@ rf_object_t rf_neg(rf_object_t *x)
     }
 }
 
-rf_object_t rf_where(rf_object_t *x)
+rf_objectrf_where(rf_object*x)
 {
     i32_t i, j = 0;
     i64_t l, *ov;
     bool_t *iv;
-    rf_object_t res;
+    rf_objectres;
 
     switch (MTYPE(x->type))
     {
@@ -565,7 +565,7 @@ rf_object_t rf_where(rf_object_t *x)
     }
 }
 
-rf_object_t rf_key(rf_object_t *x)
+rf_objectrf_key(rf_object*x)
 {
     switch (MTYPE(x->type))
     {
@@ -577,7 +577,7 @@ rf_object_t rf_key(rf_object_t *x)
     }
 }
 
-rf_object_t rf_value(rf_object_t *x)
+rf_objectrf_value(rf_object*x)
 {
     switch (MTYPE(x->type))
     {
@@ -589,11 +589,11 @@ rf_object_t rf_value(rf_object_t *x)
     }
 }
 
-rf_object_t rf_fread(rf_object_t *x)
+rf_objectrf_fread(rf_object*x)
 {
     i64_t fd, size;
     str_t fmsg;
-    rf_object_t res, err;
+    rf_objectres, err;
 
     switch (MTYPE(x->type))
     {
@@ -632,10 +632,10 @@ rf_object_t rf_fread(rf_object_t *x)
     }
 }
 
-rf_object_t rf_parse(rf_object_t *x)
+rf_objectrf_parse(rf_object*x)
 {
     parser_t parser;
-    rf_object_t res;
+    rf_objectres;
 
     switch (MTYPE(x->type))
     {
@@ -649,10 +649,10 @@ rf_object_t rf_parse(rf_object_t *x)
     }
 }
 
-rf_object_t rf_read_parse_compile(rf_object_t *x)
+rf_objectrf_read_parse_compile(rf_object*x)
 {
     parser_t parser;
-    rf_object_t red, par, com;
+    rf_objectred, par, com;
 
     switch (MTYPE(x->type))
     {

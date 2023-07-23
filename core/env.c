@@ -219,7 +219,7 @@ null_t free_env(env_t *env)
 
 i64_t env_get_typename_by_type(env_t *env, type_t type)
 {
-    // rf_object_t k, n;
+    // rf_objectk, n;
     // k = i64(type);
     // n = dict_get(&env->typenames, &k);
 

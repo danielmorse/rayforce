@@ -110,7 +110,7 @@ int test_symbols()
     // for (int i = 0; i < 1000000; i++)
     // {
     //     // printf("%s\n", st[i]);
-    //     rf_object_t s = str(st[i], strlen(st[i]));
+    //     rf_objects = str(st[i], strlen(st[i]));
     //     i64_t id = intern_symbol(&s);
     //     // str_t val = symbols_get(id);
     //     // if (val == NULL)
@@ -119,7 +119,7 @@ int test_symbols()
     //     //     printf("%s\n", val);
     // }
 
-    // // rf_object_t s = str("code", 4);
+    // // rf_objects = str("code", 4);
     // // i64_t id1 = intern_symbol(&s), id2;
     // // str_t val = symbols_get(id1);
 
@@ -138,7 +138,7 @@ int test_symbols()
 
 null_t test_find()
 {
-    // rf_object_t v = I64(100000000);
+    // rf_objectv = I64(100000000);
     // for (int i = 0; i < 100000000; i++)
     // {
     //     as_I64(&v)[i] = i;
@@ -172,7 +172,7 @@ null_t test_vector()
 {
     debug("testing vector");
 
-    rf_object_t v = I64(1);
+    rf_objectv = I64(1);
     as_I64(&v)[0] = 1;
 
     for (i32_t i = 0; i < 1000000; i++)
