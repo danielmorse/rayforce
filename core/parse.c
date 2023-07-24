@@ -143,7 +143,7 @@ object_t parse_timestamp(parser_t *parser)
         if (*(current + 1) == 't')
         {
             shift(parser, 2);
-            res = timestamp(NULL_I64);
+            res = timestamp(NULL_vector_i64);
             res->id = span_commit(parser, span);
             return res;
         }
@@ -285,7 +285,7 @@ object_t parse_number(parser_t *parser)
         if (*(parser->current + 1) == 'i')
         {
             shift(parser, 2);
-            num = i64(NULL_I64);
+            num = i64(NULL_vector_i64);
             num->id = span_commit(parser, span);
             return num;
         }
@@ -293,7 +293,7 @@ object_t parse_number(parser_t *parser)
         if (*(parser->current + 1) == 'f')
         {
             shift(parser, 2);
-            num = f64(NULL_F64);
+            num = f64(NULL_vector_f64);
             num->id = span_commit(parser, span);
             return num;
         }
@@ -301,7 +301,7 @@ object_t parse_number(parser_t *parser)
         if (*(parser->current + 1) == 't')
         {
             shift(parser, 2);
-            num = timestamp(NULL_I64);
+            num = timestamp(NULL_vector_i64);
             num->id = span_commit(parser, span);
             return num;
         }
@@ -464,7 +464,7 @@ object_t parse_symbol(parser_t *parser)
 
 object_t parse_vector(parser_t *parser)
 {
-    object_t token, vec = I64(0), err;
+    object_t token, vec = vector_i64(0), err;
     i32_t i;
     span_t span = span_start(parser);
 
@@ -502,11 +502,11 @@ object_t parse_vector(parser_t *parser)
             vec->type = TYPE_BOOL;
             vector_push(vec, token);
         }
-        else if (token->type == -TYPE_I64)
+        else if (token->type == -TYPE_vector_i64)
         {
-            if (vec->type == TYPE_I64)
+            if (vec->type == TYPE_vector_i64)
                 vector_push(vec, token);
-            else if (vec->type == TYPE_F64)
+            else if (vec->type == TYPE_vector_f64)
                 vector_push(vec, f64((f64_t)token->i64));
             else
             {
@@ -517,15 +517,15 @@ object_t parse_vector(parser_t *parser)
                 return err;
             }
         }
-        else if (token->type == -TYPE_F64)
+        else if (token->type == -TYPE_vector_f64)
         {
-            if (vec->type == TYPE_F64)
+            if (vec->type == TYPE_vector_f64)
                 vector_push(vec, token);
-            else if (vec->type == TYPE_I64)
+            else if (vec->type == TYPE_vector_i64)
             {
-                vec->type = TYPE_F64;
+                vec->type = TYPE_vector_f64;
                 for (i = 0; i < (i32_t)vec->len; i++)
-                    as_F64(vec)[i] = (f64_t)as_I64(vec)[i];
+                    as_vector_f64(vec)[i] = (f64_t)as_vector_i64(vec)[i];
 
                 vector_push(vec, token);
             }

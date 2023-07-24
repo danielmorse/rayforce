@@ -500,8 +500,8 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, object_t object, u3
     //     return CC_ERROR;
 
     // // determine which of columns are used in select and which names will be used for result columns
-    // cols = Symbol(0);
-    // syms = Symbol(0);
+    // cols = vector_symbol(0);
+    // syms = vector_symbol(0);
 
     // // first check by because it is special case in mapping
     // key = symboli64(KW_BY);
@@ -990,5 +990,5 @@ object_t cc_compile(object_t body, debuginfo_t *debuginfo)
     object_t b = as_list(body);
     i32_t len = body->len;
 
-    return cc_compile_lambda(true, "top-level", Symbol(0), b, body->id, len, debuginfo);
+    return cc_compile_lambda(true, "top-level", vector_symbol(0), b, body->id, len, debuginfo);
 }

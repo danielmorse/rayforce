@@ -53,10 +53,10 @@ object_t rf_memstat()
     // object_t keys, vals;
     // memstat_t stat = rf_alloc_memstat();
 
-    // keys = Symbol(3);
-    // as_Symbol(&keys)[0] = symbol("total").i64;
-    // as_Symbol(&keys)[1] = symbol("used ").i64;
-    // as_Symbol(&keys)[2] = symbol("free ").i64;
+    // keys = vector_symbol(3);
+    // as_vector_symbol(&keys)[0] = symbol("total").i64;
+    // as_vector_symbol(&keys)[1] = symbol("used ").i64;
+    // as_vector_symbol(&keys)[2] = symbol("free ").i64;
 
     // vals = list(3);
     // as_list(&vals)[0] = i64(stat.total);
@@ -140,20 +140,20 @@ null_t init_functions(object_t functions)
 null_t init_typenames(object_t typenames)    
 {
     // regt(typenames,   -TYPE_BOOL,       "bool");
-    // regt(typenames,   -TYPE_I64,        "i64");
-    // regt(typenames,   -TYPE_F64,        "f64");
+    // regt(typenames,   -TYPE_vector_i64,        "i64");
+    // regt(typenames,   -TYPE_vector_f64,        "f64");
     // regt(typenames,   -TYPE_CHAR,       "char");
     // regt(typenames,   -TYPE_SYMBOL,     "symbol");
     // regt(typenames,   -TYPE_TIMESTAMP,  "timestamp");
     // regt(typenames,   -TYPE_GUID,       "guid");
     // regt(typenames,    TYPE_NULL,       "null");
-    // regt(typenames,    TYPE_BOOL,       "Bool");
-    // regt(typenames,    TYPE_I64,        "I64");
-    // regt(typenames,    TYPE_F64,        "F64");
+    // regt(typenames,    TYPE_BOOL,       "vector_bool");
+    // regt(typenames,    TYPE_vector_i64,        "vector_i64");
+    // regt(typenames,    TYPE_vector_f64,        "vector_f64");
     // regt(typenames,    TYPE_CHAR,       "Char");
-    // regt(typenames,    TYPE_SYMBOL,     "Symbol");
-    // regt(typenames,    TYPE_TIMESTAMP,  "Timestamp");
-    // regt(typenames,    TYPE_GUID,       "Guid");
+    // regt(typenames,    TYPE_SYMBOL,     "vector_symbol");
+    // regt(typenames,    TYPE_TIMESTAMP,  "vector_timestamp");
+    // regt(typenames,    TYPE_GUID,       "vector_guid");
     // regt(typenames,    TYPE_LIST,       "List");
     // regt(typenames,    TYPE_TABLE,      "Table");
     // regt(typenames,    TYPE_DICT,       "Dict");
@@ -191,9 +191,9 @@ null_t init_kw_symbols()
 
 env_t create_env()
 {
-    object_t functions = dict(Symbol(0), list(0));
-    object_t variables = dict(Symbol(0), list(0));
-    object_t typenames = dict(I64(0), Symbol(0));
+    object_t functions = dict(vector_symbol(0), list(0));
+    object_t variables = dict(vector_symbol(0), list(0));
+    object_t typenames = dict(vector_i64(0), vector_symbol(0));
 
     init_kw_symbols();
 
@@ -225,7 +225,7 @@ i64_t env_get_typename_by_type(env_t *env, type_t type)
 
     // return n.i64;
 
-    return NULL_I64;
+    return NULL_vector_i64;
 }
 
 type_t env_get_type_by_typename(env_t *env, object_t sym)
@@ -238,7 +238,7 @@ type_t env_get_type_by_typename(env_t *env, object_t sym)
     // if (i == l)
     //     return TYPE_NONE;
 
-    // return (type_t)as_I64(&as_list(&env->typenames)[0])[i];
+    // return (type_t)as_vector_i64(&as_list(&env->typenames)[0])[i];
 
     return 0;
 }

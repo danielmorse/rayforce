@@ -129,16 +129,16 @@ object_t rf_count(object_t x)
 
 object_t rf_til(object_t x)
 {
-    if (MTYPE(x->type) != MTYPE(-TYPE_I64))
+    if (MTYPE(x->type) != MTYPE(-TYPE_vector_i64))
         return error(ERR_TYPE, "til: expected i64");
 
     i32_t i, l = (i32_t)x->i64;
     i64_t *v;
     object_t vec = NULL;
 
-    vec = I64(l);
+    vec = vector_i64(l);
 
-    v = as_I64(vec);
+    v = as_vector_i64(vec);
 
     for (i = 0; i < l; i++)
         v[i] = i;
@@ -153,23 +153,23 @@ object_t rf_distinct(object_t x)
 
     switch (MTYPE(x->type))
     {
-    case MTYPE(TYPE_I64):
-        return rf_distinct_I64(x);
+    case MTYPE(TYPE_vector_i64):
+        return rf_distinct_vector_i64(x);
     case MTYPE(TYPE_SYMBOL):
-        res = rf_distinct_I64(x);
+        res = rf_distinct_vector_i64(x);
         res->type = TYPE_SYMBOL;
         return res;
     default:
-        return error(ERR_TYPE, "distinct: expected I64");
+        return error(ERR_TYPE, "distinct: expected vector_i64");
     }
 }
 
 object_t rf_group(object_t x)
 {
-    if (MTYPE(x->type) != MTYPE(TYPE_I64))
-        return error(ERR_TYPE, "group: expected I64");
+    if (MTYPE(x->type) != MTYPE(TYPE_vector_i64))
+        return error(ERR_TYPE, "group: expected vector_i64");
 
-    return rf_group_I64(x);
+    return rf_group_vector_i64(x);
 }
 
 object_t rf_sum(object_t x)
@@ -180,13 +180,13 @@ object_t rf_sum(object_t x)
 
     switch (MTYPE(x->type))
     {
-    case MTYPE(-TYPE_I64):
+    case MTYPE(-TYPE_vector_i64):
         return clone(x);
-    case MTYPE(-TYPE_F64):
+    case MTYPE(-TYPE_vector_f64):
         return clone(x);
-    case MTYPE(TYPE_I64):
+    case MTYPE(TYPE_vector_i64):
         l = x->len;
-        iv = as_I64(x);
+        iv = as_vector_i64(x);
         if (x->flags & VEC_ATTR_WITHOUT_NULLS)
         {
             for (i = 0; i < l; i++)
@@ -196,16 +196,16 @@ object_t rf_sum(object_t x)
         {
             for (i = 0; i < l; i++)
             {
-                if (iv[i] ^ NULL_I64)
+                if (iv[i] ^ NULL_vector_i64)
                     isum += iv[i];
             }
         }
 
         return i64(isum);
 
-    case MTYPE(TYPE_F64):
+    case MTYPE(TYPE_vector_f64):
         l = x->len;
-        fv = as_F64(x);
+        fv = as_vector_f64(x);
         for (i = 0; i < l; i++)
             fsum += fv[i];
 
@@ -224,9 +224,9 @@ object_t rf_avg(object_t x)
 
     switch (MTYPE(x->type))
     {
-    case MTYPE(TYPE_I64):
+    case MTYPE(TYPE_vector_i64):
         l = x->len;
-        iv = as_I64(x);
+        iv = as_vector_i64(x);
         isum = 0;
         // vectorized version when we exactly know that there are no nulls
         if (x->flags & VEC_ATTR_WITHOUT_NULLS)
@@ -239,7 +239,7 @@ object_t rf_avg(object_t x)
             // scalar version
             for (i = 0; i < l; i++)
             {
-                if (iv[i] ^ NULL_I64)
+                if (iv[i] ^ NULL_vector_i64)
                     isum += iv[i];
                 else
                     n++;
@@ -247,9 +247,9 @@ object_t rf_avg(object_t x)
         }
         return f64((f64_t)isum / (l - n));
 
-    case MTYPE(TYPE_F64):
+    case MTYPE(TYPE_vector_f64):
         l = x->len;
-        fv = as_F64(x);
+        fv = as_vector_f64(x);
         fsum = 0;
         for (i = 0; i < l; i++)
             fsum += fv[i];
@@ -269,13 +269,13 @@ object_t rf_min(object_t x)
 
     switch (MTYPE(x->type))
     {
-    case MTYPE(TYPE_I64):
+    case MTYPE(TYPE_vector_i64):
         l = x->len;
 
         if (!l)
-            return i64(NULL_I64);
+            return i64(NULL_vector_i64);
 
-        iv = as_I64(x);
+        iv = as_vector_i64(x);
         imin = iv[0];
         // vectorized version when we exactly know that there are no nulls
         if (x->flags & VEC_ATTR_WITHOUT_NULLS)
@@ -295,7 +295,7 @@ object_t rf_min(object_t x)
         // scalar version
         // find first nonnull value
         for (i = 0; i < l; i++)
-            if (iv[i] ^ NULL_I64)
+            if (iv[i] ^ NULL_vector_i64)
             {
                 imin = iv[i];
                 break;
@@ -303,19 +303,19 @@ object_t rf_min(object_t x)
 
         for (i = 0; i < l; i++)
         {
-            if (iv[i] ^ NULL_I64)
+            if (iv[i] ^ NULL_vector_i64)
                 imin = iv[i] < imin ? iv[i] : imin;
         }
 
         return i64(imin);
 
-    case MTYPE(TYPE_F64):
+    case MTYPE(TYPE_vector_f64):
         l = x->len;
 
         if (!l)
-            return f64(NULL_F64);
+            return f64(NULL_vector_f64);
 
-        fv = as_F64(x);
+        fv = as_vector_f64(x);
         fmin = fv[0];
         // vectorized version when we exactly know that there are no nulls
         if (x->flags & VEC_ATTR_WITHOUT_NULLS)
@@ -349,13 +349,13 @@ object_t rf_max(object_t x)
 
     switch (MTYPE(x->type))
     {
-    case MTYPE(TYPE_I64):
+    case MTYPE(TYPE_vector_i64):
         l = x->len;
 
         if (!l)
-            return i64(NULL_I64);
+            return i64(NULL_vector_i64);
 
-        iv = as_I64(x);
+        iv = as_vector_i64(x);
         imax = iv[0];
         // vectorized version when we exactly know that there are no nulls
         if (x->flags & VEC_ATTR_WITHOUT_NULLS)
@@ -375,7 +375,7 @@ object_t rf_max(object_t x)
         // scalar version
         // find first nonnull value
         for (i = 0; i < l; i++)
-            if (iv[i] ^ NULL_I64)
+            if (iv[i] ^ NULL_vector_i64)
             {
                 imax = iv[i];
                 break;
@@ -383,7 +383,7 @@ object_t rf_max(object_t x)
 
         for (i = 0; i < l; i++)
         {
-            if (iv[i] ^ NULL_I64)
+            if (iv[i] ^ NULL_vector_i64)
                 imax = iv[i] > imax ? iv[i] : imax;
         }
 
@@ -407,9 +407,9 @@ object_t rf_not(object_t x)
 
     case MTYPE(TYPE_BOOL):
         l = x->len;
-        res = Bool(l);
+        res = vector_bool(l);
         for (i = 0; i < l; i++)
-            as_Bool(res)[i] = !as_Bool(x)[i];
+            as_vector_bool(res)[i] = !as_vector_bool(x)[i];
 
         return res;
 
@@ -422,7 +422,7 @@ object_t rf_iasc(object_t x)
 {
     switch (MTYPE(x->type))
     {
-    case MTYPE(TYPE_I64):
+    case MTYPE(TYPE_vector_i64):
         return rf_sort_asc(x);
 
     default:
@@ -434,7 +434,7 @@ object_trf_idesc(object_t x)
 {
     switch (MTYPE(x->type))
     {
-    case MTYPE(TYPE_I64):
+    case MTYPE(TYPE_vector_i64):
         return rf_sort_desc(x);
 
     default:
@@ -449,10 +449,10 @@ object_t rf_asc(object_t x)
 
     switch (MTYPE(x->type))
     {
-    case MTYPE(TYPE_I64):
+    case MTYPE(TYPE_vector_i64):
         l = x->len;
         for (i = 0; i < l; i++)
-            as_I64(idx)[i] = as_I64(x)[as_I64(idx)[i]];
+            as_vector_i64(idx)[i] = as_vector_i64(x)[as_vector_i64(idx)[i]];
 
         idx->flags |= VEC_ATTR_ASC;
 
@@ -470,10 +470,10 @@ object_t rf_desc(object_t x)
 
     switch (MTYPE(x->type))
     {
-    case MTYPE(TYPE_I64):
+    case MTYPE(TYPE_vector_i64):
         l = x->len;
         for (i = 0; i < l; i++)
-            as_I64(idx)[i] = as_I64(x)[as_I64(idx)[i]];
+            as_vector_i64(idx)[i] = as_vector_i64(x)[as_vector_i64(idx)[i]];
 
         idx->flags |= VEC_ATTR_DESC;
 
@@ -492,10 +492,10 @@ object_t rf_guid_generate(object_t x)
 
     switch (MTYPE(x->type))
     {
-    case MTYPE(-TYPE_I64):
+    case MTYPE(-TYPE_vector_i64):
         count = x->i64;
-        vec = Guid(count);
-        g = as_Guid(vec);
+        vec = vector_guid(count);
+        g = as_vector_guid(vec);
 
         for (i = 0; i < count; i++)
             guid_generate(g + i);
@@ -516,21 +516,21 @@ object_t rf_neg(object_t x)
     {
     case MTYPE(-TYPE_BOOL):
         return i64(-x->bool);
-    case MTYPE(-TYPE_I64):
+    case MTYPE(-TYPE_vector_i64):
         return i64(-x->i64);
-    case MTYPE(-TYPE_F64):
+    case MTYPE(-TYPE_vector_f64):
         return f64(-x->f64);
-    case MTYPE(TYPE_I64):
+    case MTYPE(TYPE_vector_i64):
         l = x->len;
-        res = I64(l);
+        res = vector_i64(l);
         for (i = 0; i < l; i++)
-            as_I64(res)[i] = -as_I64(x)[i];
+            as_vector_i64(res)[i] = -as_vector_i64(x)[i];
         return res;
-    case MTYPE(TYPE_F64):
+    case MTYPE(TYPE_vector_f64):
         l = x->len;
-        res = F64(l);
+        res = vector_f64(l);
         for (i = 0; i < l; i++)
-            as_F64(res)[i] = -as_F64(x)[i];
+            as_vector_f64(res)[i] = -as_vector_f64(x)[i];
         return res;
 
     default:
@@ -549,9 +549,9 @@ object_trf_where(object_t x)
     {
     case MTYPE(TYPE_BOOL):
         l = x->len;
-        iv = as_Bool(x);
-        res = I64(l);
-        ov = as_I64(res);
+        iv = as_vector_bool(x);
+        res = vector_i64(l);
+        ov = as_vector_i64(res);
         for (i = 0; i < l; i++)
             if (iv[i])
                 ov[j++] = i;
@@ -672,7 +672,7 @@ object_t rf_read_parse_compile(object_t x)
             return par;
         }
 
-        com = cc_compile_lambda(false, as_string(x), Symbol(0),
+        com = cc_compile_lambda(false, as_string(x), vector_symbol(0),
                                 as_list(par), par->id, par->len, &parser.debuginfo);
         drop(&par);
         parser_free(&parser);

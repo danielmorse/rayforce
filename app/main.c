@@ -67,7 +67,7 @@ null_t print_logo()
 object_t parse_cmdline(i32_t argc, str_t argv[])
 {
     i32_t opt, len;
-    object_t keys = Symbol(0), vals = list(0), str;
+    object_t keys = vector_symbol(0), vals = list(0), str;
 
     for (opt = 1; opt < argc && argv[opt][0] == '-'; opt++)
     {

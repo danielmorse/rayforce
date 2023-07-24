@@ -90,14 +90,14 @@ object_t bool(bool_t val)
 
 object_t i64(i64_t val)
 {
-    object_t i = atom(TYPE_I64);
+    object_t i = atom(TYPE_vector_i64);
     i->i64 = val;
     return i;
 }
 
 object_t f64(f64_t val)
 {
-    object_t f = atom(TYPE_F64);
+    object_t f = atom(TYPE_vector_f64);
     f->f64 = val;
     return f;
 }
@@ -176,10 +176,10 @@ object_t dict(object_t keys, object_t vals)
 bool_t is_null(object_t object)
 {
     return (object->type == TYPE_LIST && object->ptr == NULL) ||
-           (object->type == -TYPE_I64 && object->i64 == NULL_I64) ||
-           (object->type == -TYPE_SYMBOL && object->i64 == NULL_I64) ||
-           (object->type == -TYPE_F64 && object->f64 == NULL_F64) ||
-           (object->type == -TYPE_TIMESTAMP && object->i64 == NULL_I64) ||
+           (object->type == -TYPE_vector_i64 && object->i64 == NULL_vector_i64) ||
+           (object->type == -TYPE_SYMBOL && object->i64 == NULL_vector_i64) ||
+           (object->type == -TYPE_vector_f64 && object->f64 == NULL_vector_f64) ||
+           (object->type == -TYPE_TIMESTAMP && object->i64 == NULL_vector_i64) ||
            (object->type == -TYPE_CHAR && object->schar == '\0');
 }
 
@@ -193,13 +193,13 @@ bool_t object_t_eq(object_t a, object_t b)
     if (a->type != b->type)
         return 0;
 
-    if (a->type == -TYPE_I64 || a->type == -TYPE_SYMBOL || a->type == TYPE_UNARY || a->type == TYPE_BINARY || a->type == TYPE_VARY)
+    if (a->type == -TYPE_vector_i64 || a->type == -TYPE_SYMBOL || a->type == TYPE_UNARY || a->type == TYPE_BINARY || a->type == TYPE_VARY)
         return a->i64 == b->i64;
-    else if (a->type == -TYPE_F64)
+    else if (a->type == -TYPE_vector_f64)
         return a->f64 == b->f64;
-    else if (a->type == TYPE_I64 || a->type == TYPE_SYMBOL)
+    else if (a->type == TYPE_vector_i64 || a->type == TYPE_SYMBOL)
     {
-        if (as_I64(a) == as_I64(b))
+        if (as_vector_i64(a) == as_vector_i64(b))
             return true;
         if (a->len != b->len)
             return false;
@@ -207,14 +207,14 @@ bool_t object_t_eq(object_t a, object_t b)
         l = a->len;
         for (i = 0; i < l; i++)
         {
-            if (as_I64(a)[i] != as_I64(b)[i])
+            if (as_vector_i64(a)[i] != as_vector_i64(b)[i])
                 return false;
         }
         return 1;
     }
-    else if (a->type == TYPE_F64)
+    else if (a->type == TYPE_vector_f64)
     {
-        if (as_F64(a) == as_F64(b))
+        if (as_vector_f64(a) == as_vector_f64(b))
             return 1;
         if (a->len != b->len)
             return false;
@@ -222,7 +222,7 @@ bool_t object_t_eq(object_t a, object_t b)
         l = a->len;
         for (i = 0; i < l; i++)
         {
-            if (as_F64(a)[i] != as_F64(b)[i])
+            if (as_vector_f64(a)[i] != as_vector_f64(b)[i])
                 return false;
         }
         return true;
@@ -247,8 +247,8 @@ object_t __attribute__((hot)) clone(object_t object)
     switch (object->type)
     {
     case TYPE_BOOL:
-    case TYPE_I64:
-    case TYPE_F64:
+    case TYPE_vector_i64:
+    case TYPE_vector_f64:
     case TYPE_SYMBOL:
     case TYPE_TIMESTAMP:
     case TYPE_CHAR:
@@ -291,8 +291,8 @@ null_t __attribute__((hot)) drop(object_t object)
     switch (object->type)
     {
     case TYPE_BOOL:
-    case TYPE_I64:
-    case TYPE_F64:
+    case TYPE_vector_i64:
+    case TYPE_vector_f64:
     case TYPE_SYMBOL:
     case TYPE_TIMESTAMP:
     case TYPE_CHAR:
@@ -350,29 +350,29 @@ object_t cow(object_t object)
     // switch (object->type)
     // {
     // case TYPE_BOOL:
-    //     new = Bool(object->len);
+    //     new = vector_bool(object->len);
     //     new.adt->attrs = object->attrs;
-    //     memcpy(as_Bool(&new), as_Bool(object), object->len);
+    //     memcpy(as_vector_bool(&new), as_vector_bool(object), object->len);
     //     return new;
-    // case TYPE_I64:
-    //     new = I64(object->len);
+    // case TYPE_vector_i64:
+    //     new = vector_i64(object->len);
     //     new.adt->attrs = object->attrs;
-    //     memcpy(as_I64(&new), as_I64(object), object->len * sizeof(i64_t));
+    //     memcpy(as_vector_i64(&new), as_vector_i64(object), object->len * sizeof(i64_t));
     //     return new;
-    // case TYPE_F64:
-    //     new = F64(object->len);
+    // case TYPE_vector_f64:
+    //     new = vector_f64(object->len);
     //     new.adt->attrs = object->attrs;
-    //     memcpy(as_F64(&new), as_F64(object), object->len * sizeof(f64_t));
+    //     memcpy(as_vector_f64(&new), as_vector_f64(object), object->len * sizeof(f64_t));
     //     return new;
     // case TYPE_SYMBOL:
-    //     new = Symbol(object->len);
+    //     new = vector_symbol(object->len);
     //     new.adt->attrs = object->attrs;
-    //     memcpy(as_Symbol(&new), as_Symbol(object), object->len * sizeof(i64_t));
+    //     memcpy(as_vector_symbol(&new), as_vector_symbol(object), object->len * sizeof(i64_t));
     //     return new;
     // case TYPE_TIMESTAMP:
-    //     new = Timestamp(object->len);
+    //     new = vector_timestamp(object->len);
     //     new.adt->attrs = object->attrs;
-    //     memcpy(as_Timestamp(&new), as_Timestamp(object), object->len * sizeof(i64_t));
+    //     memcpy(as_vector_timestamp(&new), as_vector_timestamp(object), object->len * sizeof(i64_t));
     //     return new;
     // case TYPE_CHAR:
     //     new = string(object->len);

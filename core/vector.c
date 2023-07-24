@@ -36,9 +36,9 @@ i64_t size_of_val(type_t type)
     {
     case TYPE_BOOL:
         return sizeof(bool_t);
-    case TYPE_I64:
+    case TYPE_vector_i64:
         return sizeof(i64_t);
-    case TYPE_F64:
+    case TYPE_vector_f64:
         return sizeof(f64_t);
     case TYPE_SYMBOL:
         return sizeof(i64_t);
@@ -78,10 +78,10 @@ object_t _push(object_t vec, object_t value)
     case TYPE_BOOL:
         push(vec, bool_t, value->bool);
         return null();
-    case TYPE_I64:
+    case TYPE_vector_i64:
         push(vec, i64_t, value->i64);
         return null();
-    case TYPE_F64:
+    case TYPE_vector_f64:
         push(vec, f64_t, value->f64);
         return null();
     case TYPE_SYMBOL:
@@ -162,16 +162,16 @@ object_t vector_pop(object_t vec)
     {
     case TYPE_BOOL:
         return bool(pop(vec, bool_t));
-    case TYPE_I64:
+    case TYPE_vector_i64:
         return i64(pop(vec, i64_t));
-    case TYPE_F64:
+    case TYPE_vector_f64:
         return f64(pop(vec, f64_t));
     case TYPE_SYMBOL:
         return symboli64(pop(vec, i64_t));
     case TYPE_TIMESTAMP:
         return i64(pop(vec, i64_t));
     case TYPE_GUID:
-        g = as_Guid(vec);
+        g = as_vector_guid(vec);
         return guid(g[--vec->len].data);
     case TYPE_CHAR:
         return schar(pop(vec, char_t));
@@ -191,10 +191,10 @@ null_t vector_reserve(object_t vec, u32_t len)
     case TYPE_BOOL:
         reserve(vec, bool_t, len);
         return;
-    case TYPE_I64:
+    case TYPE_vector_i64:
         reserve(vec, i64_t, len);
         return;
-    case TYPE_F64:
+    case TYPE_vector_f64:
         reserve(vec, f64_t, len);
         return;
     case TYPE_SYMBOL:
@@ -265,42 +265,42 @@ i64_t vector_find(object_t vec, object_t key)
     // switch (vec->type)
     // {
     // case TYPE_BOOL:
-    //     vb = as_Bool(vec);
+    //     vb = as_vector_bool(vec);
     //     kb = key->bool;
     //     for (i = 0; i < l; i++)
     //         if (vb[i] == kb)
     //             return i;
     //     return l;
-    // case TYPE_I64:
-    //     vi = as_I64(vec);
+    // case TYPE_vector_i64:
+    //     vi = as_vector_i64(vec);
     //     ki = key->i64;
     //     for (i = 0; i < l; i++)
     //         if (vi[i] == ki)
     //             return i;
     //     return l;
-    // case TYPE_F64:
-    //     vf = as_F64(vec);
+    // case TYPE_vector_f64:
+    //     vf = as_vector_f64(vec);
     //     kf = key->f64;
     //     for (i = 0; i < l; i++)
     //         if (vf[i] == kf)
     //             return i;
     //     return l;
     // case TYPE_SYMBOL:
-    //     vi = as_Symbol(vec);
+    //     vi = as_vector_symbol(vec);
     //     ki = key->i64;
     //     for (i = 0; i < l; i++)
     //         if (vi[i] == ki)
     //             return i;
     //     return l;
     // case TYPE_TIMESTAMP:
-    //     vi = as_Timestamp(vec);
+    //     vi = as_vector_timestamp(vec);
     //     ki = key->i64;
     //     for (i = 0; i < l; i++)
     //         if (vi[i] == ki)
     //             return i;
     //     return l;
     // case TYPE_GUID:
-    //     vg = as_Guid(vec);
+    //     vg = as_vector_guid(vec);
     //     kg = key->guid;
     //     for (i = 0; i < l; i++)
     //         if (memcmp(vg + i, kg, sizeof(guid_t)) == 0)
@@ -337,27 +337,27 @@ object_t vector_get(object_t vec, i64_t index)
     // {
     // case TYPE_BOOL:
     //     if (index < l)
-    //         return bool(as_Bool(vec)[index]);
+    //         return bool(as_vector_bool(vec)[index]);
     //     return bool(false);
-    // case TYPE_I64:
+    // case TYPE_vector_i64:
     //     if (index < l)
-    //         return i64(as_I64(vec)[index]);
-    //     return i64(NULL_I64);
-    // case TYPE_F64:
+    //         return i64(as_vector_i64(vec)[index]);
+    //     return i64(NULL_vector_i64);
+    // case TYPE_vector_f64:
     //     if (index < l)
-    //         return f64(as_F64(vec)[index]);
-    //     return f64(NULL_F64);
+    //         return f64(as_vector_f64(vec)[index]);
+    //     return f64(NULL_vector_f64);
     // case TYPE_SYMBOL:
     //     if (index < l)
-    //         return symboli64(as_I64(vec)[index]);
-    //     return symboli64(NULL_I64);
+    //         return symboli64(as_vector_i64(vec)[index]);
+    //     return symboli64(NULL_vector_i64);
     // case TYPE_TIMESTAMP:
     //     if (index < l)
-    //         return timestamp(as_I64(vec)[index]);
-    //     return timestamp(NULL_I64);
+    //         return timestamp(as_vector_i64(vec)[index]);
+    //     return timestamp(NULL_vector_i64);
     // case TYPE_GUID:
     //     if (index < l)
-    //         return guid(as_Guid(vec)[index].data);
+    //         return guid(as_vector_guid(vec)[index].data);
     //     return guid(NULL);
     // case TYPE_CHAR:
     //     if (index < l)
@@ -406,22 +406,22 @@ object_t vector_set(object_t vec, i64_t index, object_t value)
     // switch (vec->type)
     // {
     // case TYPE_BOOL:
-    //     as_Bool(vec)[index] = value.bool;
+    //     as_vector_bool(vec)[index] = value.bool;
     //     break;
-    // case TYPE_I64:
-    //     as_I64(vec)[index] = value.i64;
+    // case TYPE_vector_i64:
+    //     as_vector_i64(vec)[index] = value.i64;
     //     break;
-    // case TYPE_F64:
-    //     as_F64(vec)[index] = value.f64;
+    // case TYPE_vector_f64:
+    //     as_vector_f64(vec)[index] = value.f64;
     //     break;
     // case TYPE_SYMBOL:
-    //     as_I64(vec)[index] = value.i64;
+    //     as_vector_i64(vec)[index] = value.i64;
     //     break;
     // case TYPE_TIMESTAMP:
-    //     as_I64(vec)[index] = value.i64;
+    //     as_vector_i64(vec)[index] = value.i64;
     //     break;
     // case TYPE_GUID:
-    //     g = as_Guid(vec);
+    //     g = as_vector_guid(vec);
     //     memcpy(g + index, value.guid, sizeof(guid_t));
     //     break;
     // case TYPE_CHAR:
@@ -469,22 +469,22 @@ null_t vector_write(object_t vec, i64_t index, object_t value)
     // switch (vec->type)
     // {
     // case TYPE_BOOL:
-    //     as_Bool(vec)[index] = value.bool;
+    //     as_vector_bool(vec)[index] = value.bool;
     //     break;
-    // case TYPE_I64:
-    //     as_I64(vec)[index] = value.i64;
+    // case TYPE_vector_i64:
+    //     as_vector_i64(vec)[index] = value.i64;
     //     break;
-    // case TYPE_F64:
-    //     as_F64(vec)[index] = value.f64;
+    // case TYPE_vector_f64:
+    //     as_vector_f64(vec)[index] = value.f64;
     //     break;
     // case TYPE_SYMBOL:
-    //     as_I64(vec)[index] = value.i64;
+    //     as_vector_i64(vec)[index] = value.i64;
     //     break;
     // case TYPE_TIMESTAMP:
-    //     as_I64(vec)[index] = value.i64;
+    //     as_vector_i64(vec)[index] = value.i64;
     //     break;
     // case TYPE_GUID:
-    //     g = as_Guid(vec);
+    //     g = as_vector_guid(vec);
     //     memcpy(g + index, value.guid, sizeof(guid_t));
     //     break;
     // case TYPE_CHAR:
@@ -508,56 +508,56 @@ object_t vector_filter(object_t vec, bool_t mask[], i64_t len)
     return res;
 
     // l = vec->len;
-    // ol = (len == NULL_I64) ? (i64_t)vec->len : len;
+    // ol = (len == NULL_vector_i64) ? (i64_t)vec->len : len;
 
     // switch (vec->type)
     // {
     // case TYPE_BOOL:
-    //     res = Bool(ol);
+    //     res = vector_bool(ol);
     //     for (i = 0; (j < ol && i < l); i++)
     //         if (mask[i])
-    //             as_Bool(&res)[j++] = as_Bool(vec)[i];
-    //     if (len == NULL_I64)
+    //             as_vector_bool(&res)[j++] = as_vector_bool(vec)[i];
+    //     if (len == NULL_vector_i64)
     //         vector_shrink(&res, j);
     //     return res;
-    // case TYPE_I64:
-    //     res = I64(ol);
+    // case TYPE_vector_i64:
+    //     res = vector_i64(ol);
     //     for (i = 0; (j < ol && i < l); i++)
     //         if (mask[i])
-    //             as_I64(&res)[j++] = as_I64(vec)[i];
-    //     if (len == NULL_I64)
+    //             as_vector_i64(&res)[j++] = as_vector_i64(vec)[i];
+    //     if (len == NULL_vector_i64)
     //         vector_shrink(&res, j);
     //     return res;
-    // case TYPE_F64:
-    //     res = F64(ol);
+    // case TYPE_vector_f64:
+    //     res = vector_f64(ol);
     //     for (i = 0; (j < ol && i < l); i++)
     //         if (mask[i])
-    //             as_F64(&res)[j++] = as_F64(vec)[i];
-    //     if (len == NULL_I64)
+    //             as_vector_f64(&res)[j++] = as_vector_f64(vec)[i];
+    //     if (len == NULL_vector_i64)
     //         vector_shrink(&res, j);
     //     return res;
     // case TYPE_SYMBOL:
-    //     res = Symbol(ol);
+    //     res = vector_symbol(ol);
     //     for (i = 0; (j < ol && i < l); i++)
     //         if (mask[i])
-    //             as_I64(&res)[j++] = as_I64(vec)[i];
-    //     if (len == NULL_I64)
+    //             as_vector_i64(&res)[j++] = as_vector_i64(vec)[i];
+    //     if (len == NULL_vector_i64)
     //         vector_shrink(&res, j);
     //     return res;
     // case TYPE_TIMESTAMP:
-    //     res = Timestamp(ol);
+    //     res = vector_timestamp(ol);
     //     for (i = 0; (j < ol && i < l); i++)
     //         if (mask[i])
-    //             as_I64(&res)[j++] = as_I64(vec)[i];
-    //     if (len == NULL_I64)
+    //             as_vector_i64(&res)[j++] = as_vector_i64(vec)[i];
+    //     if (len == NULL_vector_i64)
     //         vector_shrink(&res, j);
     //     return res;
     // case TYPE_GUID:
-    //     res = Guid(ol);
+    //     res = vector_guid(ol);
     //     for (i = 0; (j < ol && i < l); i++)
     //         if (mask[i])
-    //             as_Guid(&res)[j++] = as_Guid(vec)[i];
-    //     if (len == NULL_I64)
+    //             as_vector_guid(&res)[j++] = as_vector_guid(vec)[i];
+    //     if (len == NULL_vector_i64)
     //         vector_shrink(&res, j);
     //     return res;
     // case TYPE_CHAR:
@@ -565,7 +565,7 @@ object_t vector_filter(object_t vec, bool_t mask[], i64_t len)
     //     for (i = 0; (j < ol && i < l); i++)
     //         if (mask[i])
     //             as_string(&res)[j++] = as_string(vec)[i];
-    //     if (len == NULL_I64)
+    //     if (len == NULL_vector_i64)
     //         vector_shrink(&res, j);
     //     return res;
     // case TYPE_LIST:
@@ -573,7 +573,7 @@ object_t vector_filter(object_t vec, bool_t mask[], i64_t len)
     //     for (i = 0; (j < ol && i < l); i++)
     //         if (mask[i])
     //             as_list(&res)[j++] = clone(&as_list(vec)[i]);
-    //     if (len == NULL_I64)
+    //     if (len == NULL_vector_i64)
     //         vector_shrink(&res, j);
     //     return res;
     // default:

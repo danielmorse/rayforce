@@ -33,8 +33,8 @@ extern "C"
 // Type constants
 #define TYPE_LIST 0
 #define TYPE_BOOL 1
-#define TYPE_I64 2
-#define TYPE_F64 3
+#define TYPE_vector_i64 2
+#define TYPE_vector_f64 3
 #define TYPE_SYMBOL 4
 #define TYPE_TIMESTAMP 5
 #define TYPE_GUID 6
@@ -65,8 +65,8 @@ extern "C"
 #define ERR_THROW 13
 #define ERR_UNKNOWN 127
 
-#define NULL_I64 ((i64_t)0x8000000000000000LL)
-#define NULL_F64 ((f64_t)(0 / 0.0))
+#define NULL_vector_i64 ((i64_t)0x8000000000000000LL)
+#define NULL_vector_f64 ((f64_t)(0 / 0.0))
 #define true (char)1
 #define false (char)0
 
@@ -117,34 +117,34 @@ typedef struct object_t
 } *object_t;
 
 // Constructors
-extern object_t null();                                                     // create null
-extern object_t atom(type_t type);                                          // create atom of type
-extern object_t list(i64_t len, ...);                                       // create list
-extern object_t vector(type_t type, i64_t len);                             // create vector of type
-extern object_t bool(bool_t val);                                           // bool scalar
-extern object_t i64(i64_t val);                                             // i64 scalar
-extern object_t f64(f64_t val);                                             // f64 scalar
-extern object_t symbol(str_t ptr);                                          // symbol
-extern object_t symboli64(i64_t id);                                        // symbol from i64
-extern object_t timestamp(i64_t val);                                       // timestamp
-extern object_t guid(u8_t data[]);                                          // GUID
-extern object_t schar(char_t c);                                            // char
-extern object_t string(i64_t len);                                          // string 
+extern object_t null();                                                 // create null
+extern object_t atom(type_t type);                                      // create atom of type
+extern object_t list(i64_t len, ...);                                   // create list
+extern object_t vector(type_t type, i64_t len);                         // create vector of type
+extern object_t bool(bool_t val);                                       // bool scalar
+extern object_t i64(i64_t val);                                         // i64 scalar
+extern object_t f64(f64_t val);                                         // f64 scalar
+extern object_t symbol(str_t ptr);                                      // symbol
+extern object_t symboli64(i64_t id);                                    // symbol from i64
+extern object_t timestamp(i64_t val);                                   // timestamp
+extern object_t guid(u8_t data[]);                                      // GUID
+extern object_t schar(char_t c);                                        // char
+extern object_t string(i64_t len);                                      // string 
 
-#define Bool(len)      (vector(TYPE_BOOL,       len ))  // bool vector
-#define I64(len)       (vector(TYPE_I64,        len ))  // i64 vector
-#define F64(len)       (vector(TYPE_F64,        len ))  // f64 vector
-#define Symbol(len)    (vector(TYPE_SYMBOL,     len ))  // symbol vector
-#define Timestamp(len) (vector(TYPE_TIMESTAMP,  len ))  // char vector
-#define Guid(len)      (vector(TYPE_GUID,       len ))  // GUID vector
-
-extern object_t table(object_t keys, object_t vals);                  // table
-extern object_t dict(object_t keys,  object_t vals);                  // dict
+#define vector_bool(len)      (vector(TYPE_BOOL,       len ))           // bool vector
+#define vector_i64(len)       (vector(TYPE_vector_i64, len ))           // i64 vector
+#define vector_f64(len)       (vector(TYPE_vector_f64, len ))           // f64 vector
+#define vector_symbol(len)    (vector(TYPE_SYMBOL,     len ))           // symbol vector
+#define vector_timestamp(len) (vector(TYPE_TIMESTAMP,  len ))           // char vector
+#define vector_guid(len)      (vector(TYPE_GUID,       len ))           // GUID vector
+         
+extern object_t table(object_t keys, object_t vals);                    // table
+extern object_t dict(object_t keys,  object_t vals);                    // dict
 
 // Reference counting   
-extern object_t clone(object_t object);                    // clone
-extern object_t cow(object_t   object);                    // clone if refcount > 1
-extern i64_t     rc(object_t    object);                    // get refcount
+extern object_t clone(object_t object);                                 // clone
+extern object_t cow(object_t   object);                                 // clone if refcount > 1
+extern i64_t     rc(object_t    object);                                // get refcount
 
 // Error
 extern object_t error(i8_t code, str_t message);
@@ -153,14 +153,14 @@ extern object_t error(i8_t code, str_t message);
 extern null_t drop(object_t   object);
 
 // Accessors
-#define as_string(object)    ((object)->ptr)
-#define as_Bool(object)      ((bool_t *)(as_string(object)))
-#define as_I64(object)       ((i64_t *)(as_string(object)))
-#define as_F64(object)       ((f64_t *)(as_string(object)))
-#define as_Symbol(object)    ((i64_t *)(as_string(object)))
-#define as_Timestamp(object) ((i64_t *)(as_string(object)))
-#define as_Guid(object)      ((guid_t *)(as_string(object)))
-#define as_list(object)      ((object_t *)(as_string(object)))
+#define as_string(object)           ((object)->ptr)
+#define as_vector_bool(object)      ((bool_t *)(as_string(object)))
+#define as_vector_i64(object)       ((i64_t *)(as_string(object)))
+#define as_vector_f64(object)       ((f64_t *)(as_string(object)))
+#define as_vector_symbol(object)    ((i64_t *)(as_string(object)))
+#define as_vector_timestamp(object) ((i64_t *)(as_string(object)))
+#define as_vector_guid(object)      ((guid_t *)(as_string(object)))
+#define as_list(object)             ((object_t *)(as_string(object)))
 
 // Checkers
 extern bool_t is_null(object_t object);

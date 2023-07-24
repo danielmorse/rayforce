@@ -52,23 +52,23 @@
 #define MTYPE3(x, y, z) ((u8_t)(x) | ((u8_t)(y) << 8) | ((u8_t)(z) << 16))
 #define MTYPE4(x, y, z, w) ((u8_t)(x) | ((u8_t)(y) << 8) | ((u8_t)(z) << 16) | ((u8_t)(w) << 24))
 
-#define IS_NULL_I64(x) (((x) >> 63) & 1)
-#define ADDI64(x, y) ((((x) + (y)) & ~((i64_t)IS_NULL_I64(x) | (i64_t)IS_NULL_I64(y))) | ((i64_t)IS_NULL_I64(x) | (i64_t)IS_NULL_I64(y)) << 63)
-#define ADDF64(x, y) (x + y)
-#define SUBI64(x, y) ((x == NULL_I64 || y == NULL_I64) ? NULL_I64 : (x - y))
-#define SUBF64(x, y) (x - y)
-#define MULI64(x, y) ((((x) * (y)) & ~((i64_t)IS_NULL_I64(x) | (i64_t)IS_NULL_I64(y))) | ((i64_t)IS_NULL_I64(x) | (i64_t)IS_NULL_I64(y)) << 63)
-#define MULF64(x, y) (x * y)
-#define DIVI64(x, y) ((x == NULL_I64 || y == NULL_I64) ? NULL_F64 : ((x) / (y)))
-#define FDIVI64(x, y) ((x == NULL_I64 || y == NULL_I64) ? NULL_F64 : ((f64_t)(x) / (f64_t)(y)))
-#define DIVF64(x, y) ((i64_t)(x / y))
-#define FDIVF64(x, y) (x / y)
-#define MODI64(x, y) ((x == NULL_I64 || y == NULL_I64) ? NULL_I64 : ((x) % (y)))
-#define MODF64(x, y) (x - y * ((i64_t)(x / y)))
-#define MAXI64(x, y) (x > y ? x : y)
-#define MAXF64(x, y) (x > y ? x : y)
-#define MINI64(x, y) (IS_NULL_I64(y) || (!IS_NULL_I64(x) && (x < y)) ? x : y)
-#define MINF64(x, y) (x < y ? x : y)
+#define IS_NULL_vector_i64(x) (((x) >> 63) & 1)
+#define ADDvector_i64(x, y) ((((x) + (y)) & ~((i64_t)IS_NULL_vector_i64(x) | (i64_t)IS_NULL_vector_i64(y))) | ((i64_t)IS_NULL_vector_i64(x) | (i64_t)IS_NULL_vector_i64(y)) << 63)
+#define ADDvector_f64(x, y) (x + y)
+#define SUBvector_i64(x, y) ((x == NULL_vector_i64 || y == NULL_vector_i64) ? NULL_vector_i64 : (x - y))
+#define SUBvector_f64(x, y) (x - y)
+#define MULvector_i64(x, y) ((((x) * (y)) & ~((i64_t)IS_NULL_vector_i64(x) | (i64_t)IS_NULL_vector_i64(y))) | ((i64_t)IS_NULL_vector_i64(x) | (i64_t)IS_NULL_vector_i64(y)) << 63)
+#define MULvector_f64(x, y) (x * y)
+#define DIVvector_i64(x, y) ((x == NULL_vector_i64 || y == NULL_vector_i64) ? NULL_vector_f64 : ((x) / (y)))
+#define FDIVvector_i64(x, y) ((x == NULL_vector_i64 || y == NULL_vector_i64) ? NULL_vector_f64 : ((f64_t)(x) / (f64_t)(y)))
+#define DIVvector_f64(x, y) ((i64_t)(x / y))
+#define FDIVvector_f64(x, y) (x / y)
+#define MODvector_i64(x, y) ((x == NULL_vector_i64 || y == NULL_vector_i64) ? NULL_vector_i64 : ((x) % (y)))
+#define MODvector_f64(x, y) (x - y * ((i64_t)(x / y)))
+#define MAXvector_i64(x, y) (x > y ? x : y)
+#define MAXvector_f64(x, y) (x > y ? x : y)
+#define MINvector_i64(x, y) (IS_NULL_vector_i64(y) || (!IS_NULL_vector_i64(x) && (x < y)) ? x : y)
+#define MINvector_f64(x, y) (x < y ? x : y)
 /*
  * Aligns x to the nearest multiple of a
  */
@@ -77,7 +77,7 @@
 bool_t rfi_is_nan(f64_t x);
 bool_t rfi_eq(object_t x, object_t y);
 bool_t rfi_lt(object_t x, object_t y);
-bool_t rfi_as_bool(object_t x);
+bool_t rfi_as_vector_bool(object_t x);
 
 i64_t rfi_round_f64(f64_t x);
 i64_t rfi_floor_f64(f64_t x);

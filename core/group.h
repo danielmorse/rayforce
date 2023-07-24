@@ -26,7 +26,7 @@
 
 #include "rayforce.h"
 
-object_t rf_distinct_I64(object_t x);
-object_t rf_group_I64(object_t x);
+object_t rf_distinct_vector_i64(object_t x);
+object_t rf_group_vector_i64(object_t x);
 
 #endif

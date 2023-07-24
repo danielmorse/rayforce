@@ -156,7 +156,7 @@ op_jne:
     vm->ip++;
     x2 = stack_pop(vm);
     load_u64(l, vm);
-    if (!rfi_as_bool(&x2))
+    if (!rfi_as_vector_bool(&x2))
         vm->ip = l;
     dispatch();
 op_jmp:
@@ -302,7 +302,7 @@ op_lset:
     x2 = stack_pop(vm);
     x1 = stack_pop(vm);
     if (f->locals->len == 0)
-        vector_push(&f->locals, dict(Symbol(0), list(0)));
+        vector_push(&f->locals, dict(vector_symbol(0), list(0)));
     dict_set(&as_list(f->locals)[f->locals->len - 1], x1, x2);
     dispatch();
 op_lget:
@@ -414,7 +414,7 @@ op_eval:
     //     drop(&x1);
     //     unwrap(error(ERR_TYPE, "eval: expects list"), b);
     // }
-    // x2 = cc_compile_lambda(false, "anonymous", Symbol(0), as_list(x1), x1.id, x1->len, NULL);
+    // x2 = cc_compile_lambda(false, "anonymous", vector_symbol(0), as_list(x1), x1.id, x1->len, NULL);
     // drop(&x1);
     // unwrap(x2, b);
     // stack_push(vm, x2);
