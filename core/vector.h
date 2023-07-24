@@ -65,10 +65,10 @@
     }
 
 /*
- * Appends object_tect to the end of vector (dynamically grows vector if needed)
+ * Appends obj_tect to the end of vector (dynamically grows vector if needed)
  * v - vector to append to
- * t - type of object_tect to append
- * x - object_tect to append
+ * t - type of obj_tect to append
+ * x - obj_tect to append
  */
 #define push(v, t, x)                                                 \
     {                                                                 \
@@ -80,21 +80,21 @@
 #define pop(v, t) ((t *)(as_string(v)))[--(v)->len]
 
 i64_t size_of_val(type_t type);
-i64_t vector_find(object_t vec, object_t key);
+i64_t vector_find(obj_t vec, obj_t key);
 
-object_t vector_get(object_t vec, i64_t index);
-object_t vector_filter(object_t vec, bool_t mask[], i64_t len);
-object_t vector_set(object_t vec, i64_t index, object_t value);
-null_t vector_write(object_t vec, i64_t index, object_t value);
-object_t vector_push(object_t vec, object_t object);
-object_t list_push(object_t vec, object_t object);
-object_t rf_list(object_t x, u32_t n);
-object_t rf_enlist(object_t x, u32_t n);
+obj_t vector_get(obj_t vec, i64_t index);
+obj_t vector_filter(obj_t vec, bool_t mask[], i64_t len);
+obj_t vector_set(obj_t vec, i64_t index, obj_t value);
+null_t vector_write(obj_t vec, i64_t index, obj_t value);
+obj_t vector_push(obj_t vec, obj_t obj);
+obj_t list_push(obj_t vec, obj_t obj);
+obj_t rf_list(obj_t x, u32_t n);
+obj_t rf_enlist(obj_t x, u32_t n);
 
-null_t vector_reserve(object_t vec, u32_t len);
-null_t vector_grow(object_t vec, u32_t len);
-null_t vector_shrink(object_t vec, u32_t len);
-null_t vector_free(object_t vec);
-null_t vector_clear(object_t vec);
+null_t vector_reserve(obj_t vec, u32_t len);
+null_t vector_grow(obj_t vec, u32_t len);
+null_t vector_shrink(obj_t vec, u32_t len);
+null_t vector_free(obj_t vec);
+null_t vector_clear(obj_t vec);
 
 #endif

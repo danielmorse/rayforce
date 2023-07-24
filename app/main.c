@@ -64,10 +64,10 @@ null_t print_logo()
     rf_free(logo);
 }
 
-object_t parse_cmdline(i32_t argc, str_t argv[])
+obj_t parse_cmdline(i32_t argc, str_t argv[])
 {
     i32_t opt, len;
-    object_t keys = vector_symbol(0), vals = list(0), str;
+    obj_t keys = vector_symbol(0), vals = list(0), str;
 
     for (opt = 1; opt < argc && argv[opt][0] == '-'; opt++)
     {
@@ -97,11 +97,11 @@ object_t parse_cmdline(i32_t argc, str_t argv[])
 
 null_t repl(str_t name, parser_t *parser, str_t buf, i32_t len)
 {
-    object_t parsed, compiled, executed;
+    obj_t parsed, compiled, executed;
     str_t formatted = NULL;
 
     parsed = parse(parser, name, buf);
-    printf("%s\n", object_t_fmt(parsed));
+    printf("%s\n", obj_t_fmt(parsed));
     return;
 
     if (is_error(parsed))
@@ -132,7 +132,7 @@ null_t repl(str_t name, parser_t *parser, str_t buf, i32_t len)
         print_error(executed, name, buf, len);
     else if (!is_null(executed))
     {
-        formatted = object_t_fmt(executed);
+        formatted = obj_t_fmt(executed);
         if (formatted != NULL)
         {
             printf("%s\n", formatted);
@@ -165,7 +165,7 @@ i32_t main(i32_t argc, str_t argv[])
 
     runtime_init(0);
 
-    object_t args = parse_cmdline(argc, argv), filename, symfile = symbol("file"), file;
+    obj_t args = parse_cmdline(argc, argv), filename, symfile = symbol("file"), file;
     str_t line, ptr;
     parser_t parser = parser_new();
 

@@ -45,14 +45,14 @@ CASSERT(OP_INVALID < 127, vm_h)
 #define stack_pop(v) (v->stack[--v->sp])
 #define stack_peek(v) (&v->stack[v->sp - 1])
 #define stack_peek_n(v, n) (&v->stack[v->sp - 1 - (n)])
-#define stack_debug(v)                                                    \
-    {                                                                     \
-        i32_t _i = v->sp;                                                 \
-        while (_i > 0)                                                    \
-        {                                                                 \
-            debug("%d: %s", v->sp - _i, object_t_fmt(&v->stack[_i - 1])); \
-            _i--;                                                         \
-        }                                                                 \
+#define stack_debug(v)                                                 \
+    {                                                                  \
+        i32_t _i = v->sp;                                              \
+        while (_i > 0)                                                 \
+        {                                                              \
+            debug("%d: %s", v->sp - _i, obj_t_fmt(&v->stack[_i - 1])); \
+            _i--;                                                      \
+        }                                                              \
     }
 
 typedef struct ctx_t
@@ -62,11 +62,11 @@ typedef struct ctx_t
     i32_t bp;
 } ctx_t;
 
-// CASSERT(sizeof(struct ctx_t) == sizeof(struct object_t), vm_c)
+// CASSERT(sizeof(struct ctx_t) == sizeof(struct obj_t), vm_c)
 
 vm_t vm_new()
 {
-    object_t stack = (object_t)mmap_stack(VM_STACK_SIZE);
+    obj_t stack = (obj_t)mmap_stack(VM_STACK_SIZE);
 
     vm_t vm = {
         .trace = 0,
@@ -79,12 +79,12 @@ vm_t vm_new()
 /*
  * Execute the lambda
  */
-object_t __attribute__((hot)) vm_exec(vm_t *vm, object_t fun)
+obj_t __attribute__((hot)) vm_exec(vm_t *vm, obj_t fun)
 {
     type_t c;
     lambda_t *f = as_lambda(fun);
     str_t code = as_string(f->code);
-    object_t x0, x1, x2, x3, *addr;
+    obj_t x0, x1, x2, x3, *addr;
     i64_t t;
     u8_t n, flags;
     u64_t l, p;
@@ -106,7 +106,7 @@ object_t __attribute__((hot)) vm_exec(vm_t *vm, object_t fun)
 
 #define unwrap(x, y)               \
     {                              \
-        object_t o = x;            \
+        obj_t o = x;               \
         if (o->type == TYPE_ERROR) \
         {                          \
                                    \
@@ -194,7 +194,7 @@ op_calln:
     flags = code[vm->ip++];
     load_u64(l, vm);
 made_calln:
-    addr = (object_t)(&vm->stack[vm->sp - n]);
+    addr = (obj_t)(&vm->stack[vm->sp - n]);
     x1 = rf_call_vary(flags, (vary_t)l, addr, n);
     for (i = 0; i < n; i++)
         drop(stack_pop(vm)); // pop args
@@ -440,9 +440,9 @@ null_t vm_free(vm_t *vm)
 }
 
 /*
- * Format code object in a user readable form for debugging
+ * Format code obj in a user readable form for debugging
  */
-str_t vm_code_fmt(object_t fun)
+str_t vm_code_fmt(obj_t fun)
 {
     lambda_t *f = as_lambda(fun);
     str_t code = as_string(f->code);
@@ -463,24 +463,24 @@ str_t vm_code_fmt(object_t fun)
             break;
         case OP_PUSH:
             str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] push ", c++, ip++);
-            object_t_fmt_into(&s, &l, &o, 0, 0, (object_t)(code + ip));
+            obj_t_fmt_into(&s, &l, &o, 0, 0, (obj_t)(code + ip));
             str_fmt_into(&s, &l, &o, 0, "\n");
-            ip += sizeof(object_t);
+            ip += sizeof(obj_t);
             break;
         case OP_POP:
             str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] pop\n", c++, ip++);
             break;
         case OP_JNE:
             str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] jne ", c++, ip++);
-            object_t_fmt_into(&s, &l, &o, 0, 0, (object_t)(code + ip));
+            obj_t_fmt_into(&s, &l, &o, 0, 0, (obj_t)(code + ip));
             str_fmt_into(&s, &l, &o, 0, "\n");
-            ip += sizeof(object_t);
+            ip += sizeof(obj_t);
             break;
         case OP_JMP:
             str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] jmp ", c++, ip++);
-            object_t_fmt_into(&s, &l, &o, 0, 0, (object_t)(code + ip));
+            obj_t_fmt_into(&s, &l, &o, 0, 0, (obj_t)(code + ip));
             str_fmt_into(&s, &l, &o, 0, "\n");
-            ip += sizeof(object_t);
+            ip += sizeof(obj_t);
             break;
         case OP_CALL1:
             str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] call1 ", c++, ip++);
@@ -492,18 +492,18 @@ str_t vm_code_fmt(object_t fun)
             str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] timer_get\n", c++, ip++);
             break;
         case OP_STORE:
-            str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] store [%d]\n", c++, ip, (i32_t)((object_t)(code + ip + 1))->i64);
-            ip += 1 + sizeof(object_t);
+            str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] store [%d]\n", c++, ip, (i32_t)((obj_t)(code + ip + 1))->i64);
+            ip += 1 + sizeof(obj_t);
             break;
         case OP_LOAD:
-            str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] load [%d]\n", c++, ip, (i32_t)((object_t)(code + ip + 1))->i64);
-            ip += 1 + sizeof(object_t);
+            str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] load [%d]\n", c++, ip, (i32_t)((obj_t)(code + ip + 1))->i64);
+            ip += 1 + sizeof(obj_t);
             break;
         case OP_TRY:
             str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] try ", c++, ip++);
-            object_t_fmt_into(&s, &l, &o, 0, 0, (object_t)(code + ip));
+            obj_t_fmt_into(&s, &l, &o, 0, 0, (obj_t)(code + ip));
             str_fmt_into(&s, &l, &o, 0, "\n");
-            ip += sizeof(object_t);
+            ip += sizeof(obj_t);
             break;
         case OP_CATCH:
             str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] catch ", c++, ip++);

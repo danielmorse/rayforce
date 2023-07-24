@@ -40,10 +40,10 @@
 #include "cc.h"
 
 // Atomic unary functions (iterates through list of argumen items down to atoms)
-object_t rf_call_unary_atomic(unary_t f, object_t x)
+obj_t rf_call_unary_atomic(unary_t f, obj_t x)
 {
     i64_t i, l;
-    object_t res = NULL, item = NULL;
+    obj_t res = NULL, item = NULL;
 
     // argument is a list, so iterate through it
     if (x->type == TYPE_LIST)
@@ -87,7 +87,7 @@ object_t rf_call_unary_atomic(unary_t f, object_t x)
     return f(x);
 }
 
-object_t rf_call_unary(u8_t flags, unary_t f, object_t x)
+obj_t rf_call_unary(u8_t flags, unary_t f, obj_t x)
 {
     switch (flags)
     {
@@ -98,22 +98,22 @@ object_t rf_call_unary(u8_t flags, unary_t f, object_t x)
     }
 }
 
-object_t rf_get_variable(object_t x)
+obj_t rf_get_variable(obj_t x)
 {
-    object_t v = dict_get(&runtime_get()->env.variables, x);
+    obj_t v = dict_get(&runtime_get()->env.variables, x);
     if (is_null(v))
         return error(ERR_NOT_FOUND, "symbol not found");
 
     return v;
 }
 
-object_t rf_type(object_t x)
+obj_t rf_type(obj_t x)
 {
     i64_t t = env_get_typename_by_type(&runtime_get()->env, x->type);
     return symboli64(t);
 }
 
-object_t rf_count(object_t x)
+obj_t rf_count(obj_t x)
 {
     if (is_vector(x))
         return i64(x->len);
@@ -127,14 +127,14 @@ object_t rf_count(object_t x)
     }
 }
 
-object_t rf_til(object_t x)
+obj_t rf_til(obj_t x)
 {
     if (MTYPE(x->type) != MTYPE(-TYPE_vector_i64))
         return error(ERR_TYPE, "til: expected i64");
 
     i32_t i, l = (i32_t)x->i64;
     i64_t *v;
-    object_t vec = NULL;
+    obj_t vec = NULL;
 
     vec = vector_i64(l);
 
@@ -147,9 +147,9 @@ object_t rf_til(object_t x)
     return vec;
 }
 
-object_t rf_distinct(object_t x)
+obj_t rf_distinct(obj_t x)
 {
-    object_t res = NULL;
+    obj_t res = NULL;
 
     switch (MTYPE(x->type))
     {
@@ -164,7 +164,7 @@ object_t rf_distinct(object_t x)
     }
 }
 
-object_t rf_group(object_t x)
+obj_t rf_group(obj_t x)
 {
     if (MTYPE(x->type) != MTYPE(TYPE_vector_i64))
         return error(ERR_TYPE, "group: expected vector_i64");
@@ -172,7 +172,7 @@ object_t rf_group(object_t x)
     return rf_group_vector_i64(x);
 }
 
-object_t rf_sum(object_t x)
+obj_t rf_sum(obj_t x)
 {
     i32_t i;
     i64_t l, isum = 0, *iv;
@@ -216,7 +216,7 @@ object_t rf_sum(object_t x)
     }
 }
 
-object_t rf_avg(object_t x)
+obj_t rf_avg(obj_t x)
 {
     i32_t i;
     i64_t l, isum, *iv, n = 0;
@@ -261,7 +261,7 @@ object_t rf_avg(object_t x)
     }
 }
 
-object_t rf_min(object_t x)
+obj_t rf_min(obj_t x)
 {
     i32_t i;
     i64_t l, imin, *iv;
@@ -342,7 +342,7 @@ object_t rf_min(object_t x)
     }
 }
 
-object_t rf_max(object_t x)
+obj_t rf_max(obj_t x)
 {
     i32_t i;
     i64_t l, imax, *iv;
@@ -394,11 +394,11 @@ object_t rf_max(object_t x)
     }
 }
 
-object_t rf_not(object_t x)
+obj_t rf_not(obj_t x)
 {
     i32_t i;
     i64_t l;
-    object_t res;
+    obj_t res;
 
     switch (MTYPE(x->type))
     {
@@ -418,7 +418,7 @@ object_t rf_not(object_t x)
     }
 }
 
-object_t rf_iasc(object_t x)
+obj_t rf_iasc(obj_t x)
 {
     switch (MTYPE(x->type))
     {
@@ -430,7 +430,7 @@ object_t rf_iasc(object_t x)
     }
 }
 
-object_trf_idesc(object_t x)
+obj_trf_idesc(obj_t x)
 {
     switch (MTYPE(x->type))
     {
@@ -442,9 +442,9 @@ object_trf_idesc(object_t x)
     }
 }
 
-object_t rf_asc(object_t x)
+obj_t rf_asc(obj_t x)
 {
-    object_t idx = rf_sort_asc(x);
+    obj_t idx = rf_sort_asc(x);
     i64_t l, i;
 
     switch (MTYPE(x->type))
@@ -463,9 +463,9 @@ object_t rf_asc(object_t x)
     }
 }
 
-object_t rf_desc(object_t x)
+obj_t rf_desc(obj_t x)
 {
-    object_t idx = rf_sort_desc(x);
+    obj_t idx = rf_sort_desc(x);
     i64_t l, i;
 
     switch (MTYPE(x->type))
@@ -484,10 +484,10 @@ object_t rf_desc(object_t x)
     }
 }
 
-object_t rf_guid_generate(object_t x)
+obj_t rf_guid_generate(obj_t x)
 {
     i64_t i, count;
-    object_t vec;
+    obj_t vec;
     guid_t *g;
 
     switch (MTYPE(x->type))
@@ -507,9 +507,9 @@ object_t rf_guid_generate(object_t x)
     }
 }
 
-object_t rf_neg(object_t x)
+obj_t rf_neg(obj_t x)
 {
-    object_t res;
+    obj_t res;
     i64_t i, l;
 
     switch (MTYPE(x->type))
@@ -538,12 +538,12 @@ object_t rf_neg(object_t x)
     }
 }
 
-object_trf_where(object_t x)
+obj_trf_where(obj_t x)
 {
     i32_t i, j = 0;
     i64_t l, *ov;
     bool_t *iv;
-    object_t res;
+    obj_t res;
 
     switch (MTYPE(x->type))
     {
@@ -565,7 +565,7 @@ object_trf_where(object_t x)
     }
 }
 
-object_t rf_key(object_t x)
+obj_t rf_key(obj_t x)
 {
     switch (MTYPE(x->type))
     {
@@ -577,7 +577,7 @@ object_t rf_key(object_t x)
     }
 }
 
-object_trf_value(object_t x)
+obj_trf_value(obj_t x)
 {
     switch (MTYPE(x->type))
     {
@@ -589,11 +589,11 @@ object_trf_value(object_t x)
     }
 }
 
-object_t rf_fread(object_t x)
+obj_t rf_fread(obj_t x)
 {
     i64_t fd, size;
     str_t fmsg;
-    object_t res, err;
+    obj_t res, err;
 
     switch (MTYPE(x->type))
     {
@@ -632,10 +632,10 @@ object_t rf_fread(object_t x)
     }
 }
 
-object_t rf_parse(object_t x)
+obj_t rf_parse(obj_t x)
 {
     parser_t parser;
-    object_t res;
+    obj_t res;
 
     switch (MTYPE(x->type))
     {
@@ -649,10 +649,10 @@ object_t rf_parse(object_t x)
     }
 }
 
-object_t rf_read_parse_compile(object_t x)
+obj_t rf_read_parse_compile(obj_t x)
 {
     parser_t parser;
-    object_t red, par, com;
+    obj_t red, par, com;
 
     switch (MTYPE(x->type))
     {

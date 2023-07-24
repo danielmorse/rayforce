@@ -34,9 +34,9 @@
 #include "hash.h"
 #include "set.h"
 
-object_t call_binary(binary_t f, object_t x, object_t y)
+obj_t call_binary(binary_t f, obj_t x, obj_t y)
 {
-    object_t cx, cy, res;
+    obj_t cx, cy, res;
 
     // no need to cast
     if (x->type == y->type || x->type == -y->type)
@@ -85,10 +85,10 @@ object_t call_binary(binary_t f, object_t x, object_t y)
     }
 }
 
-object_t rf_call_binary_left_atomic(binary_t f, object_t x, object_t y)
+obj_t rf_call_binary_left_atomic(binary_t f, obj_t x, obj_t y)
 {
     u64_t i, l;
-    object_t res, item, a;
+    obj_t res, item, a;
 
     if (x->type == TYPE_LIST)
     {
@@ -126,10 +126,10 @@ object_t rf_call_binary_left_atomic(binary_t f, object_t x, object_t y)
     return f(x, y);
 }
 
-object_t rf_call_binary_right_atomic(binary_t f, object_t x, object_t y)
+obj_t rf_call_binary_right_atomic(binary_t f, obj_t x, obj_t y)
 {
     u64_t i, l;
-    object_t res, item, b;
+    obj_t res, item, b;
 
     if (y->type == TYPE_LIST)
     {
@@ -168,10 +168,10 @@ object_t rf_call_binary_right_atomic(binary_t f, object_t x, object_t y)
 }
 
 // Atomic binary functions (iterates through list of arguments down to atoms)
-object_t rf_call_binary_atomic(binary_t f, object_t x, object_t y)
+obj_t rf_call_binary_atomic(binary_t f, obj_t x, obj_t y)
 {
     u64_t i, l;
-    object_t res, item, a, b;
+    obj_t res, item, a, b;
 
     if ((x->type == TYPE_LIST && is_vector(y)) ||
         (y->type == TYPE_LIST && is_vector(x)))
@@ -282,7 +282,7 @@ object_t rf_call_binary_atomic(binary_t f, object_t x, object_t y)
     return call_binary(f, x, y);
 }
 
-object_t rf_call_binary(u8_t flags, binary_t f, object_t x, object_t y)
+obj_t rf_call_binary(u8_t flags, binary_t f, obj_t x, obj_t y)
 {
     switch (flags)
     {
@@ -297,21 +297,21 @@ object_t rf_call_binary(u8_t flags, binary_t f, object_t x, object_t y)
     }
 }
 
-object_t rf_set_variable(object_t key, object_t val)
+obj_t rf_set_variable(obj_t key, obj_t val)
 {
     return dict_set(&runtime_get()->env.variables, key, clone(val));
 }
 
-object_t rf_dict(object_t x, object_t y)
+obj_t rf_dict(obj_t x, obj_t y)
 {
     return dict(clone(x), clone(y));
 }
 
-object_t rf_table(object_t x, object_t y)
+obj_t rf_table(obj_t x, obj_t y)
 {
     // bool_t s = false;
     // u64_t i, j, len, cl = 0;
-    // object_t lst, c, l = null();
+    // obj_t lst, c, l = null();
 
     // if (x->type != TYPE_SYMBOL)
     //     return error(ERR_TYPE, "Keys must be a symbol vector");
@@ -402,10 +402,10 @@ object_t rf_table(object_t x, object_t y)
     return null();
 }
 
-object_t rf_rand(object_t x, object_t y)
+obj_t rf_rand(obj_t x, obj_t y)
 {
     i64_t i, count;
-    object_t vec;
+    obj_t vec;
 
     switch (MTYPE2(x->type, y->type))
     {
@@ -423,10 +423,10 @@ object_t rf_rand(object_t x, object_t y)
     }
 }
 
-object_t rf_add(object_t x, object_t y)
+obj_t rf_add(obj_t x, obj_t y)
 {
     u64_t i, l;
-    object_t vec, v;
+    obj_t vec, v;
 
     // switch (MTYPE2(x->type, y->type))
     // {
@@ -543,11 +543,11 @@ object_t rf_add(object_t x, object_t y)
     return null();
 }
 
-object_t rf_sub(object_t x, object_t y)
+obj_t rf_sub(obj_t x, obj_t y)
 {
     // i32_t i;
     // i64_t l;
-    // object_t vec;
+    // obj_t vec;
 
     // switch (MTYPE2(x->type, y->type))
     // {
@@ -596,11 +596,11 @@ object_t rf_sub(object_t x, object_t y)
     return null();
 }
 
-object_t rf_mul(object_t x, object_t y)
+obj_t rf_mul(obj_t x, obj_t y)
 {
     // i32_t i;
     // i64_t l;
-    // object_t vec;
+    // obj_t vec;
 
     // switch (MTYPE2(x->type, y->type))
     // {
@@ -649,11 +649,11 @@ object_t rf_mul(object_t x, object_t y)
     return null();
 }
 
-object_t rf_div(object_t x, object_t y)
+obj_t rf_div(obj_t x, obj_t y)
 {
     // i32_t i;
     // i64_t l;
-    // object_t vec;
+    // obj_t vec;
 
     // switch (MTYPE2(x->type, y->type))
     // {
@@ -702,11 +702,11 @@ object_t rf_div(object_t x, object_t y)
     return null();
 }
 
-object_t rf_fdiv(object_t x, object_t y)
+obj_t rf_fdiv(obj_t x, obj_t y)
 {
     // i32_t i;
     // i64_t l;
-    // object_t vec;
+    // obj_t vec;
 
     // switch (MTYPE2(x->type, y->type))
     // {
@@ -755,11 +755,11 @@ object_t rf_fdiv(object_t x, object_t y)
     return null();
 }
 
-object_t rf_mod(object_t x, object_t y)
+obj_t rf_mod(obj_t x, obj_t y)
 {
     // i32_t i;
     // i64_t l;
-    // object_t vec;
+    // obj_t vec;
 
     // switch (MTYPE2(x->type, y->type))
     // {
@@ -808,7 +808,7 @@ object_t rf_mod(object_t x, object_t y)
     return null();
 }
 
-object_t rf_like(object_t x, object_t y)
+obj_t rf_like(obj_t x, obj_t y)
 {
     switch (MTYPE2(x->type, y->type))
     {
@@ -820,10 +820,10 @@ object_t rf_like(object_t x, object_t y)
     }
 }
 
-object_t rf_eq(object_t x, object_t y)
+obj_t rf_eq(obj_t x, obj_t y)
 {
     // i64_t i, l;
-    // object_t vec;
+    // obj_t vec;
 
     // switch (MTYPE2(x->type, y->type))
     // {
@@ -933,7 +933,7 @@ object_t rf_eq(object_t x, object_t y)
     return null();
 }
 
-object_t rf_ne(object_t x, object_t y)
+obj_t rf_ne(obj_t x, obj_t y)
 {
     switch (MTYPE2(x->type, y->type))
     {
@@ -951,7 +951,7 @@ object_t rf_ne(object_t x, object_t y)
     }
 }
 
-object_t rf_lt(object_t x, object_t y)
+obj_t rf_lt(obj_t x, obj_t y)
 {
     switch (MTYPE2(x->type, y->type))
     {
@@ -966,7 +966,7 @@ object_t rf_lt(object_t x, object_t y)
     }
 }
 
-object_t rf_le(object_t x, object_t y)
+obj_t rf_le(obj_t x, obj_t y)
 {
     switch (MTYPE2(x->type, y->type))
     {
@@ -981,10 +981,10 @@ object_t rf_le(object_t x, object_t y)
     }
 }
 
-object_t rf_gt(object_t x, object_t y)
+obj_t rf_gt(obj_t x, obj_t y)
 {
     // i64_t i, l;
-    // object_t vec;
+    // obj_t vec;
 
     // switch (MTYPE2(x->type, y->type))
     // {
@@ -1013,7 +1013,7 @@ object_t rf_gt(object_t x, object_t y)
     return null();
 }
 
-object_t rf_ge(object_t x, object_t y)
+obj_t rf_ge(obj_t x, obj_t y)
 {
     switch (MTYPE2(x->type, y->type))
     {
@@ -1028,11 +1028,11 @@ object_t rf_ge(object_t x, object_t y)
     }
 }
 
-object_t rf_and(object_t x, object_t y)
+obj_t rf_and(obj_t x, obj_t y)
 {
     // i32_t i;
     // i64_t l;
-    // object_t res;
+    // obj_t res;
 
     // switch (MTYPE2(x->type, y->type))
     // {
@@ -1054,11 +1054,11 @@ object_t rf_and(object_t x, object_t y)
     return null();
 }
 
-object_t rf_or(object_t x, object_t y)
+obj_t rf_or(obj_t x, obj_t y)
 {
     // i32_t i;
     // i64_t l;
-    // object_t res;
+    // obj_t res;
 
     // switch (MTYPE2(x->type, y->type))
     // {
@@ -1080,11 +1080,11 @@ object_t rf_or(object_t x, object_t y)
     return null();
 }
 
-object_t rf_get(object_t x, object_t y)
+obj_t rf_get(obj_t x, obj_t y)
 {
     // i32_t i;
     // i64_t yl, xl;
-    // object_t vec;
+    // obj_t vec;
 
     // switch (MTYPE2(x->type, y->type))
     // {
@@ -1205,11 +1205,11 @@ object_t rf_get(object_t x, object_t y)
     return null();
 }
 
-object_t rf_find_vector_i64_vector_i64(object_t x, object_t y)
+obj_t rf_find_vector_i64_vector_i64(obj_t x, obj_t y)
 {
     u64_t i, n, range, xl = x->len, yl = y->len;
     i64_t max = 0, min = 0;
-    object_t vec = vector_i64(yl), found;
+    obj_t vec = vector_i64(yl), found;
     i64_t *iv1 = as_vector_i64(x), *iv2 = as_vector_i64(y),
           *ov = as_vector_i64(vec), *fv;
     ht_t *ht;
@@ -1268,7 +1268,7 @@ object_t rf_find_vector_i64_vector_i64(object_t x, object_t y)
     return vec;
 }
 
-object_t rf_find(object_t x, object_t y)
+obj_t rf_find(obj_t x, obj_t y)
 {
     i64_t l, i;
 
@@ -1299,10 +1299,10 @@ object_t rf_find(object_t x, object_t y)
     }
 }
 
-object_t rf_concat(object_t x, object_t y)
+obj_t rf_concat(obj_t x, obj_t y)
 {
     // i64_t i, xl, yl;
-    // object_t vec;
+    // obj_t vec;
 
     // switch (MTYPE2(x->type, y->type))
     // {
@@ -1494,11 +1494,11 @@ object_t rf_concat(object_t x, object_t y)
     return null();
 }
 
-object_t rf_filter(object_t x, object_t y)
+obj_t rf_filter(obj_t x, obj_t y)
 {
     // i32_t i, j = 0;
     // i64_t l, p = NULL_vector_i64;
-    // object_t res, *vals, col;
+    // obj_t res, *vals, col;
 
     // switch (MTYPE2(x->type, y->type))
     // {
@@ -1636,10 +1636,10 @@ object_t rf_filter(object_t x, object_t y)
     return null();
 }
 
-object_t rf_take(object_t x, object_t y)
+obj_t rf_take(obj_t x, obj_t y)
 {
     u64_t i, l, m;
-    object_t res, cols, sym, c;
+    obj_t res, cols, sym, c;
 
     // switch (MTYPE2(x->type, y->type))
     // {
@@ -1783,10 +1783,10 @@ object_t rf_take(object_t x, object_t y)
     return null();
 }
 
-object_t rf_in(object_t x, object_t y)
+obj_t rf_in(obj_t x, obj_t y)
 {
     i64_t i, xl, yl;
-    object_t vec;
+    obj_t vec;
     set_t *set;
 
     // switch
@@ -1817,9 +1817,9 @@ object_t rf_in(object_t x, object_t y)
     return null();
 }
 
-object_t rf_sect(object_t x, object_t y)
+obj_t rf_sect(obj_t x, obj_t y)
 {
-    object_t mask, res;
+    obj_t mask, res;
 
     // switch (MTYPE2(x->type, y->type))
     // {
@@ -1836,10 +1836,10 @@ object_t rf_sect(object_t x, object_t y)
     return null();
 }
 
-object_t rf_except(object_t x, object_t y)
+obj_t rf_except(obj_t x, obj_t y)
 {
     i64_t i, j = 0, l;
-    object_t mask, res;
+    obj_t mask, res;
 
     // switch (MTYPE2(x->type, y->type))
     // {
@@ -1872,11 +1872,11 @@ object_t rf_except(object_t x, object_t y)
 }
 
 /*
- * Casts the object to the specified type.
- * If the cast is not possible, returns an error object.
- * If object is already of the specified type, returns the object itself (cloned).
+ * Casts the obj to the specified type.
+ * If the cast is not possible, returns an error obj.
+ * If obj is already of the specified type, returns the obj itself (cloned).
  */
-object_t rf_cast(object_t x, object_t y)
+obj_t rf_cast(obj_t x, obj_t y)
 {
     // if (x->type != -TYPE_SYMBOL)
     //     return error_type2(x->type, y->type, "cast: unsupported types");
@@ -1884,7 +1884,7 @@ object_t rf_cast(object_t x, object_t y)
     // env_t *env = &runtime_get()->env;
     // type_t type = env_get_type_by_typename(env, *x);
 
-    // object_t res, err;
+    // obj_t res, err;
     // i64_t i, l;
     // str_t s, msg;
 
@@ -1894,9 +1894,9 @@ object_t rf_cast(object_t x, object_t y)
 
     // if (type == TYPE_CHAR)
     // {
-    //     s = object_t_fmt(y);
+    //     s = obj_t_fmt(y);
     //     if (s == NULL)
-    //         panic("object_t_fmt() returned NULL");
+    //         panic("obj_t_fmt() returned NULL");
     //     return string_from_str(s, strlen(s));
     // }
 
@@ -2035,10 +2035,10 @@ object_t rf_cast(object_t x, object_t y)
     return null();
 }
 
-object_t rf_group_Table(object_t x, object_t y)
+obj_t rf_group_Table(obj_t x, obj_t y)
 {
     // i64_t i, l;
-    // object_t res;
+    // obj_t res;
 
     // switch (MTYPE2(x->type, y->type))
     // {
@@ -2057,9 +2057,9 @@ object_t rf_group_Table(object_t x, object_t y)
     return null();
 }
 
-object_t rf_xasc(object_t x, object_t y)
+obj_t rf_xasc(obj_t x, obj_t y)
 {
-    // object_t idx, col, res;
+    // obj_t idx, col, res;
 
     // switch (MTYPE2(x->type, y->type))
     // {
@@ -2087,9 +2087,9 @@ object_t rf_xasc(object_t x, object_t y)
     return null();
 }
 
-object_t rf_xdesc(object_t x, object_t y)
+obj_t rf_xdesc(obj_t x, obj_t y)
 {
-    // object_t idx, col, res;
+    // obj_t idx, col, res;
 
     // switch (MTYPE2(x->type, y->type))
     // {

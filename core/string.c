@@ -28,23 +28,23 @@
 #include "util.h"
 
 /*
- * Creates new object_tstring from a C string.
+ * Creates new obj_tstring from a C string.
  * Guarantees that the string is null-terminated.
  */
-object_t string(i64_t len)
+obj_t string(i64_t len)
 {
-    object_t string = vector(TYPE_CHAR, len + 1);
+    obj_t string = vector(TYPE_CHAR, len + 1);
     as_string(string)[len] = '\0';
     string->len = len;
     return string;
 }
 
 /*
- * Creates new object_tstring from a C string.
+ * Creates new obj_tstring from a C string.
  */
-object_t string_from_str(str_t str, i32_t len)
+obj_t string_from_str(str_t str, i32_t len)
 {
-    object_t s = string(len);
+    obj_t s = string(len);
     if (len > 0)
         strncpy(as_string(s), str, len);
 
@@ -53,7 +53,7 @@ object_t string_from_str(str_t str, i32_t len)
 
 /*
  * match() lambda takes in two pointers to character arrays: pattern and text.
- * It returns a i8_t object_t indicating whether the text string matches the pattern string.
+ * It returns a i8_t obj_t indicating whether the text string matches the pattern string.
  * Note that this implementation assumes that the pattern and text strings do not contain any null characters ('\0').
  * If this is not the case, a more sophisticated implementation may be required.
  */

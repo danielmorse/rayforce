@@ -110,7 +110,7 @@ int test_symbols()
     // for (int i = 0; i < 1000000; i++)
     // {
     //     // printf("%s\n", st[i]);
-    //     object_ts = str(st[i], strlen(st[i]));
+    //     obj_ts = str(st[i], strlen(st[i]));
     //     i64_t id = intern_symbol(&s);
     //     // str_t val = symbols_get(id);
     //     // if (val == NULL)
@@ -119,7 +119,7 @@ int test_symbols()
     //     //     printf("%s\n", val);
     // }
 
-    // // object_ts = str("code", 4);
+    // // obj_ts = str("code", 4);
     // // i64_t id1 = intern_symbol(&s), id2;
     // // str_t val = symbols_get(id1);
 
@@ -138,7 +138,7 @@ int test_symbols()
 
 null_t test_find()
 {
-    // object_tv = vector_i64(100000000);
+    // obj_tv = vector_i64(100000000);
     // for (int i = 0; i < 100000000; i++)
     // {
     //     as_vector_i64(&v)[i] = i;
@@ -172,7 +172,7 @@ null_t test_vector()
 {
     debug("testing vector");
 
-    object_tv = vector_i64(1);
+    obj_tv = vector_i64(1);
     as_vector_i64(&v)[0] = 1;
 
     for (i32_t i = 0; i < 1000000; i++)

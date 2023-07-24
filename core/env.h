@@ -59,9 +59,9 @@
  */
 typedef struct env_t
 {
-    object_t functions; // dict, containing function primitives
-    object_t variables; // dict, containing mappings variables names to their values
-    object_t typenames; // dict, containing mappings type ids to their names
+    obj_t functions; // dict, containing function primitives
+    obj_t variables; // dict, containing mappings variables names to their values
+    obj_t typenames; // dict, containing mappings type ids to their names
 } env_t;
 
 env_t create_env();
@@ -69,11 +69,11 @@ null_t free_env(env_t *env);
 
 i64_t env_get_typename_by_type(env_t *env, type_t type);
 str_t env_get_typename(type_t type);
-type_t env_get_type_by_typename(env_t *env, object_t sym);
-object_t env_set(env_t *env, object_t key, object_t val);
-object_t env_get(env_t *env, object_t key);
+type_t env_get_type_by_typename(env_t *env, obj_t sym);
+obj_t env_set(env_t *env, obj_t key, obj_t val);
+obj_t env_get(env_t *env, obj_t key);
 
-object_t rf_env();
-object_t rf_memstat();
+obj_t rf_env();
+obj_t rf_memstat();
 
 #endif

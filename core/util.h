@@ -51,9 +51,9 @@
 
 #define debug_assert(x) (assert(x))
 
-#define debug_object(o)                \
+#define debug_obj(o)                \
     {                                  \
-        str_t _f = object_t_fmt((o)); \
+        str_t _f = obj_t_fmt((o)); \
         debug("%s", _f);               \
         rf_free(_f);                   \
     }
@@ -87,7 +87,7 @@
 u32_t next_power_of_two_u32(u32_t n);
 u64_t next_power_of_two_u64(u64_t n);
 
-object_t error_type1(type_t type, str_t msg);
-object_t error_type2(type_t type1, type_t type2, str_t msg);
+obj_t error_type1(type_t type, str_t msg);
+obj_t error_type2(type_t type1, type_t type2, str_t msg);
 
 #endif

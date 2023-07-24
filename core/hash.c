@@ -136,7 +136,7 @@ i64_t ht_insert(ht_t *table, i64_t key, i64_t val)
 }
 
 /*
- * Does the same as ht_insert, but uses a lambda to set the object_t of the bucket.
+ * Does the same as ht_insert, but uses a lambda to set the obj_t of the bucket.
  */
 i64_t ht_insert_with(ht_t *table, i64_t key, i64_t val, null_t *seed,
                      i64_t (*func)(i64_t key, i64_t val, null_t *seed, i64_t *tkey, i64_t *tval))
@@ -248,7 +248,7 @@ bool_t ht_upsert_with(ht_t *table, i64_t key, i64_t val, null_t *seed,
 }
 
 /*
- * Returns the object_t of the node with the given key.
+ * Returns the obj_t of the node with the given key.
  * Returns -1 if the key does not exist.
  */
 i64_t ht_get(ht_t *table, i64_t key)

@@ -33,17 +33,17 @@
 typedef struct parser_t
 {
     debuginfo_t debuginfo; // debug info for current parser
-    u32_t count;           // number of parsed objects
+    u32_t count;           // number of parsed objs
     str_t input;           // input string
     str_t current;         // current character
     i64_t line;            // current line
     i64_t column;          // current column
 } __attribute__((aligned(16))) parser_t;
 
-object_t advance(parser_t *parser);
+obj_t advance(parser_t *parser);
 
 parser_t parser_new();
 null_t parser_free(parser_t *parser);
-object_t parse(parser_t *parser, str_t filename, str_t input);
+obj_t parse(parser_t *parser, str_t filename, str_t input);
 
 #endif

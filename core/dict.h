@@ -28,8 +28,8 @@
 #include "vector.h"
 #include "string.h"
 
-object_t dict_get(object_t dict, object_t key);
-object_t dict_set(object_t dict, object_t key, object_t val);
-null_t dict_clear(object_t dict);
+obj_t dict_get(obj_t dict, obj_t key);
+obj_t dict_set(obj_t dict, obj_t key, obj_t val);
+null_t dict_clear(obj_t dict);
 
 #endif

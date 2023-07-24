@@ -27,9 +27,9 @@
 #include "format.h"
 #include "util.h"
 
-object_t dict_get(object_t dict, object_t key)
+obj_t dict_get(obj_t dict, obj_t key)
 {
-    object_t keys = as_list(dict)[0], vals = as_list(dict)[1];
+    obj_t keys = as_list(dict)[0], vals = as_list(dict)[1];
     i64_t i;
 
     i = vector_find(keys, key);
@@ -37,10 +37,10 @@ object_t dict_get(object_t dict, object_t key)
     return vector_get(vals, i);
 }
 
-object_t dict_set(object_t dict, object_t key, object_t val)
+obj_t dict_set(obj_t dict, obj_t key, obj_t val)
 {
-    object_t keys = as_list(dict)[0];
-    object_t vals = as_list(dict)[1];
+    obj_t keys = as_list(dict)[0];
+    obj_t vals = as_list(dict)[1];
     i64_t index = vector_find(keys, key);
 
     if (index == (i64_t)keys->len)
@@ -55,10 +55,10 @@ object_t dict_set(object_t dict, object_t key, object_t val)
     return val;
 }
 
-null_t dict_clear(object_t dict)
+null_t dict_clear(obj_t dict)
 {
-    object_t keys = as_list(dict)[0];
-    object_t vals = as_list(dict)[1];
+    obj_t keys = as_list(dict)[0];
+    obj_t vals = as_list(dict)[1];
 
     if (keys->len == 0)
         return;

@@ -96,7 +96,7 @@ typedef struct guid_t
 /*
 * Generic type
 */ 
-typedef struct object_t
+typedef struct obj_t
 {
     type_t type;
     u8_t flags;
@@ -114,66 +114,66 @@ typedef struct object_t
             str_t ptr;
         };
     };
-} *object_t;
+} *obj_t;
 
 // Constructors
-extern object_t null();                                                 // create null
-extern object_t atom(type_t type);                                      // create atom of type
-extern object_t list(i64_t len, ...);                                   // create list
-extern object_t vector(type_t type, i64_t len);                         // create vector of type
-extern object_t bool(bool_t val);                                       // bool scalar
-extern object_t i64(i64_t val);                                         // i64 scalar
-extern object_t f64(f64_t val);                                         // f64 scalar
-extern object_t symbol(str_t ptr);                                      // symbol
-extern object_t symboli64(i64_t id);                                    // symbol from i64
-extern object_t timestamp(i64_t val);                                   // timestamp
-extern object_t guid(u8_t data[]);                                      // GUID
-extern object_t schar(char_t c);                                        // char
-extern object_t string(i64_t len);                                      // string 
+extern obj_t null();                                                 // create null
+extern obj_t atom(type_t type);                                      // create atom of type
+extern obj_t list(i64_t len, ...);                                   // create list
+extern obj_t vector(type_t type, i64_t len);                         // create vector of type
+extern obj_t bool(bool_t val);                                       // bool scalar
+extern obj_t i64(i64_t val);                                         // i64 scalar
+extern obj_t f64(f64_t val);                                         // f64 scalar
+extern obj_t symbol(str_t ptr);                                      // symbol
+extern obj_t symboli64(i64_t id);                                    // symbol from i64
+extern obj_t timestamp(i64_t val);                                   // timestamp
+extern obj_t guid(u8_t data[]);                                      // GUID
+extern obj_t schar(char_t c);                                        // char
+extern obj_t string(i64_t len);                                      // string 
 
-#define vector_bool(len)      (vector(TYPE_BOOL,       len ))           // bool vector
-#define vector_i64(len)       (vector(TYPE_vector_i64, len ))           // i64 vector
-#define vector_f64(len)       (vector(TYPE_vector_f64, len ))           // f64 vector
-#define vector_symbol(len)    (vector(TYPE_SYMBOL,     len ))           // symbol vector
-#define vector_timestamp(len) (vector(TYPE_TIMESTAMP,  len ))           // char vector
-#define vector_guid(len)      (vector(TYPE_GUID,       len ))           // GUID vector
+#define vector_bool(len)      (vector(TYPE_BOOL,       len))         // bool vector
+#define vector_i64(len)       (vector(TYPE_vector_i64, len))         // i64 vector
+#define vector_f64(len)       (vector(TYPE_vector_f64, len))         // f64 vector
+#define vector_symbol(len)    (vector(TYPE_SYMBOL,     len))         // symbol vector
+#define vector_timestamp(len) (vector(TYPE_TIMESTAMP,  len))         // char vector
+#define vector_guid(len)      (vector(TYPE_GUID,       len))         // GUID vector
          
-extern object_t table(object_t keys, object_t vals);                    // table
-extern object_t dict(object_t keys,  object_t vals);                    // dict
-
-// Reference counting   
-extern object_t clone(object_t object);                                 // clone
-extern object_t cow(object_t   object);                                 // clone if refcount > 1
-extern i64_t     rc(object_t    object);                                // get refcount
+extern obj_t table(obj_t keys, obj_t vals);                          // table
+extern obj_t dict(obj_t keys,  obj_t vals);                          // dict
+      
+// Reference counting         
+extern obj_t clone(obj_t obj);                                       // clone
+extern obj_t cow(obj_t   obj);                                       // clone if refcount > 1
+extern i64_t     rc(obj_t    obj);                                   // get refcount
 
 // Error
-extern object_t error(i8_t code, str_t message);
+extern obj_t error(i8_t code, str_t message);
 
 // Destructor
-extern null_t drop(object_t   object);
+extern null_t drop(obj_t   obj);
 
 // Accessors
-#define as_string(object)           ((object)->ptr)
-#define as_vector_bool(object)      ((bool_t *)(as_string(object)))
-#define as_vector_i64(object)       ((i64_t *)(as_string(object)))
-#define as_vector_f64(object)       ((f64_t *)(as_string(object)))
-#define as_vector_symbol(object)    ((i64_t *)(as_string(object)))
-#define as_vector_timestamp(object) ((i64_t *)(as_string(object)))
-#define as_vector_guid(object)      ((guid_t *)(as_string(object)))
-#define as_list(object)             ((object_t *)(as_string(object)))
+#define as_string(obj)           ((obj)->ptr)
+#define as_vector_bool(obj)      ((bool_t *)(as_string(obj)))
+#define as_vector_i64(obj)       ((i64_t *)(as_string(obj)))
+#define as_vector_f64(obj)       ((f64_t *)(as_string(obj)))
+#define as_vector_symbol(obj)    ((i64_t *)(as_string(obj)))
+#define as_vector_timestamp(obj) ((i64_t *)(as_string(obj)))
+#define as_vector_guid(obj)      ((guid_t *)(as_string(obj)))
+#define as_list(obj)             ((obj_t *)(as_string(obj)))
 
 // Checkers
-extern bool_t is_null(object_t object);
-#define is_error(object)  ((object)->type == TYPE_ERROR)
-#define is_scalar(object) ((object)->type < 0)
-#define is_vector(object) ((object)->type > 0 && (object)->type < TYPE_TABLE)
+extern bool_t is_null(obj_t obj);
+#define is_error(obj)  ((obj)->type == TYPE_ERROR)
+#define is_scalar(obj) ((obj)->type < 0)
+#define is_vector(obj) ((obj)->type > 0 && (obj)->type < TYPE_TABLE)
 
 // Mutators
-extern object_t vector_push(object_t vector, object_t object);
-extern object_t vector_pop(object_t  vector);
+extern obj_t vector_push(obj_t vector, obj_t obj);
+extern obj_t vector_pop(obj_t  vector);
 
 // Compare
-extern bool_t object_t_eq(object_t a, object_t b);
+extern bool_t obj_t_eq(obj_t a, obj_t b);
 
 #ifdef __cplusplus
 }

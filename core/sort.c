@@ -194,7 +194,7 @@ null_t insertion_sort_desc(i64_t array[], i64_t indices[], i64_t left, i64_t rig
 null_t counting_sort_asc(i64_t array[], i64_t indices[], i64_t len, i64_t min, i64_t max)
 {
     i64_t i, j = 0, n, p, range, *m;
-    object_t mask;
+    obj_t mask;
 
     range = max - min + 1;
     mask = vector_i64(range);
@@ -232,7 +232,7 @@ null_t counting_sort_asc(i64_t array[], i64_t indices[], i64_t len, i64_t min, i
 null_t counting_sort_desc(i64_t array[], i64_t indices[], i64_t len, i64_t min, i64_t max)
 {
     i64_t i, j = 0, n, p, range, *m;
-    object_t mask;
+    obj_t mask;
 
     range = max - min + 1;
     mask = vector_i64(range);
@@ -267,10 +267,10 @@ null_t counting_sort_desc(i64_t array[], i64_t indices[], i64_t len, i64_t min, 
     drop(mask);
 }
 
-object_t rf_sort_asc(object_t vec)
+obj_t rf_sort_asc(obj_t vec)
 {
     i64_t i, len = vec->len, out_of_order = 0, inrange = 0, min, max;
-    object_t indices = vector_i64(len);
+    obj_t indices = vector_i64(len);
     i64_t *iv = as_vector_i64(vec), *ov = as_vector_i64(indices);
 
     if (vec->flags & VEC_ATTR_ASC)
@@ -348,10 +348,10 @@ object_t rf_sort_asc(object_t vec)
     return indices;
 }
 
-object_t rf_sort_desc(object_t vec)
+obj_t rf_sort_desc(obj_t vec)
 {
     i64_t i, len = vec->len, out_of_order = 0, inrange = 0, min, max;
-    object_t indices = vector_i64(len);
+    obj_t indices = vector_i64(len);
     i64_t *iv = as_vector_i64(vec), *ov = as_vector_i64(indices);
 
     if (vec->flags & VEC_ATTR_DESC)

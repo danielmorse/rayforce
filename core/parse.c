@@ -99,12 +99,12 @@ bool_t at_term(i8_t c)
     return c == ')' || c == ']' || c == '}' || c == ':' || c == '\n';
 }
 
-bool_t is_at(object_t token, i8_t c)
+bool_t is_at(obj_t token, i8_t c)
 {
     return token->type == TYPE_TOKEN && token->i64 == (i64_t)c;
 }
 
-bool_t is_at_term(object_t token)
+bool_t is_at_term(obj_t token)
 {
     return token->type == TYPE_TOKEN && at_term(token->i64);
 }
@@ -121,20 +121,20 @@ i8_t shift(parser_t *parser, i32_t num)
     return res;
 }
 
-object_t to_token(parser_t *parser)
+obj_t to_token(parser_t *parser)
 {
-    object_t tok = i64(*parser->current);
+    obj_t tok = i64(*parser->current);
     tok->type = TYPE_TOKEN;
     tok->id = span_commit(parser, span_start(parser));
     return tok;
 }
 
-object_t parse_timestamp(parser_t *parser)
+obj_t parse_timestamp(parser_t *parser)
 {
     str_t end, current = parser->current;
     u32_t nanos;
     timestamp_t ts = {0};
-    object_t res;
+    obj_t res;
     span_t span = span_start(parser);
 
     // check if null
@@ -271,12 +271,12 @@ object_t parse_timestamp(parser_t *parser)
     return res;
 }
 
-object_t parse_number(parser_t *parser)
+obj_t parse_number(parser_t *parser)
 {
     str_t end;
     i64_t num_i64;
     f64_t num_f64;
-    object_t num;
+    obj_t num;
     span_t span = span_start(parser);
 
     // check if null
@@ -345,11 +345,11 @@ object_t parse_number(parser_t *parser)
     return num;
 }
 
-object_t parse_char(parser_t *parser)
+obj_t parse_char(parser_t *parser)
 {
     span_t span = span_start(parser);
     str_t pos = parser->current + 1; // skip '''
-    object_t ch, err;
+    obj_t ch, err;
 
     if (at_eof(*pos) || *pos == '\n')
     {
@@ -376,12 +376,12 @@ object_t parse_char(parser_t *parser)
     return ch;
 }
 
-object_t parse_string(parser_t *parser)
+obj_t parse_string(parser_t *parser)
 {
     span_t span = span_start(parser);
     str_t pos = parser->current + 1; // skip '"'
     i32_t len;
-    object_t str, err;
+    obj_t str, err;
 
     while (!at_eof(*pos) && *pos != '\n')
     {
@@ -412,10 +412,10 @@ object_t parse_string(parser_t *parser)
     return str;
 }
 
-object_t parse_symbol(parser_t *parser)
+obj_t parse_symbol(parser_t *parser)
 {
     str_t pos = parser->current;
-    object_t res;
+    obj_t res;
     span_t span = span_start(parser);
     i64_t id;
 
@@ -462,9 +462,9 @@ object_t parse_symbol(parser_t *parser)
     return res;
 }
 
-object_t parse_vector(parser_t *parser)
+obj_t parse_vector(parser_t *parser)
 {
-    object_t token, vec = vector_i64(0), err;
+    obj_t token, vec = vector_i64(0), err;
     i32_t i;
     span_t span = span_start(parser);
 
@@ -586,9 +586,9 @@ object_t parse_vector(parser_t *parser)
     return vec;
 }
 
-object_t parse_list(parser_t *parser)
+obj_t parse_list(parser_t *parser)
 {
-    object_t lst = list(0), token, err;
+    obj_t lst = list(0), token, err;
     span_t span = span_start(parser);
     str_t msg;
 
@@ -636,9 +636,9 @@ object_t parse_list(parser_t *parser)
     return lst;
 }
 
-object_t parse_dict(parser_t *parser)
+obj_t parse_dict(parser_t *parser)
 {
-    object_t token, keys = list(0), vals = list(0), d, err;
+    obj_t token, keys = list(0), vals = list(0), d, err;
     span_t span = span_start(parser);
 
     shift(parser, 1); // skip '{'
@@ -716,9 +716,9 @@ object_t parse_dict(parser_t *parser)
     return d;
 }
 
-object_t advance(parser_t *parser)
+obj_t advance(parser_t *parser)
 {
-    object_t tok, err;
+    obj_t tok, err;
     str_t msg;
 
     // Skip all whitespaces
@@ -804,9 +804,9 @@ object_t advance(parser_t *parser)
     return err;
 }
 
-object_t parse_program(parser_t *parser)
+obj_t parse_program(parser_t *parser)
 {
-    object_t token, lst = list(0), err;
+    obj_t token, lst = list(0), err;
     str_t msg;
 
     while (!at_eof(*parser->current))
@@ -838,9 +838,9 @@ object_t parse_program(parser_t *parser)
     return list;
 }
 
-object_t parse(parser_t *parser, str_t filename, str_t input)
+obj_t parse(parser_t *parser, str_t filename, str_t input)
 {
-    object_t prg;
+    obj_t prg;
 
     parser->debuginfo.lambda = "";
     parser->debuginfo.filename = filename;

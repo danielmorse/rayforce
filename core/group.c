@@ -47,8 +47,8 @@ bool_t pos_update(i64_t key, i64_t val, null_t *seed, i64_t *tkey, i64_t *tval)
     // contains count of elements (replace with vector)
     if ((*tval & (1ll << 62)) == 0)
     {
-        object_t *vv = (object_t *)seed;
-        object_t v = vector_i64(*tval);
+        obj_t *vv = (obj_t *)seed;
+        obj_t v = vector_i64(*tval);
         as_vector_i64(v)[0] = val;
         v->len = 1;
         *vv = v;
@@ -58,17 +58,17 @@ bool_t pos_update(i64_t key, i64_t val, null_t *seed, i64_t *tkey, i64_t *tval)
     }
 
     // contains vector
-    object_t vv = (object_t)(*tval & ~(1ll << 62));
+    obj_t vv = (obj_t)(*tval & ~(1ll << 62));
     i64_t *v = as_vector_i64(vv);
     v[vv->len++] = val;
     return true;
 }
 
-object_t rf_distinct_vector_i64(object_t x)
+obj_t rf_distinct_vector_i64(obj_t x)
 {
     i64_t i, j = 0, p = 0, w = 0, xl = x->len;
     i64_t n = 0, range, inrange = 0, min, max, *m, *iv1 = as_vector_i64(x), *ov;
-    object_t mask, vec;
+    obj_t mask, vec;
     set_t *set;
 
     if (xl == 0)
@@ -184,10 +184,10 @@ set:
     return vec;
 }
 
-object_t rf_group_vector_i64(object_t x)
+obj_t rf_group_vector_i64(obj_t x)
 {
     i64_t i, j = 0, xl = x->len, *iv1 = as_vector_i64(x), *kv, range, inrange = 0, min, max, *m, n;
-    object_t keys, vals, mask, *vv;
+    obj_t keys, vals, mask, *vv;
     ht_t *ht;
 
     if (xl == 0)
@@ -240,12 +240,12 @@ object_t rf_group_vector_i64(object_t x)
             n = normalize(iv1[i]);
             if (m[n] & (1ll << 62))
             {
-                object_t v = (object_t)(m[n] & ~(1ll << 62));
+                obj_t v = (obj_t)(m[n] & ~(1ll << 62));
                 as_vector_i64(v)[v->len++] = i;
             }
             else
             {
-                object_t v = vector_i64(m[n]);
+                obj_t v = vector_i64(m[n]);
                 as_vector_i64(v)[0] = i;
                 v->len = 1;
                 vv[j] = v;
@@ -305,12 +305,12 @@ object_t rf_group_vector_i64(object_t x)
             {
                 if (m[n] & (1ll << 62))
                 {
-                    object_t v = (object_t)(m[n] & ~(1ll << 62));
+                    obj_t v = (obj_t)(m[n] & ~(1ll << 62));
                     as_vector_i64(v)[v->len++] = i;
                 }
                 else
                 {
-                    object_t v = vector_i64(m[n]);
+                    obj_t v = vector_i64(m[n]);
                     as_vector_i64(v)[0] = i;
                     v->len = 1;
                     vv[j] = v;
