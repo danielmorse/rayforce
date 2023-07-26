@@ -30,6 +30,7 @@
 #include "util.h"
 #include "string.h"
 #include "runtime.h"
+#include "ops.h"
 
 CASSERT(sizeof(struct obj_t) == 16, rayforce_h)
 
@@ -449,6 +450,117 @@ i64_t find_sym(obj_t obj, str_t str)
     return find_raw(obj, n);
 }
 
+/*
+ * Casts the obj to the specified type.
+ * If the cast is not possible, returns an error obj.
+ * If obj is already of the specified type, returns the obj itself (cloned).
+ */
+obj_t cast(type_t type, obj_t obj)
+{
+    obj_t res, err;
+    u64_t i, l;
+    str_t s, msg;
+
+    // Do nothing if the type is the same
+    if (type == obj->type)
+        return clone(obj);
+
+    if (type == TYPE_CHAR)
+    {
+        s = obj_fmt(obj);
+        if (s == NULL)
+            panic("obj_fmt() returned NULL");
+        res = string_from_str(s, strlen(s));
+        heap_free(s);
+        return res;
+    }
+
+    switch (MTYPE2(type, obj->type))
+    {
+    case MTYPE2(-TYPE_I64, -TYPE_F64):
+        return i64((i64_t)obj->f64);
+    case MTYPE2(-TYPE_F64, -TYPE_I64):
+        return f64((f64_t)obj->i64);
+    case MTYPE2(-TYPE_I64, -TYPE_TIMESTAMP):
+        return i64(obj->i64);
+    case MTYPE2(-TYPE_TIMESTAMP, -TYPE_I64):
+        return timestamp(obj->i64);
+    case MTYPE2(-TYPE_SYMBOL, TYPE_CHAR):
+        return symbol(as_string(obj));
+    case MTYPE2(-TYPE_I64, TYPE_CHAR):
+        return i64(strtol(as_string(obj), NULL, 10));
+    case MTYPE2(-TYPE_F64, TYPE_CHAR):
+        return f64(strtod(as_string(obj), NULL));
+    case MTYPE2(TYPE_TABLE, TYPE_DICT):
+        return table(clone(as_list(obj)[0]), clone(as_list(obj)[1]));
+    case MTYPE2(TYPE_DICT, TYPE_TABLE):
+        return dict(clone(as_list(obj)[0]), clone(as_list(obj)[1]));
+    case MTYPE2(TYPE_F64, TYPE_I64):
+        l = obj->len;
+        res = vector_f64(l);
+        for (i = 0; i < l; i++)
+            as_vector_f64(res)[i] = (f64_t)as_vector_i64(obj)[i];
+        return res;
+    case MTYPE2(TYPE_I64, TYPE_F64):
+        l = obj->len;
+        res = vector_i64(l);
+        for (i = 0; i < l; i++)
+            as_vector_i64(res)[i] = (i64_t)as_vector_f64(obj)[i];
+        return res;
+    case MTYPE2(TYPE_BOOL, TYPE_I64):
+        l = obj->len;
+        res = vector_bool(l);
+        for (i = 0; i < l; i++)
+            as_vector_bool(res)[i] = (bool_t)as_vector_i64(obj)[i];
+        return res;
+        // case MTYPE2(-TYPE_GUID, TYPE_CHAR):
+        //     res = guid(NULL);
+
+        //     if (strlen(as_string(obj)) != 36)
+        //         break;
+
+        //     res->guid = heap_malloc(sizeof(guid_t));
+
+        //     i = sscanf(as_string(y),
+        //                "%02hhx%02hhx%02hhx%02hhx-%02hhx%02hhx-%02hhx%02hhx-%02hhx%02hhx-%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx",
+        //                &res.guid->data[0], &res.guid->data[1], &res.guid->data[2], &res.guid->data[3],
+        //                &res.guid->data[4], &res.guid->data[5],
+        //                &res.guid->data[6], &res.guid->data[7],
+        //                &res.guid->data[8], &res.guid->data[9],
+        //                &res.guid->data[10], &res.guid->data[11], &res.guid->data[12],
+        //                &res.guid->data[13], &res.guid->data[14], &res.guid->data[15]);
+
+        //     if (i != 16)
+        //     {
+        //         heap_free(res.guid);
+        //         res = guid(NULL);
+        //     }
+
+        //     break;
+
+    case MTYPE2(TYPE_I64, TYPE_TIMESTAMP):
+        l = obj->len;
+        res = vector_i64(l);
+        for (i = 0; i < l; i++)
+            as_vector_i64(res)[i] = as_vector_timestamp(obj)[i];
+        return res;
+    case MTYPE2(TYPE_TIMESTAMP, TYPE_I64):
+        l = obj->len;
+        res = vector_timestamp(l);
+        for (i = 0; i < l; i++)
+            as_vector_timestamp(res)[i] = as_vector_i64(obj)[i];
+        return res;
+    default:
+        msg = str_fmt(0, "invalid conversion from '%s' to '%s'",
+                      symbols_get(env_get_typename_by_type(&runtime_get()->env, obj->type)),
+                      symbols_get(env_get_typename_by_type(&runtime_get()->env, type)));
+        err = error(ERR_TYPE, msg);
+        heap_free(msg);
+        return err;
+    }
+
+    return res;
+}
 /*
  * Increment the reference count of an obj_t
  */

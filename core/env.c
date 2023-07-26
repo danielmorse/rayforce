@@ -125,7 +125,7 @@ nil_t init_functions(obj_t functions)
     // regf(functions,  "sect",      TYPE_BINARY,   FLAG_ATOMIC,       rf_sect);
     // regf(functions,  "except",    TYPE_BINARY,   FLAG_ATOMIC,       rf_except);
     // regf(functions,  "rand",      TYPE_BINARY,   FLAG_ATOMIC,       rf_rand);
-    // regf(functions,  "as",        TYPE_BINARY,   FLAG_NONE,         rf_cast);
+    regf(functions,  "cast",        TYPE_BINARY,   FLAG_NONE,         rf_cast);
     // regf(functions,  "xasc",      TYPE_BINARY,   FLAG_NONE,         rf_xasc);
     // regf(functions,  "xdesc",     TYPE_BINARY,   FLAG_NONE,         rf_xdesc);
     
@@ -149,13 +149,13 @@ nil_t init_typenames(obj_t typenames)
     regt(typenames,   -TYPE_SYMBOL,     "symbol");
     regt(typenames,   -TYPE_TIMESTAMP,  "timestamp");
     regt(typenames,   -TYPE_GUID,       "guid");
-    regt(typenames,    TYPE_BOOL,       "vector_bool");
-    regt(typenames,    TYPE_I64,        "vector_i64");
-    regt(typenames,    TYPE_F64,        "vector_f64");
-    regt(typenames,    TYPE_CHAR,       "Char");
-    regt(typenames,    TYPE_SYMBOL,     "vector_symbol");
-    regt(typenames,    TYPE_TIMESTAMP,  "vector_timestamp");
-    regt(typenames,    TYPE_GUID,       "vector_guid");
+    regt(typenames,    TYPE_BOOL,       "Bool");
+    regt(typenames,    TYPE_I64,        "I64");
+    regt(typenames,    TYPE_F64,        "F64");
+    regt(typenames,    TYPE_CHAR,       "string");
+    regt(typenames,    TYPE_SYMBOL,     "Symbol");
+    regt(typenames,    TYPE_TIMESTAMP,  "Timestamp");
+    regt(typenames,    TYPE_GUID,       "Guid");
     regt(typenames,    TYPE_LIST,       "List");
     regt(typenames,    TYPE_TABLE,      "Table");
     regt(typenames,    TYPE_DICT,       "Dict");

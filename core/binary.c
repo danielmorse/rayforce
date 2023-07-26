@@ -34,7 +34,7 @@
 
 obj_t call_binary(binary_t f, obj_t x, obj_t y)
 {
-    obj_t cx, cy, res;
+    obj_t cst, res;
 
     // no need to cast
     if (x->type == y->type || x->type == -y->type)
@@ -43,40 +43,44 @@ obj_t call_binary(binary_t f, obj_t x, obj_t y)
     switch (MTYPE2(x->type, y->type))
     {
     case MTYPE2(-TYPE_I64, -TYPE_F64):
-        cx = f64(x->i64);
-        return f(cx, y);
+        cst = f64(x->i64);
+        res = f(cst, y);
+        drop(cst);
+        return res;
     case MTYPE2(-TYPE_F64, -TYPE_I64):
-        cy = f64(y->i64);
-        return f(x, cy);
+        cst = f64(y->i64);
+        res = f(x, cst);
+        drop(cst);
+        return res;
     case MTYPE2(-TYPE_I64, TYPE_F64):
-        cx = f64(x->i64);
-        return f(cx, y);
+        cst = f64(x->i64);
+        res = f(cst, y);
+        drop(cst);
+        return res;
     case MTYPE2(-TYPE_F64, TYPE_I64):
-        cx = symbol("vector_f64");
-        cy = rf_cast(cx, y);
-        res = f(x, cy);
-        drop(cy);
+        cst = cast(TYPE_F64, y);
+        res = f(x, cst);
+        drop(cst);
         return res;
     case MTYPE2(TYPE_I64, -TYPE_F64):
-        cx = symbol("vector_f64");
-        cy = rf_cast(cx, x);
-        res = f(y, cy);
-        drop(cy);
+        cst = cast(TYPE_I64, x);
+        res = f(y, cst);
+        drop(cst);
         return res;
     case MTYPE2(TYPE_F64, -TYPE_I64):
-        cy = f64(y->i64);
-        return f(x, cy);
+        cst = f64(y->i64);
+        res = f(x, cst);
+        drop(cst);
+        return res;
     case MTYPE2(TYPE_I64, TYPE_F64):
-        cx = symbol("vector_f64");
-        cy = rf_cast(cx, x);
-        res = f(cy, y);
-        drop(cy);
+        cst = cast(TYPE_F64, x);
+        res = f(cst, y);
+        drop(cst);
         return res;
     case MTYPE2(TYPE_F64, TYPE_I64):
-        cx = symbol("vector_f64");
-        cy = rf_cast(cx, y);
-        res = f(cy, x);
-        drop(cy);
+        cst = cast(TYPE_F64, y);
+        res = f(cst, x);
+        drop(cst);
         return res;
     default:
         return f(x, y);
@@ -88,38 +92,38 @@ obj_t rf_call_binary_left_atomic(binary_t f, obj_t x, obj_t y)
     u64_t i, l;
     obj_t res, item, a;
 
-    // if (x->type == TYPE_LIST)
-    // {
-    //     l = x->len;
-    //     a = vector_get(x, 0);
-    //     item = rf_call_binary_left_atomic(f, &a, y);
-    //     drop(a);
+    if (x->type == TYPE_LIST)
+    {
+        l = x->len;
+        a = at_index(x, 0);
+        item = rf_call_binary_left_atomic(f, a, y);
+        drop(a);
 
-    //     if (item->type == TYPE_ERROR)
-    //         return item;
+        if (item->type == TYPE_ERROR)
+            return item;
 
-    //     res = list(l);
+        res = list(l);
 
-    //     vector_write(&res, 0, item);
+        write_obj(&res, 0, item);
 
-    //     for (i = 1; i < l; i++)
-    //     {
-    //         a = vector_get(x, i);
-    //         item = rf_call_binary_left_atomic(f, &a, y);
-    //         drop(a);
+        for (i = 1; i < l; i++)
+        {
+            a = at_index(x, i);
+            item = rf_call_binary_left_atomic(f, a, y);
+            drop(a);
 
-    //         if (item->type == TYPE_ERROR)
-    //         {
-    //             res->len = i;
-    //             drop(res);
-    //             return item;
-    //         }
+            if (item->type == TYPE_ERROR)
+            {
+                res->len = i;
+                drop(res);
+                return item;
+            }
 
-    //         vector_write(&res, i, item);
-    //     }
+            write_obj(&res, i, item);
+        }
 
-    //     return res;
-    // }
+        return res;
+    }
 
     return f(x, y);
 }
@@ -129,38 +133,38 @@ obj_t rf_call_binary_right_atomic(binary_t f, obj_t x, obj_t y)
     u64_t i, l;
     obj_t res, item, b;
 
-    // if (y->type == TYPE_LIST)
-    // {
-    //     l = y->len;
-    //     b = vector_get(y, 0);
-    //     item = rf_call_binary_right_atomic(f, x, b);
-    //     drop(b);
+    if (y->type == TYPE_LIST)
+    {
+        l = y->len;
+        b = at_index(y, 0);
+        item = rf_call_binary_right_atomic(f, x, b);
+        drop(b);
 
-    //     if (item->type == TYPE_ERROR)
-    //         return item;
+        if (item->type == TYPE_ERROR)
+            return item;
 
-    //     res = list(l);
+        res = list(l);
 
-    //     vector_write(res, 0, item);
+        write_obj(res, 0, item);
 
-    //     for (i = 1; i < l; i++)
-    //     {
-    //         b = vector_get(y, i);
-    //         item = rf_call_binary_right_atomic(f, x, b);
-    //         drop(b);
+        for (i = 1; i < l; i++)
+        {
+            b = at_index(y, i);
+            item = rf_call_binary_right_atomic(f, x, b);
+            drop(b);
 
-    //         if (item->type == TYPE_ERROR)
-    //         {
-    //             res->len = i;
-    //             drop(res);
-    //             return item;
-    //         }
+            if (item->type == TYPE_ERROR)
+            {
+                res->len = i;
+                drop(res);
+                return item;
+            }
 
-    //         vector_write(&res, i, item);
-    //     }
+            write_obj(&res, i, item);
+        }
 
-    //     return res;
-    // }
+        return res;
+    }
 
     return f(x, y);
 }
@@ -303,6 +307,16 @@ obj_t rf_set_variable(obj_t key, obj_t val)
 obj_t rf_dict(obj_t x, obj_t y)
 {
     return dict(clone(x), clone(y));
+}
+
+obj_t rf_cast(obj_t x, obj_t y)
+{
+    if (x->type != -TYPE_SYMBOL)
+        raise(ERR_TYPE, "cast: first argument must be a symbol");
+
+    type_t type = env_get_type_by_typename(&runtime_get()->env, x->i64);
+
+    return cast(type, y);
 }
 
 obj_t rf_table(obj_t x, obj_t y)
@@ -1842,170 +1856,6 @@ obj_t rf_except(obj_t x, obj_t y)
     // default:
     //     return error_type2(x->type, y->type, "except: unsupported types");
     // }
-
-    return null();
-}
-
-/*
- * Casts the obj to the specified type.
- * If the cast is not possible, returns an error obj.
- * If obj is already of the specified type, returns the obj itself (cloned).
- */
-obj_t rf_cast(obj_t x, obj_t y)
-{
-    // if (x->type != -TYPE_SYMBOL)
-    //     return error_type2(x->type, y->type, "cast: unsupported types");
-
-    // env_t *env = &runtime_get()->env;
-    // type_t type = env_get_type_by_typename(env, *x);
-
-    // obj_t res, err;
-    // i64_t i, l;
-    // str_t s, msg;
-
-    // // Do nothing if the type is the same
-    // if (type == y->type)
-    //     return clone(y);
-
-    // if (type == TYPE_CHAR)
-    // {
-    //     s = obj_fmt(y);
-    //     if (s == NULL)
-    //         panic("obj_fmt() returned NULL");
-    //     return string_from_str(s, strlen(s));
-    // }
-
-    // switch (MTYPE2(type, y->type))
-    // {
-    // case MTYPE2(-TYPE_I64, -TYPE_I64):
-    //     res = *y;
-    //     res.type = type;
-    //     break;
-    // case MTYPE2(-TYPE_I64, -TYPE_F64):
-    //     res = i64((i64_t)y->f64);
-    //     res.type = type;
-    //     break;
-    // case MTYPE2(-TYPE_F64, -TYPE_I64):
-    //     res = f64((f64_t)y->i64);
-    //     res.type = type;
-    //     break;
-    // case MTYPE2(-TYPE_SYMBOL, TYPE_CHAR):
-    //     res = symbol(as_string(y));
-    //     break;
-    // case MTYPE2(-TYPE_I64, TYPE_CHAR):
-    //     res = i64(strtol(as_string(y), NULL, 10));
-    //     break;
-    // case MTYPE2(-TYPE_F64, TYPE_CHAR):
-    //     res = f64(strtod(as_string(y), NULL));
-    //     break;
-    // case MTYPE2(TYPE_TABLE, TYPE_DICT):
-    //     res = clone(y);
-    //     res.type = type;
-    //     break;
-    // case MTYPE2(TYPE_DICT, TYPE_TABLE):
-    //     res = clone(y);
-    //     res.type = type;
-    //     break;
-    // case MTYPE2(TYPE_I64, TYPE_LIST):
-    //     res = vector_i64(y->len);
-    //     l = (i64_t)y->len;
-    //     for (i = 0; i < l; i++)
-    //     {
-    //         if (as_list(y)[i].type != -TYPE_I64)
-    //         {
-    //             drop(res);
-    //             msg = str_fmt(0, "invalid conversion from '%s' to 'i64'",
-    //                           symbols_get(env_get_typename_by_type(env, as_list(y)[i].type)));
-    //             err = error(ERR_TYPE, msg);
-    //             heap_free(msg);
-    //             return err;
-    //         }
-
-    //         as_vector_i64(&res)[i] = as_list(y)[i].i64;
-    //     }
-    //     break;
-    // case MTYPE2(TYPE_F64, TYPE_I64):
-    //     res = vector_f64(y->len);
-    //     l = (i64_t)y->len;
-    //     for (i = 0; i < l; i++)
-    //         as_vector_f64(&res)[i] = (f64_t)as_vector_i64(y)[i];
-    //     break;
-    // case MTYPE2(TYPE_F64, TYPE_LIST):
-    //     res = vector_f64(y->len);
-    //     l = (i64_t)y->len;
-    //     for (i = 0; i < l; i++)
-    //     {
-    //         if (as_list(y)[i].type != -TYPE_F64)
-    //         {
-    //             drop(res);
-    //             msg = str_fmt(0, "invalid conversion from '%s' to 'f64'",
-    //                           symbols_get(env_get_typename_by_type(env, as_list(y)[i].type)));
-    //             err = error(ERR_TYPE, msg);
-    //             heap_free(msg);
-    //             return err;
-    //         }
-
-    //         as_vector_f64(&res)[i] = as_list(y)[i].f64;
-    //     }
-    //     break;
-    // case MTYPE2(TYPE_BOOL, TYPE_I64):
-    //     res = vector_bool(y->len);
-    //     l = (i64_t)y->len;
-    //     for (i = 0; i < l; i++)
-    //         as_vector_bool(&res)[i] = as_list(y)[i].i64 != 0;
-    //     break;
-    // case MTYPE2(-TYPE_GUID, TYPE_CHAR):
-    //     res = guid(NULL);
-
-    //     if (strlen(as_string(y)) != 36)
-    //         break;
-
-    //     res.guid = heap_malloc(sizeof(guid_t));
-
-    //     i = sscanf(as_string(y),
-    //                "%02hhx%02hhx%02hhx%02hhx-%02hhx%02hhx-%02hhx%02hhx-%02hhx%02hhx-%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx",
-    //                &res.guid->data[0], &res.guid->data[1], &res.guid->data[2], &res.guid->data[3],
-    //                &res.guid->data[4], &res.guid->data[5],
-    //                &res.guid->data[6], &res.guid->data[7],
-    //                &res.guid->data[8], &res.guid->data[9],
-    //                &res.guid->data[10], &res.guid->data[11], &res.guid->data[12],
-    //                &res.guid->data[13], &res.guid->data[14], &res.guid->data[15]);
-
-    //     if (i != 16)
-    //     {
-    //         heap_free(res.guid);
-    //         res = guid(NULL);
-    //     }
-
-    //     break;
-    // case MTYPE2(-TYPE_I64, -TYPE_TIMESTAMP):
-    //     res = timestamp(y->i64);
-    //     break;
-    // case MTYPE2(-TYPE_TIMESTAMP, -TYPE_I64):
-    //     res = i64(y->i64);
-    //     break;
-    // case MTYPE2(TYPE_I64, TYPE_TIMESTAMP):
-    //     l = y->len;
-    //     res = vector_i64(l);
-    //     for (i = 0; i < l; i++)
-    //         as_vector_i64(&res)[i] = as_vector_timestamp(y)[i];
-    //     break;
-    // case MTYPE2(TYPE_TIMESTAMP, TYPE_I64):
-    //     l = y->len;
-    //     res = vector_timestamp(l);
-    //     for (i = 0; i < l; i++)
-    //         as_vector_timestamp(&res)[i] = as_vector_i64(y)[i];
-    //     break;
-    // default:
-    //     msg = str_fmt(0, "invalid conversion from '%s' to '%s'",
-    //                   symbols_get(env_get_typename_by_type(&runtime_get()->env, y->type)),
-    //                   symbols_get(x->i64));
-    //     err = error(ERR_TYPE, msg);
-    //     heap_free(msg);
-    //     return err;
-    // }
-
-    // return res;
 
     return null();
 }
