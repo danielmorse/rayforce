@@ -69,7 +69,6 @@ obj_t ht_set(u64_t size)
 
 nil_t rehash_tab(obj_t *obj, hash_f hash)
 {
-    printf("REHASH TAB!!!!");
     u64_t i, l, size = (*obj)->len, key, val, factor, index;
     obj_t new_obj = ht_tab(size); // will multiply size by 2
 

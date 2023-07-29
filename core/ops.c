@@ -202,7 +202,7 @@ bool_t pos_update(i64_t key, i64_t val, nil_t *seed, i64_t *tkey, i64_t *tval)
 
 obj_t distinct(obj_t x)
 {
-    i64_t i, j = 0, l, *p, min, max, range;
+    i64_t i, j = 0, l, r, *p, min, max, range, w, b;
     obj_t mask, vec, set;
 
     if (!x || x->len == 0)
@@ -227,24 +227,32 @@ obj_t distinct(obj_t x)
 
     if (range <= l)
     {
-        mask = vector_bool(range);
-        memset(as_bool(mask), 0, range);
+        r = alignup(range / 8, 8);
+        mask = vector_bool(r);
+        memset(as_bool(mask), 0, r);
 
         for (i = 0; i < l; i++)
         {
-            if (!as_bool(mask)[as_i64(x)[i] - min])
-            {
-                as_bool(mask)[as_i64(x)[i] - min] = true;
-                j++;
-            }
+            w = (as_i64(x)[i - min]) / 8;
+            b = (as_i64(x)[i - min]) & 7;
+
+            if (as_bool(mask)[w] & (1 << b))
+                continue;
+
+            as_bool(mask)[w] |= (1 << b);
+            j++;
         }
 
         vec = vector_i64(j);
-        l = mask->len;
         j = 0;
-        for (i = 0; i < l; i++)
-            if (as_bool(mask)[i])
+        for (i = 0; i < r; i++)
+        {
+            w = (as_i64(x)[i - min]) / 8;
+            b = (as_i64(x)[i - min]) & 7;
+
+            if (as_bool(mask)[w] & (1 << b))
                 as_i64(vec)[j++] = i + min;
+        }
 
         drop(mask);
 
