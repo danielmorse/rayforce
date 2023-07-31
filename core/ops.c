@@ -278,21 +278,33 @@ obj_t distinct(obj_t x)
 
 obj_t group(obj_t x)
 {
-    i64_t i, j = 0, xl = x->len, idx;
+    i64_t i, j = 0, xl = x->len, idx, min, max, range;
     obj_t keys, vals, mask, v, ht;
 
     if (xl == 0)
         return dict(vector_i64(0), list(0));
 
-    ht = ht_tab(xl, TYPE_I64);
+    min = max = as_i64(x)[0];
+
+    for (i = 0; i < xl; i++)
+    {
+        if (as_i64(x)[i] < min)
+            min = as_i64(x)[i];
+        else if (as_i64(x)[i] > max)
+            max = as_i64(x)[i];
+    }
+
+    range = max - min + 1;
+
+    ht = ht_tab(range < xl ? range : xl, TYPE_I64);
 
     // calculate counts for each key
     for (i = 0; i < xl; i++)
     {
-        idx = ht_tab_get(&ht, as_i64(x)[i]);
+        idx = ht_tab_get(&ht, as_i64(x)[i] - min);
         if (as_i64(as_list(ht)[0])[idx] == NULL_I64)
         {
-            as_i64(as_list(ht)[0])[idx] = as_i64(x)[i];
+            as_i64(as_list(ht)[0])[idx] = as_i64(x)[i] - min;
             as_i64(as_list(ht)[1])[idx] = 1;
             j++;
         }
@@ -306,7 +318,7 @@ obj_t group(obj_t x)
     // finally, fill vectors with positions
     for (i = 0, j = 0; i < xl; i++)
     {
-        idx = ht_tab_get(&ht, as_i64(x)[i]);
+        idx = ht_tab_get(&ht, as_i64(x)[i] - min);
         if (as_i64(as_list(ht)[1])[idx] & (1ll << 62))
         {
             v = (obj_t)(as_i64(as_list(ht)[1])[idx] & ~(1ll << 62));
