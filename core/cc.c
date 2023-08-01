@@ -965,12 +965,9 @@ obj_t cc_compile_lambda(bool_t top, str_t name, obj_t args, obj_t body, nfo_t *n
         push_const(&cc, null(0));
         goto epilogue;
     }
-
     // Compile all arguments but the last one
-    for (i = 0; i < len - 1; i++)
+    for (i = 0; i < len - 1; i++, b++)
     {
-        b++;
-
         // skip const expressions
         if ((*b)->type != TYPE_LIST)
             continue;

@@ -309,11 +309,6 @@ obj_t rf_set(obj_t key, obj_t val)
     return clone(val);
 }
 
-obj_t rf_dict(obj_t x, obj_t y)
-{
-    return dict(clone(x), clone(y));
-}
-
 obj_t rf_cast(obj_t x, obj_t y)
 {
     type_t type;
@@ -336,6 +331,17 @@ obj_t rf_cast(obj_t x, obj_t y)
     }
 
     return cast(type, y);
+}
+
+obj_t rf_dict(obj_t x, obj_t y)
+{
+    if (!is_vector(x) || !is_vector(y))
+        return error(ERR_TYPE, "Keys and Values must be lists");
+
+    if (x->len != y->len)
+        return error(ERR_LENGTH, "Keys and Values must have the same length");
+
+    return dict(clone(x), clone(y));
 }
 
 obj_t rf_table(obj_t x, obj_t y)

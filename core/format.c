@@ -37,7 +37,7 @@
 
 #define MAX_ROW_WIDTH 80
 #define FORMAT_TRAILER_SIZE 4
-#define vector_f64_PRECISION 2
+#define F64_PRECISION 2
 #define TABLE_MAX_WIDTH 10  // Maximum number of columns
 #define TABLE_MAX_HEIGHT 20 // Maximum number of rows
 #define LIST_MAX_HEIGHT 5   // Maximum number of list/dict rows
@@ -180,7 +180,7 @@ i32_t f64_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, f64_t val
     if (rfi_is_nan(val))
         return str_fmt_into(dst, len, offset, limit, "0f");
     else
-        return str_fmt_into(dst, len, offset, limit, "%.*f", vector_f64_PRECISION, val);
+        return str_fmt_into(dst, len, offset, limit, "%.*f", F64_PRECISION, val);
 }
 
 i32_t symbol_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, i64_t val)
@@ -383,7 +383,6 @@ i32_t table_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, obj_t 
     {
         // First check the column name
         n = strlen(symbols_get(header[i]));
-        as_i64(column_widths)[i] = n;
 
         // Then traverse column until maximum height limit
         for (j = 0; j < table_height; j++)
@@ -394,7 +393,8 @@ i32_t table_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, obj_t 
             o = 0;
             raw_fmt_into(&s, &l, &o, 0, 31, column, j);
             formatted_columns[i][j] = s;
-            maxn(as_i64(column_widths)[i], n);
+            maxn(n, o);
+            as_i64(column_widths)[i] = n;
         }
     }
 

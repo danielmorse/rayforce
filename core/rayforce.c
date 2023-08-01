@@ -181,12 +181,6 @@ obj_t dict(obj_t keys, obj_t vals)
 {
     obj_t dict;
 
-    if (!is_vector(keys) || !is_vector(vals))
-        return error(ERR_TYPE, "Keys and Values must be lists");
-
-    if (keys->len != vals->len)
-        return error(ERR_LENGTH, "Keys and Values must have the same length");
-
     dict = list(2, keys, vals);
     dict->type = TYPE_DICT;
 
