@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <stdarg.h>
+#include <stdlib.h>
 #include "rayforce.h"
 
 // A compile time assertion check

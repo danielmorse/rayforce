@@ -31,37 +31,14 @@
 
 #define PAGE_SIZE 4096
 
-#if defined(_WIN32) || defined(__CYGWIN__)
-#include <windows.h>
-#define MAP_FAILED (nil_t *)-1
-#else
-#include <sys/mman.h>
-#endif
+#include "rayforce.h"
 
-#include <stdlib.h>
-#include <string.h>
-
-#if defined(_WIN32) || defined(__CYGWIN__)
-#define mmap_stack(size) MapViewOfFile(CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, size, NULL), FILE_MAP_ALL_ACCESS, 0, 0, size);
-#define mmap_malloc(size) MapViewOfFile(CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, size, NULL), FILE_MAP_ALL_ACCESS, 0, 0, size);
-#define mmap_file(size, attrs, fd) MapViewOfFile(CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, size, NULL), FILE_MAP_ALL_ACCESS, 0, 0, size);
-#define mmap_free(addr, size) UnmapViewOfFile(addr);
-#elif defined(__linux__)
-#define mmap_stack(size) mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE | MAP_STACK | MAP_GROWSDOWN, -1, 0);
-#define mmap_malloc(size) mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
-#define mmap_file(size, attrs, fd) mmap(NULL, size, attrs, MAP_PRIVATE, fd, 0);
-#define mmap_free(addr, size) munmap(addr, size);
-#define mmap_sync(addr, size) msync(addr, size, MS_SYNC);
-#elif defined(__APPLE__) && defined(__MACH__)
-#define MAP_ANON 0x1000
-#define MAP_ANONYMOUS MAP_ANON
-#define mmap_stack(size) mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0)
-#define mmap_malloc(size) mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
-#define mmap_file(size, attrs, fd) mmap(NULL, size, attrs, MAP_PRIVATE, fd, 0);
-#define mmap_free(addr, size) munmap(addr, size);
-#define mmap_sync(addr, size) msync(addr, size, MS_SYNC);
-#else
-#error Unknown environment!
-#endif
+// clang-format off
+nil_t *mmap_stack(u64_t size);
+nil_t *mmap_malloc(u64_t size);
+nil_t *mmap_file(u64_t size, i32_t attrs, i32_t fd);
+i32_t  mmap_free(nil_t *addr, u64_t size);
+i32_t  mmap_sync(nil_t *addr, u64_t size);
+// clang-format on
 
 #endif
