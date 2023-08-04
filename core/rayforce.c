@@ -238,7 +238,7 @@ obj_t join_raw(obj_t *obj, raw_t val)
     occup = sizeof(struct obj_t) + off;
     req = occup + size;
     *obj = heap_realloc(*obj, req);
-    memcpy((*obj)->arr + off, &val, size);
+    memcpy((*obj)->arr + off, val, size);
     (*obj)->len++;
 
     return *obj;
@@ -273,11 +273,11 @@ obj_t join_obj(obj_t *obj, obj_t val)
     case mtype2(TYPE_I64, -TYPE_I64):
     case mtype2(TYPE_SYMBOL, -TYPE_SYMBOL):
     case mtype2(TYPE_TIMESTAMP, -TYPE_TIMESTAMP):
-        res = join_raw(obj, val->i64);
+        res = join_raw(obj, (raw_t)val->i64);
         drop(val);
         return res;
     case mtype2(TYPE_F64, -TYPE_F64):
-        res = join_raw(obj, *(raw_t *)&val->f64);
+        res = join_raw(obj, (raw_t *)&val->f64);
         drop(val);
         return res;
     case mtype2(TYPE_CHAR, -TYPE_CHAR):
@@ -300,13 +300,13 @@ obj_t join_obj(obj_t *obj, obj_t val)
 obj_t join_sym(obj_t *obj, str_t str)
 {
     i64_t sym = intern_symbol(str, strlen(str));
-    return join_raw(obj, sym);
+    return join_raw(obj, (raw_t)sym);
 }
 
 obj_t write_raw(obj_t *obj, u64_t idx, raw_t val)
 {
     i32_t size = size_of((*obj)->type);
-    memcpy((*obj)->arr + idx * size, &val, size);
+    memcpy((*obj)->arr + idx * size, val, size);
     return *obj;
 }
 
@@ -341,19 +341,19 @@ obj_t write_obj(obj_t *obj, u64_t idx, obj_t val)
     case TYPE_I64:
     case TYPE_SYMBOL:
     case TYPE_TIMESTAMP:
-        ret = write_raw(obj, idx, val->i64);
+        ret = write_raw(obj, idx, &val->i64);
         drop(val);
         break;
     case TYPE_F64:
-        ret = write_raw(obj, idx, *(raw_t *)&val->f64);
+        ret = write_raw(obj, idx, &val->f64);
         drop(val);
         break;
     case TYPE_CHAR:
-        ret = write_raw(obj, idx, val->schar);
+        ret = write_raw(obj, idx, &val->schar);
         drop(val);
         break;
     case TYPE_LIST:
-        ret = write_raw(obj, idx, (raw_t)val);
+        ret = write_raw(obj, idx, &val);
         break;
     default:
         panic(str_fmt(0, "write obj: invalid type: %d", (*obj)->type));
@@ -365,7 +365,7 @@ obj_t write_obj(obj_t *obj, u64_t idx, obj_t val)
 obj_t write_sym(obj_t *obj, u64_t idx, str_t str)
 {
     i64_t sym = intern_symbol(str, strlen(str));
-    return write_raw(obj, idx, sym);
+    return write_raw(obj, idx, &sym);
 }
 
 obj_t at_idx(obj_t obj, u64_t idx)

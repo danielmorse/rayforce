@@ -33,17 +33,18 @@
 #include "ops.h"
 
 #define regf(r, n, t, f, o)                                     \
-    {                                                           \
-        join_raw(&as_list(r)[0], intern_keyword(n, strlen(n))); \
+    {   \                        
+        i64_t _k = intern_keyword(n, strlen(n));                                \
+        join_raw(&as_list(r)[0], &_k); \
         obj_t _o = atom(-t);                                    \
         _o->attrs = f;                                          \
         _o->i64 = (i64_t)o;                                     \
-        join_raw(&as_list(r)[1], (i64_t)_o);                    \
+        join_raw(&as_list(r)[1], &_o);                    \
     };
 
 #define regt(r, i, s)                       \
     {                                       \
-        join_raw(&as_list(r)[0], (i64_t)i); \
+        join_raw(&as_list(r)[0], &i); \
         join_sym(&as_list(r)[1], s);        \
     };
 

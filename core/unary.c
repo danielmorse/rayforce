@@ -593,7 +593,7 @@ obj_t rf_fread(obj_t x)
         }
 
         size = fs_fsize(fd);
-
+printf("SIZE: %lld\n", size);
         res = string(size);
 
         if (read(fd, as_string(res), size) != size)

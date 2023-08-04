@@ -32,6 +32,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include "util.h"
 
 #if defined(_WIN32) || defined(__CYGWIN__)
 
@@ -47,11 +48,13 @@ nil_t *mmap_malloc(u64_t size)
 
 nil_t *mmap_file(u64_t size, i32_t attrs, i32_t fd)
 {
-    return MapViewOfFile(CreateFileMapping(fd, NULL, PAGE_READWRITE, 0, size, NULL), FILE_MAP_ALL_ACCESS, 0, 0, size);
+    unused(attrs);
+    return MapViewOfFile(CreateFileMapping((HANDLE)(i64_t)fd, NULL, PAGE_READWRITE, 0, size, NULL), FILE_MAP_ALL_ACCESS, 0, 0, size);
 }
 
 i32_t mmap_free(nil_t *addr, u64_t size)
 {
+    unused(size);
     return VirtualFree(addr, 0, MEM_RELEASE);
 }
 
