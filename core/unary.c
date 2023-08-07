@@ -23,6 +23,7 @@
 
 #include <errno.h>
 #include "unary.h"
+#include "binary.h"
 #include "runtime.h"
 #include "heap.h"
 #include "vm.h"
@@ -98,8 +99,8 @@ obj_t rf_call_unary(u8_t attrs, unary_f f, obj_t x)
 obj_t rf_get(obj_t x)
 {
     i64_t fd;
-    obj_t res;
-    u64_t size;
+    obj_t res, col, keys, vals, val, s;
+    u64_t i, l, size;
 
     switch (x->type)
     {
@@ -112,18 +113,68 @@ obj_t rf_get(obj_t x)
         return res;
 
     case TYPE_CHAR:
-        fd = fs_fopen(as_string(x), O_RDWR);
+        if (x->len == 0)
+            raise(ERR_LENGTH, "get: empty string path");
 
-        if (fd == -1)
-            raise(ERR_IO, "get: file '%s': %s", as_string(x), strerror(errno));
+        // get splayed table
+        if (as_string(x)[x->len - 1] == '/')
+        {
+            // first try to read columns schema
+            s = string_from_str(".d", 2);
+            col = rf_concat(x, s);
+            keys = rf_load(col);
+            drop(s);
+            drop(col);
 
-        size = fs_fsize(fd);
-        res = (obj_t)mmap_file(fd, size);
+            if (is_error(keys))
+                return keys;
 
-        res->attrs |= ATTR_MMAP;
-        res->rc = 1;
+            if (keys->type != TYPE_SYMBOL)
+            {
+                drop(keys);
+                raise(ERR_TYPE, "get: expected table schema as a symbol vector, got: %d", keys->type);
+            }
 
-        return res;
+            l = keys->len;
+            vals = vector(TYPE_LIST, l);
+
+            for (i = 0; i < l; i++)
+            {
+                s = cast(TYPE_CHAR, at_idx(keys, i));
+                col = rf_concat(x, s);
+                val = rf_get(col);
+                drop(s);
+                drop(col);
+
+                if (is_error(val))
+                {
+                    vals->len = i;
+                    drop(vals);
+                    drop(keys);
+                    return val;
+                }
+
+                as_list(vals)[i] = val;
+            }
+
+            return table(keys, vals);
+        }
+        // get other obj
+        else
+        {
+            fd = fs_fopen(as_string(x), O_RDWR);
+
+            if (fd == -1)
+                raise(ERR_IO, "get: file '%s': %s", as_string(x), strerror(errno));
+
+            size = fs_fsize(fd);
+            res = (obj_t)mmap_file(fd, size);
+
+            res->attrs |= ATTR_MMAP;
+            res->rc = 1;
+
+            return res;
+        }
 
     default:
         raise(ERR_TYPE, "get: unsupported type: %d", x->type);

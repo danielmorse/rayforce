@@ -303,9 +303,9 @@ obj_t rf_call_binary(u8_t attrs, binary_f f, obj_t x, obj_t y)
 
 obj_t rf_set(obj_t x, obj_t y)
 {
-    obj_t res;
-    i64_t fd;
-    i64_t size, c = 0;
+    obj_t res, col, s;
+    i64_t fd, c = 0;
+    u64_t i, l, size;
 
     switch (x->type)
     {
@@ -327,7 +327,33 @@ obj_t rf_set(obj_t x, obj_t y)
             if (as_string(x)[x->len - 1] != '/')
                 raise(ERR_TYPE, "set: table path must be a directory");
 
-            // TODO!!!!
+            // save columns schema
+            s = string_from_str(".d", 2);
+            col = rf_concat(x, s);
+            res = rf_save(col, as_list(y)[0]);
+
+            drop(s);
+            drop(col);
+
+            if (is_error(res))
+                return res;
+
+            drop(res);
+
+            // save columns data
+            for (i = 0, l = as_list(y)[0]->len; i < l; i++)
+            {
+                s = cast(TYPE_CHAR, at_idx(as_list(y)[0], i));
+                col = rf_concat(x, s);
+                res = rf_set(col, at_idx(as_list(y)[1], i));
+                drop(s);
+                drop(col);
+
+                if (is_error(res))
+                    return res;
+            }
+
+            return clone(y);
 
         default:
             fd = fs_fopen(as_string(x), O_RDWR | O_CREAT | O_TRUNC);
