@@ -48,7 +48,12 @@ nil_t *mmap_malloc(u64_t size)
 
 nil_t *mmap_file(i64_t fd, u64_t size)
 {
-    return MapViewOfFile(CreateFileMapping((HANDLE)fd, NULL, PAGE_READWRITE, 0, size, NULL), FILE_MAP_ALL_ACCESS, 0, 0, size);
+    HANDLE hMapping = CreateFileMapping((HANDLE)fd, NULL, PAGE_READWRITE, 0, size, NULL);
+
+    if (hMapping == NULL)
+        return NULL;
+
+    return MapViewOfFile(hMapping, FILE_MAP_ALL_ACCESS, 0, 0, size);
 }
 
 i64_t mmap_free(nil_t *addr, u64_t size)

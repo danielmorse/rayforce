@@ -21,7 +21,6 @@
  *   SOFTWARE.
  */
 
-#include <errno.h>
 #include "unary.h"
 #include "binary.h"
 #include "runtime.h"
@@ -36,6 +35,7 @@
 #include "fs.h"
 #include "cc.h"
 #include "util.h"
+#include "ops.h"
 #include "serde.h"
 
 // Atomic unary functions (iterates through list of argumen items down to atoms)
@@ -165,7 +165,7 @@ obj_t rf_get(obj_t x)
             fd = fs_fopen(as_string(x), ATTR_RDWR);
 
             if (fd == -1)
-                raise(ERR_IO, "get: file '%s': %s", as_string(x), strerror(errno));
+                raise(ERR_IO, "get: file '%s': %s", as_string(x), get_os_error());
 
             size = fs_fsize(fd);
             res = (obj_t)mmap_file(fd, size);
@@ -196,7 +196,7 @@ obj_t rf_load(obj_t x)
         fd = fs_fopen(as_string(x), ATTR_RDWR);
 
         if (fd == -1)
-            raise(ERR_IO, "load: file '%s': %s", as_string(x), strerror(errno));
+            raise(ERR_IO, "load: file '%s': %s", as_string(x), get_os_error());
 
         size = fs_fsize(fd);
 
@@ -233,7 +233,7 @@ obj_t rf_read(obj_t x)
         // error handling if file does not exist
         if (fd == -1)
         {
-            fmsg = str_fmt(0, "read: file '%s': %s", as_string(x), strerror(errno));
+            fmsg = str_fmt(0, "read: file '%s': %s", as_string(x), get_os_error());
             err = error(ERR_IO, fmsg);
             heap_free(fmsg);
             return err;
@@ -248,7 +248,7 @@ obj_t rf_read(obj_t x)
 
         if (c != size)
         {
-            fmsg = str_fmt(0, "read: file '%s': %s", as_string(x), strerror(errno));
+            fmsg = str_fmt(0, "read: file '%s': %s", as_string(x), get_os_error());
             err = error(ERR_IO, fmsg);
             heap_free(fmsg);
             drop(res);

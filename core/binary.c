@@ -359,7 +359,7 @@ obj_t rf_set(obj_t x, obj_t y)
             fd = fs_fopen(as_string(x), ATTR_WRONLY | ATTR_CREAT | ATTR_TRUNC);
 
             if (fd == -1)
-                raise(ERR_IO, "set: failed to open file '%s': %s", as_string(x), strerror(errno));
+                raise(ERR_IO, "set: failed to open file '%s': %s", as_string(x), get_os_error());
 
             size = size_of(y);
 
@@ -367,7 +367,7 @@ obj_t rf_set(obj_t x, obj_t y)
             fs_fclose(fd);
 
             if (c == -1)
-                raise(ERR_IO, "set: failed to write to file '%s': %s", as_string(x), strerror(errno));
+                raise(ERR_IO, "set: failed to write to file '%s': %s", as_string(x), get_os_error());
 
             return clone(y);
         }
@@ -385,7 +385,7 @@ obj_t rf_save(obj_t x, obj_t y)
     fd = fs_fopen(as_string(x), ATTR_RDWR | ATTR_CREAT | ATTR_TRUNC);
 
     if (fd == -1)
-        raise(ERR_IO, "write: failed to open file '%s': %s", as_string(x), strerror(errno));
+        raise(ERR_IO, "write: failed to open file '%s': %s", as_string(x), get_os_error());
 
     buf = ser(y);
 
@@ -400,7 +400,7 @@ obj_t rf_save(obj_t x, obj_t y)
     drop(buf);
 
     if (c == -1)
-        raise(ERR_IO, "write: failed to write to file '%s': %s", as_string(x), strerror(errno));
+        raise(ERR_IO, "write: failed to write to file '%s': %s", as_string(x), get_os_error());
 
     return clone(y);
 }

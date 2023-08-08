@@ -27,6 +27,12 @@
 #include "util.h"
 #include "hash.h"
 
+#if defined(_WIN32) || defined(__CYGWIN__)
+#include <windows.h>
+#else
+#include <errno.h>
+#endif
+
 static u64_t __RND_SEED__ = 0;
 
 #define MAX_LINEAR_VALUE 1024 * 1024 * 64
@@ -342,3 +348,34 @@ obj_t group(obj_t x)
 
     return dict(keys, vals);
 }
+
+#if defined(_WIN32) || defined(__CYGWIN__)
+
+str_t get_os_error()
+{
+    DWORD dw = GetLastError();
+    LPVOID lpMsgBuf;
+    DWORD bufLen = FormatMessageA(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER |
+            FORMAT_MESSAGE_FROM_SYSTEM |
+            FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL,
+        dw,
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (LPSTR)&lpMsgBuf,
+        0, NULL);
+
+    if (bufLen)
+        return (str_t)lpMsgBuf;
+    else
+        return strerror(errno);
+}
+
+#else
+
+str_t get_os_error()
+{
+    return strerror(errno);
+}
+
+#endif

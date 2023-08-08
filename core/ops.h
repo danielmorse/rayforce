@@ -94,4 +94,6 @@ u64_t rfi_i64_hash(i64_t a);
 obj_t distinct(obj_t x);
 obj_t group(obj_t x);
 
+str_t get_os_error();
+
 #endif

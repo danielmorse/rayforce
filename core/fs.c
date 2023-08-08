@@ -46,7 +46,7 @@ i64_t fs_fopen(str_t path, i64_t attrs)
 
     heap_free(tmp_path);
 
-    return (i64_t)CreateFile(path, attrs, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    return (i64_t)CreateFile(path, attrs, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 }
 
 i64_t fs_fsize(i64_t fd)
