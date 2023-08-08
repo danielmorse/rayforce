@@ -33,6 +33,7 @@
 #define ATTR_CREAT 0
 #define ATTR_TRUNC 0
 #else
+#include <stdint.h>
 #include <unistd.h>
 #include <dirent.h>
 #define ATTR_RDONLY O_RDONLY
