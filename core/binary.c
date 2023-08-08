@@ -356,7 +356,7 @@ obj_t rf_set(obj_t x, obj_t y)
             return clone(y);
 
         default:
-            fd = fs_fopen(as_string(x), ATTR_RDWR | ATTR_CREAT | ATTR_TRUNC);
+            fd = fs_fopen(as_string(x), ATTR_WRONLY | ATTR_CREAT | ATTR_TRUNC);
 
             if (fd == -1)
                 raise(ERR_IO, "set: failed to open file '%s': %s", as_string(x), strerror(errno));
