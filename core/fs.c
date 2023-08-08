@@ -23,13 +23,6 @@
 
 #include <stdio.h>
 #include <sys/stat.h>
-
-#if defined(_WIN32) || defined(__CYGWIN__)
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
-#include <dirent.h>
 #include "fs.h"
 #include "string.h"
 #include "util.h"
@@ -43,7 +36,7 @@ i64_t fs_fopen(str_t path, i64_t attrs)
     str_t p = tmp_path;
     str_t slash;
 
-    while ((slash = _tcschr(p + 1, '/')) != NULL)
+    while ((slash = strchr(p + 1, '/')) != NULL)
     {
         *slash = '\0';
         CreateDirectory(tmp_path, NULL);
@@ -53,60 +46,34 @@ i64_t fs_fopen(str_t path, i64_t attrs)
 
     heap_free(tmp_path);
 
-    i64_t desiredAccess = GENERIC_READ | GENERIC_WRITE;
-    i64_t shareMode = FILE_SHARE_READ | FILE_SHARE_WRITE;
-
-    // Convert Unix-style flags to Windows
-    if (attrs == O_RDONLY)
-    {
-        desiredAccess = GENERIC_READ;
-        shareMode = FILE_SHARE_READ;
-    }
-    else if (attrs == O_WRONLY)
-    {
-        desiredAccess = GENERIC_WRITE;
-        shareMode = FILE_SHARE_WRITE;
-    }
-    else if (attrs == O_RDWR)
-    {
-        desiredAccess = GENERIC_READ | GENERIC_WRITE;
-        shareMode = FILE_SHARE_READ | FILE_SHARE_WRITE;
-    }
-
-    return (i64_t)CreateFile(path, desiredAccess, shareMode, NULL,
-                             OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    return (i64_t)CreateFile(path, attrs, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 }
 
 i64_t fs_fsize(i64_t fd)
 {
-    i64_t size;
+    LARGE_INTEGER size;
     if (!GetFileSizeEx((HANDLE)fd, &size))
-    {
-        // handle error
-    }
-    return size;
+        return -1;
+
+    return (i64_t)size.QuadPart;
 }
 
 i64_t fs_fread(i64_t fd, str_t buf, i64_t size)
 {
-    i64_t bytesRead = 0;
-    if (!ReadFile(fd, buf, size, &bytesRead, NULL))
-    {
-        // handle error
-    }
+    DWORD bytesRead = 0;
+    if (!ReadFile((HANDLE)fd, buf, size, &bytesRead, NULL))
+        return -1;
 
-    return bytesRead;
+    return (i64_t)bytesRead;
 }
 
 i64_t fs_fwrite(i64_t fd, str_t buf, i64_t size)
 {
-    i64_t bytesWritten = 0;
-    if (!WriteFile(fd, buf, size, &bytesWritten, NULL))
-    {
-        // handle error
-    }
+    DWORD bytesWritten = 0;
+    if (!WriteFile((HANDLE)fd, buf, size, &bytesWritten, NULL))
+        return -1;
 
-    return bytesWritten;
+    return (i64_t)bytesWritten;
 }
 
 i64_t fs_fclose(i64_t fd)
@@ -127,16 +94,15 @@ i64_t fs_dopen(str_t path)
     hFind = FindFirstFile(path, &FindFileData);
     if (hFind == INVALID_HANDLE_VALUE)
     {
-        // Try to create the directory if it doesn't exist
         if (!CreateDirectory(path, NULL))
-            return INVALID_HANDLE_VALUE;
+            return (i64_t)INVALID_HANDLE_VALUE;
 
-        // Open the newly created directory
-        hFind = FindFirstFile(path, &FindFileData);
+        hFind = FindFirstFile(
+            path, &FindFileData);
         if (hFind == INVALID_HANDLE_VALUE)
-            return INVALID_HANDLE_VALUE;
+            return (i64_t)INVALID_HANDLE_VALUE;
     }
-    return hFind;
+    return (i64_t)hFind;
 }
 
 i64_t fs_dclose(i64_t fd)

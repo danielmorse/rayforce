@@ -162,7 +162,7 @@ obj_t rf_get(obj_t x)
         // get other obj
         else
         {
-            fd = fs_fopen(as_string(x), O_RDWR);
+            fd = fs_fopen(as_string(x), ATTR_RDWR);
 
             if (fd == -1)
                 raise(ERR_IO, "get: file '%s': %s", as_string(x), strerror(errno));
@@ -192,7 +192,7 @@ obj_t rf_load(obj_t x)
     switch (x->type)
     {
     case TYPE_CHAR:
-        fd = fs_fopen(as_string(x), O_RDONLY);
+        fd = fs_fopen(as_string(x), ATTR_RDWR);
 
         if (fd == -1)
             raise(ERR_IO, "load: file '%s': %s", as_string(x), strerror(errno));
@@ -227,7 +227,7 @@ obj_t rf_read(obj_t x)
     switch (x->type)
     {
     case TYPE_CHAR:
-        fd = fs_fopen(as_string(x), O_RDONLY);
+        fd = fs_fopen(as_string(x), ATTR_RDONLY);
 
         // error handling if file does not exist
         if (fd == -1)

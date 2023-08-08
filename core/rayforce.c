@@ -80,7 +80,7 @@ obj_t bool(bool_t val)
     return b;
 }
 
-obj_t byte(byte_t val)
+obj_t sbyte(byte_t val)
 {
     obj_t b = atom(TYPE_BYTE);
     b->byte = val;

@@ -48,7 +48,6 @@ nil_t *mmap_malloc(u64_t size)
 
 nil_t *mmap_file(i64_t fd, u64_t size)
 {
-    unused(attrs);
     return MapViewOfFile(CreateFileMapping((HANDLE)fd, NULL, PAGE_READWRITE, 0, size, NULL), FILE_MAP_ALL_ACCESS, 0, 0, size);
 }
 

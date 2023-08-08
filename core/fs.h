@@ -24,6 +24,23 @@
 #ifndef FS_H
 #define FS_H
 
+// File attrs
+#if defined(_WIN32) || defined(__CYGWIN__)
+#include <windows.h>
+#define ATTR_RDONLY GENERIC_READ
+#define ATTR_WRONLY GENERIC_WRITE
+#define ATTR_RDWR (ATTR_RDONLY | ATTR_WRONLY)
+#define ATTR_CREAT 0
+#define ATTR_TRUNC 0
+#else
+#include <unistd.h>
+#include <dirent.h>
+#define ATTR_RDONLY O_RDONLY
+#define ATTR_WRONLY O_WRONLY
+#define ATTR_RDWR O_RDWR
+#define ATTR_CREAT O_CREAT
+#define ATTR_TRUNC O_TRUNC
+#endif
 #include "rayforce.h"
 #include <fcntl.h>
 

@@ -356,7 +356,7 @@ obj_t rf_set(obj_t x, obj_t y)
             return clone(y);
 
         default:
-            fd = fs_fopen(as_string(x), O_RDWR | O_CREAT | O_TRUNC);
+            fd = fs_fopen(as_string(x), ATTR_RDWR | ATTR_CREAT | ATTR_TRUNC);
 
             if (fd == -1)
                 raise(ERR_IO, "set: failed to open file '%s': %s", as_string(x), strerror(errno));
@@ -382,7 +382,7 @@ obj_t rf_save(obj_t x, obj_t y)
     i64_t fd, c;
     obj_t buf;
 
-    fd = fs_fopen(as_string(x), O_RDWR | O_CREAT | O_TRUNC);
+    fd = fs_fopen(as_string(x), ATTR_RDWR | ATTR_CREAT | ATTR_TRUNC);
 
     if (fd == -1)
         raise(ERR_IO, "write: failed to open file '%s': %s", as_string(x), strerror(errno));
@@ -407,6 +407,8 @@ obj_t rf_save(obj_t x, obj_t y)
 
 obj_t rf_write(obj_t x, obj_t y)
 {
+    unused(x);
+    unused(y);
     raise(ERR_NOT_IMPLEMENTED, "write: not implemented");
 }
 

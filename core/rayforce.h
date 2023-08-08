@@ -129,7 +129,7 @@ extern obj_t atom(type_t type);                             // create atom of ty
 extern obj_t list(u64_t len, ...);                          // create list
 extern obj_t vector(type_t type, u64_t len);                // create vector of type
 extern obj_t bool(bool_t val);                              // bool atom
-extern obj_t byte(byte_t val);                                // byte atom
+extern obj_t sbyte(byte_t val);                             // byte atom
 extern obj_t i64(i64_t val);                                // i64 atom
 extern obj_t f64(f64_t val);                                // f64 atom
 extern obj_t symbol(str_t ptr);                             // symbol
