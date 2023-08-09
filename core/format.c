@@ -346,8 +346,19 @@ i32_t string_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, obj_t 
 
 i32_t enum_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t limit, obj_t obj)
 {
-    i32_t n = str_fmt_into(dst, len, offset, limit, "'%s#", symtostr(as_list(obj)[0]->i64));
-    n += obj_fmt_into(dst, len, offset, indent, limit, as_list(obj)[1]);
+    i32_t n;
+    obj_t s, e;
+
+    s = rf_key(obj);
+    e = rf_value(obj);
+
+    n = str_fmt_into(dst, len, offset, limit, "'");
+    n += obj_fmt_into(dst, len, offset, indent, limit, s);
+    n += str_fmt_into(dst, len, offset, limit, "#");
+    n += obj_fmt_into(dst, len, offset, indent, limit, e);
+
+    drop(s);
+    drop(e);
 
     return n;
 }

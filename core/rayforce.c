@@ -149,10 +149,28 @@ obj_t timestamp(i64_t val)
     return t;
 }
 
-obj_t venum(obj_t sym, obj_t vec)
+obj_t venum(str_t sym, obj_t vec)
 {
-    obj_t e = list(2, sym, vec);
+    obj_t e;
+    i64_t *s;
+    u64_t i, l;
+
+    e = (obj_t)heap_alloc(PAGE_SIZE + (vec->len * sizeof(i64_t)));
+    memset(e, 0, PAGE_SIZE);
+
+    l = vec->len;
+
     e->type = TYPE_ENUM;
+    e->attrs = 0;
+    e->rc = 1;
+    e->len = l;
+
+    strcpy(as_string(e), sym);
+
+    s = (i64_t *)((str_t)e + PAGE_SIZE);
+
+    for (i = 0; i < l; i++)
+        s[i] = as_i64(vec)[i];
 
     return e;
 }
@@ -836,9 +854,10 @@ nil_t __attribute__((hot)) drop(obj_t obj)
     case TYPE_ENUM:
         if (rc == 0)
         {
-            drop(as_list(obj)[0]);
-            drop(as_list(obj)[1]);
-            heap_free(obj);
+            if (obj->attrs & ATTR_MMAP)
+                mmap_free(obj, size_of(obj));
+            else
+                heap_free(obj);
         }
         return;
     case TYPE_TABLE:

@@ -68,7 +68,14 @@ u64_t size_of(obj_t obj)
         return size;
     }
 
-    panic(str_fmt(0, "sizeof: unknown type: %d", obj->type));
+    switch (obj->type)
+    {
+    case TYPE_ENUM:
+        size += PAGE_SIZE + obj->len * sizeof(i64_t);
+        return size;
+    default:
+        panic(str_fmt(0, "sizeof: unknown type: %d", obj->type));
+    }
 }
 
 u32_t next_power_of_two_u32(u32_t n)

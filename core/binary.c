@@ -335,100 +335,44 @@ obj_t rf_call_binary(u8_t attrs, binary_f f, obj_t x, obj_t y)
     }
 }
 
-obj_t rf_distinctn(obj_t *x, u64_t n)
+obj_t distinct_syms(obj_t *x, u64_t n)
 {
     i64_t r, p, min, max, k, w, b;
     u64_t i, j, h, l, range;
-    obj_t mask, vec, set, a;
+    obj_t vec, set, a;
 
-    if (n == 0 || !*x)
-        return vector_i64(0);
+    l = (*x)->len;
 
-    a = *x;
-
-    // check all types (must be the same)
-    if (a->type != TYPE_I64 && a->type != TYPE_SYMBOL && a->type != TYPE_F64 && a->type != TYPE_TIMESTAMP)
-        raise(ERR_TYPE, "'distinct': unsupported type: %d", a->type);
-
-    for (i = 0; i < n; i++)
-        if (a->type != x[i]->type)
-            raise(ERR_TYPE, "'distinct': all arguments must be of the same type");
-
-    if (n == 1 && (a->attrs & ATTR_DISTINCT))
-        return clone(a);
-
-    min = max = as_i64(a)[0];
-
-    // find min and max of all vectors
-    for (i = 0; i < n; i++)
-    {
-        a = *(x + i);
-
-        l = a->len;
-
-        for (j = 0; j < l; j++)
-        {
-            if (as_i64(a)[j] < min)
-                min = as_i64(a)[j];
-            else if (as_i64(a)[j] > max)
-                max = as_i64(a)[j];
-        }
-    }
-
-    range = max - min + 1;
-
-    if (range <= l)
-    {
-        r = alignup(range / 8, 8);
-        if (!r)
-            r = 1;
-
-        mask = vector_bool(r);
-        memset(as_bool(mask), 0, r);
-        vec = vector_i64(range);
-
-        for (i = 0; i < n; i++)
-        {
-            for (j = 0, h = 0; j < l; j++)
-            {
-                k = as_i64(a)[j] - min;
-                w = k >> 3; // k / 8
-                b = k & 7;  // k % 8
-
-                if (as_bool(mask)[w] & (1 << b))
-                    continue;
-
-                as_bool(mask)[w] |= (1 << b);
-                as_i64(vec)[h++] = as_i64(a)[j];
-            }
-        }
-
-        drop(mask);
-
-        resize(&vec, h);
-
-        return vec;
-    }
+    if (l == 0)
+        return vector_symbol(0);
 
     set = ht_tab(l, -1);
-    vec = vector_i64(l);
 
-    for (i = 0; i < n; i++)
+    for (i = 0, h = 0; i < n; i++)
     {
-        for (j = 0, h = 0; j < l; j++)
+        a = *(x + i);
+        for (j = 0; j < l; j++)
         {
-            p = ht_tab_next(&set, as_i64(a)[j] - min);
-            if (as_i64(as_list(set)[0])[p] == NULL_I64)
+            p = ht_tab_next(&set, as_symbol(a)[j]);
+            if (as_symbol(as_list(set)[0])[p] == NULL_I64)
             {
-                as_i64(as_list(set)[0])[p] = as_i64(a)[j] - min;
-                as_i64(vec)[h++] = as_i64(a)[j];
+                as_symbol(as_list(set)[0])[p] = as_symbol(a)[j];
+                h++;
             }
         }
+    }
+
+    vec = vector_symbol(h);
+    l = as_list(set)[0]->len;
+
+    for (i = 0, j = 0; i < l; i++)
+    {
+        if (as_symbol(as_list(set)[0])[i] != NULL_I64)
+            as_symbol(vec)[j++] = as_symbol(as_list(set)[0])[i];
     }
 
     vec->attrs |= ATTR_DISTINCT;
 
-    resize(&vec, h);
     drop(set);
 
     return vec;
@@ -436,7 +380,7 @@ obj_t rf_distinctn(obj_t *x, u64_t n)
 
 obj_t rf_set(obj_t x, obj_t y)
 {
-    obj_t res, col, s;
+    obj_t res, v, col, s, *syms, sym, p;
     i64_t fd, c = 0;
     u64_t i, l, size;
 
@@ -473,17 +417,78 @@ obj_t rf_set(obj_t x, obj_t y)
 
             drop(res);
 
-            // save columns data
-            for (i = 0, l = as_list(y)[0]->len; i < l; i++)
+            l = as_list(y)[0]->len;
+
+            // find symbol columns
+            syms = heap_alloc(sizeof(obj_t) * l);
+            for (i = 0, c = 0; i < l; i++)
             {
-                s = cast(TYPE_CHAR, at_idx(as_list(y)[0], i));
+                if (as_list(as_list(y)[1])[i]->type == TYPE_SYMBOL)
+                    syms[c++] = as_list(as_list(y)[1])[i];
+            }
+
+            sym = distinct_syms(syms, c);
+            heap_free(syms);
+
+            if (sym->len > 0)
+            {
+                p = symbol("sym");
+                rf_set(p, sym);
+                s = string_from_str(".sym", 4);
                 col = rf_concat(x, s);
-                res = rf_set(col, at_idx(as_list(y)[1], i));
+                rf_save(col, sym);
+                drop(s);
+                drop(col);
+            }
+            else
+                drop(sym);
+
+            // save columns data
+            for (i = 0; i < l; i++)
+            {
+                v = at_idx(as_list(y)[1], i);
+                s = cast(TYPE_CHAR, v);
+                col = rf_concat(x, s);
+
+                if (v->type == TYPE_SYMBOL)
+                {
+
+                    res = rf_find(sym, v);
+
+                    if (is_error(res))
+                    {
+                        drop(p);
+                        drop(v);
+                        drop(s);
+                        drop(col);
+                        return res;
+                    }
+
+                    res = rf_set(col, res);
+
+                    if (is_error(res))
+                    {
+                        drop(p);
+                        drop(v);
+                        drop(s);
+                        drop(col);
+                        return res;
+                    }
+                }
+                else
+                {
+                    res = rf_set(col, v);
+                }
+
+                drop(p);
+                drop(v);
                 drop(s);
                 drop(col);
 
                 if (is_error(res))
                     return res;
+
+                drop(res);
             }
 
             return clone(y);
@@ -2188,7 +2193,7 @@ obj_t rf_xdesc(obj_t x, obj_t y)
 
 obj_t rf_enum(obj_t x, obj_t y)
 {
-    obj_t s, v;
+    obj_t k, s, v, res;
 
     switch (mtype2(x->type, y->type))
     {
@@ -2199,12 +2204,18 @@ obj_t rf_enum(obj_t x, obj_t y)
             return s;
 
         if (!s || s->type != TYPE_SYMBOL)
+        {
+            drop(s);
             raise(ERR_TYPE, "enum: expected vector symbol");
+        }
 
         v = rf_find(s, y);
         drop(s);
 
-        return venum(clone(x), v);
+        res = venum(symtostr(x->i64), v);
+        drop(v);
+
+        return res;
     default:
         raise(ERR_TYPE, "enum: unsupported types: %d %d", x->type, y->type);
     }

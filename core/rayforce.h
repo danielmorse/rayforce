@@ -139,7 +139,7 @@ extern obj_t timestamp(i64_t val);                          // timestamp
 extern obj_t guid(u8_t data[]);                             // GUID
 extern obj_t vchar(char_t c);                               // char
 extern obj_t string(u64_t len);                             // string 
-extern obj_t venum(obj_t sym, obj_t vec);                   // enum
+extern obj_t venum(str_t sym, obj_t vec);                   // enum
 
 #define vector_bool(len)      (vector(TYPE_BOOL,      len)) // bool vector
 #define vector_byte(len)      (vector(TYPE_BYTE,      len)) // byte vector

@@ -665,6 +665,8 @@ obj_t rf_key(obj_t x)
     case TYPE_TABLE:
     case TYPE_DICT:
         return clone(as_list(x)[0]);
+    case TYPE_ENUM:
+        return symbol(as_string(x));
     default:
         return clone(x);
     }
@@ -672,36 +674,42 @@ obj_t rf_key(obj_t x)
 
 obj_t rf_value(obj_t x)
 {
-    obj_t sym, res;
-    type_t type;
-    i64_t i, sl, xl;
+    obj_t sym, k, res;
+    i64_t i, sl, xl, *e;
 
     switch (x->type)
     {
     case TYPE_ENUM:
-        sym = rf_get(as_list(x)[0]);
+        k = rf_key(x);
+        sym = at_obj(runtime_get()->env.variables, k);
+        drop(k);
 
-        if (is_error(sym))
-            return sym;
+        e = (i64_t *)((str_t)x + PAGE_SIZE);
 
-        if (sym->type != TYPE_SYMBOL)
+        if (is_null(sym) || sym->type != TYPE_SYMBOL)
         {
-            type = sym->type;
+            xl = x->len;
+            res = vector_i64(xl);
+
+            for (i = 0; i < xl; i++)
+                as_i64(res)[i] = e[i];
+
             drop(sym);
-            raise(ERR_TYPE, "value: expected vector symbol while resolving en enum, got: %d", type);
+
+            return res;
         }
 
         sl = sym->len;
-        xl = as_list(x)[1]->len;
+        xl = x->len;
 
         res = vector_symbol(xl);
 
         for (i = 0; i < xl; i++)
         {
-            if (as_i64(as_list(x)[1])[i] < sl)
-                as_symbol(res)[i] = as_symbol(sym)[as_i64(as_list(x)[1])[i]];
+            if (e[i] < sl)
+                as_symbol(res)[i] = as_symbol(sym)[e[i]];
             else
-                as_symbol(res)[i] = as_i64(as_list(x)[1])[i];
+                as_symbol(res)[i] = NULL_I64;
         }
 
         drop(sym);

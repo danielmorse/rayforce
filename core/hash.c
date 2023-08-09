@@ -72,7 +72,7 @@ nil_t rehash(obj_t *obj, hash_f hash)
 
             index = hash ? hash(key) & factor : key & factor;
 
-            while (as_i64(as_list(new_obj)[0])[i] != NULL_I64)
+            while (as_i64(as_list(new_obj)[0])[index] != NULL_I64)
             {
                 if (index == size)
                     panic("hash tab is full!!");
