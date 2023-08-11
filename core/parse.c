@@ -104,12 +104,12 @@ bool_t at_term(char_t c)
 
 bool_t is_at(obj_t token, char_t c)
 {
-    return token && token->type == TYPE_CHAR && token->vchar == c;
+    return token && token->type == -TYPE_CHAR && token->vchar == c;
 }
 
 bool_t is_at_term(obj_t token)
 {
-    return token && token->type == TYPE_CHAR && at_term(token->vchar);
+    return token && token->type == -TYPE_CHAR && at_term(token->vchar);
 }
 
 i8_t shift(parser_t *parser, i32_t num)
@@ -127,7 +127,7 @@ i8_t shift(parser_t *parser, i32_t num)
 obj_t to_token(parser_t *parser)
 {
     obj_t tok = vchar(*parser->current);
-    tok->type = TYPE_CHAR;
+    tok->type = -TYPE_CHAR;
     nfo_insert(&parser->nfo, (i64_t)tok, span_start(parser));
 
     return tok;
@@ -869,7 +869,7 @@ obj_t parse_program(parser_t *parser)
 
         if (is_at_term(tok))
         {
-            err = parse_error(parser, (i64_t)tok, str_fmt(0, "Unexpected token: '%c'", tok->vchar));
+            err = parse_error(parser, (i64_t)tok, str_fmt(0, "Unexpected end of expression: '%c'", tok->vchar));
             drop(lst);
             drop(tok);
             return err;
