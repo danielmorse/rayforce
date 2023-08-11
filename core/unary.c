@@ -692,9 +692,7 @@ obj_t rf_key(obj_t x)
     case TYPE_DICT:
         return clone(as_list(x)[0]);
     case TYPE_ENUM:
-        if (x->mmod == MMOD_INTERNAL)
-            return clone(as_list(x)[0]);
-        return symbol(as_string((obj_t)((str_t)x - PAGE_SIZE)));
+        return symbol(enum_key(x));
     default:
         return clone(x);
     }
@@ -712,11 +710,7 @@ obj_t rf_value(obj_t x)
         sym = at_obj(runtime_get()->env.variables, k);
         drop(k);
 
-        if (x->mmod == MMOD_INTERNAL)
-            e = as_list(x)[1];
-        else
-            e = x;
-
+        e = enum_val(x);
         xl = e->len;
 
         if (is_null(sym) || sym->type != TYPE_SYMBOL)

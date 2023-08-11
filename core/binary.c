@@ -2042,7 +2042,7 @@ obj_t rf_filter(obj_t x, obj_t y)
 obj_t rf_take(obj_t x, obj_t y)
 {
     u64_t i, l, m;
-    obj_t res;
+    obj_t k, s, v, res;
 
     switch (mtype2(x->type, y->type))
     {
@@ -2175,6 +2175,49 @@ obj_t rf_take(obj_t x, obj_t y)
 
         for (i = 0; i < l; i++)
             as_list(res)[i] = clone(as_list(x)[as_i64(y)[i]]);
+
+        return res;
+
+    case mtype2(TYPE_ENUM, -TYPE_I64):
+        k = rf_key(x);
+        s = rf_get(k);
+        drop(k);
+
+        if (is_error(s))
+            return s;
+
+        v = enum_val(x);
+
+        l = y->i64;
+
+        if (!s || !is_vector(s))
+        {
+            res = vector_i64(l);
+
+            for (i = 0; i < l; i++)
+                as_i64(res)[i] = as_i64(v)[i];
+
+            drop(s);
+
+            return res;
+        }
+
+        res = vector_symbol(l);
+
+        for (i = 0; i < l; i++)
+        {
+
+            if (as_i64(v)[i] >= (i64_t)s->len)
+            {
+                drop(s);
+                drop(res);
+                raise(ERR_INDEX, "take: enum can not be resolved: index out of range");
+            }
+
+            as_symbol(res)[i] = as_i64(s)[as_i64(v)[i]];
+        }
+
+        drop(s);
 
         return res;
 

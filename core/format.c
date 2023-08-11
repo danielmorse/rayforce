@@ -358,11 +358,18 @@ i32_t string_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, obj_t 
 i32_t enum_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t indent, i32_t limit, obj_t obj)
 {
     i32_t n;
-    obj_t s, e;
+    obj_t s, e, idx;
 
     s = rf_key(obj);
-    // TODO: take only limit items instead of whole value
-    e = rf_value(obj);
+    if (enum_val(obj)->len >= TABLE_MAX_HEIGHT)
+    {
+        limit = TABLE_MAX_HEIGHT;
+        idx = i64(TABLE_MAX_HEIGHT);
+        e = rf_take(obj, idx);
+        drop(idx);
+    }
+    else
+        e = rf_value(obj);
 
     n = str_fmt_into(dst, len, offset, limit, "'");
     n += obj_fmt_into(dst, len, offset, indent, limit, s);
