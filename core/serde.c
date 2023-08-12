@@ -26,6 +26,7 @@
 #include "format.h"
 #include "symbols.h"
 #include "string.h"
+#include "heap.h"
 
 /*
  * Returns size (in bytes) that an obj occupy in memory via serialization
@@ -33,6 +34,7 @@
 u64_t size_obj(obj_t obj)
 {
     u64_t i, l, size;
+
     switch (obj->type)
     {
     case -TYPE_BOOL:
@@ -72,7 +74,7 @@ u64_t size_obj(obj_t obj)
             size += size_obj(as_list(obj)[i]);
         return size;
     default:
-        panic(str_fmt(0, "size_obj: unsupported type: %d", obj->type));
+        return 0;
     }
 }
 
@@ -155,15 +157,21 @@ u64_t save_obj(byte_t *buf, u64_t len, obj_t obj)
             buf += save_obj(buf, len, as_list(obj)[i]);
         return sizeof(type_t) + sizeof(u64_t) + l * sizeof(obj_t);
     default:
-        panic(str_fmt(0, "ser: unsupported type: %d", obj->type));
+        return 0;
     }
 }
 
 obj_t ser(obj_t obj)
 {
     u64_t size = size_obj(obj);
-    obj_t buf = vector(TYPE_BYTE, sizeof(struct header_t) + size);
-    header_t *header = (header_t *)as_byte(buf);
+    obj_t buf;
+    header_t *header;
+
+    if (size == 0)
+        raise(ERR_NOT_SUPPORTED, "ser: unsupported type: %d", obj->type);
+
+    buf = vector(TYPE_BYTE, sizeof(struct header_t) + size);
+    header = (header_t *)as_byte(buf);
 
     header->prefix = SERDE_PREFIX;
     header->version = RAYFORCE_VERSION;
@@ -171,7 +179,11 @@ obj_t ser(obj_t obj)
     header->reserved = 0;
     header->size = size;
 
-    save_obj(as_byte(buf) + sizeof(struct header_t), size, obj);
+    if (save_obj(as_byte(buf) + sizeof(struct header_t), size, obj) == 0)
+    {
+        drop(buf);
+        raise(ERR_NOT_SUPPORTED, "ser: unsupported type: %d", obj->type);
+    }
 
     return buf;
 }
@@ -260,7 +272,7 @@ obj_t load_obj(byte_t **buf, u64_t len)
             as_list(obj)[i] = load_obj(buf, len);
         return obj;
     default:
-        panic(str_fmt(0, "de: unsupported type: %d", *buf));
+        raise(ERR_NOT_SUPPORTED, "load_obj: unsupported type: %d", type);
     }
 }
 

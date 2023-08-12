@@ -381,9 +381,10 @@ obj_t distinct_syms(obj_t *x, u64_t n)
 
 obj_t rf_set(obj_t x, obj_t y)
 {
-    obj_t res, col, s, p, v, e, cols, sym;
+    obj_t res, col, s, p, v, e, cols, sym, buf;
     i64_t fd, c = 0;
     u64_t i, l, size;
+    str_t name;
 
     switch (x->type)
     {
@@ -555,6 +556,31 @@ obj_t rf_set(obj_t x, obj_t y)
 
             return clone(x);
 
+        case TYPE_LIST:
+            name = str_fmt(0, "%s#", as_string(x));
+
+            fd = fs_fopen(name, ATTR_WRONLY | ATTR_CREAT | ATTR_TRUNC);
+
+            heap_free(name);
+
+            if (fd == -1)
+                raise(ERR_IO, "set: failed to open file '%s': %s", as_string(x), get_os_error());
+
+            buf = ser(y);
+
+            if (is_error(buf))
+            {
+                fs_fclose(fd);
+                return buf;
+            }
+
+            c = fs_fwrite(fd, as_byte(buf), buf->len);
+            fs_fclose(fd);
+            drop(buf);
+
+            if (c == -1)
+                raise(ERR_IO, "write: failed to write to file '%s': %s", as_string(x), get_os_error());
+
         default:
             if (is_vector(y))
             {
@@ -589,10 +615,7 @@ obj_t rf_set(obj_t x, obj_t y)
                 return clone(x);
             }
 
-            fd = fs_fopen(as_string(x), ATTR_WRONLY | ATTR_CREAT | ATTR_TRUNC);
-
-            if (fd == -1)
-                raise(ERR_IO, "set: failed to open file '%s': %s", as_string(x), get_os_error());
+            raise(ERR_TYPE, "set: unsupported types: %d %d", x->type, y->type);
         }
 
     default:
@@ -625,7 +648,7 @@ obj_t rf_save(obj_t x, obj_t y)
     if (c == -1)
         raise(ERR_IO, "write: failed to write to file '%s': %s", as_string(x), get_os_error());
 
-    return clone(y);
+    return clone(x);
 }
 
 obj_t rf_write(obj_t x, obj_t y)
