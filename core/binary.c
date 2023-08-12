@@ -504,7 +504,7 @@ obj_t rf_set(obj_t x, obj_t y)
             if (fd == -1)
                 raise(ERR_IO, "set: failed to open file '%s': %s", as_string(x), get_os_error());
 
-            if (y->mmod & MMOD_EXTERNAL_COMPOUND)
+            if (is_external_compound(y))
             {
                 size = PAGE_SIZE + sizeof(struct obj_t) + y->len * sizeof(i64_t);
 
@@ -556,35 +556,43 @@ obj_t rf_set(obj_t x, obj_t y)
             return clone(x);
 
         default:
+            if (is_vector(y))
+            {
+                fd = fs_fopen(as_string(x), ATTR_WRONLY | ATTR_CREAT | ATTR_TRUNC);
+
+                if (fd == -1)
+                    raise(ERR_IO, "set: failed to open file '%s': %s", as_string(x), get_os_error());
+
+                p = (obj_t)heap_alloc(sizeof(struct obj_t));
+
+                memcpy(p, y, sizeof(struct obj_t));
+
+                p->mmod = MMOD_EXTERNAL_SIMPLE;
+
+                c = fs_fwrite(fd, (str_t)p, sizeof(struct obj_t));
+                if (c == -1)
+                {
+                    heap_free(p);
+                    fs_fclose(fd);
+                    raise(ERR_IO, "set: failed to write to file '%s': %s", as_string(x), get_os_error());
+                }
+
+                size = size_of(y) - sizeof(struct obj_t);
+
+                c = fs_fwrite(fd, as_string(y), size);
+                heap_free(p);
+                fs_fclose(fd);
+
+                if (c == -1)
+                    raise(ERR_IO, "set: failed to write to file '%s': %s", as_string(x), get_os_error());
+
+                return clone(x);
+            }
+
             fd = fs_fopen(as_string(x), ATTR_WRONLY | ATTR_CREAT | ATTR_TRUNC);
 
             if (fd == -1)
                 raise(ERR_IO, "set: failed to open file '%s': %s", as_string(x), get_os_error());
-
-            p = (obj_t)heap_alloc(sizeof(struct obj_t));
-
-            memcpy(p, y, sizeof(struct obj_t));
-
-            p->mmod = MMOD_EXTERNAL_SIMPLE;
-
-            c = fs_fwrite(fd, (str_t)p, sizeof(struct obj_t));
-            if (c == -1)
-            {
-                heap_free(p);
-                fs_fclose(fd);
-                raise(ERR_IO, "set: failed to write to file '%s': %s", as_string(x), get_os_error());
-            }
-
-            size = size_of(y) - sizeof(struct obj_t);
-
-            c = fs_fwrite(fd, as_string(y), size);
-            heap_free(p);
-            fs_fclose(fd);
-
-            if (c == -1)
-                raise(ERR_IO, "set: failed to write to file '%s': %s", as_string(x), get_os_error());
-
-            return clone(x);
         }
 
     default:
@@ -1513,10 +1521,7 @@ obj_t rf_at(obj_t x, obj_t y)
         s = rf_get(k);
         drop(k);
 
-        if (x->mmod & MMOD_EXTERNAL_COMPOUND)
-            v = x;
-        else
-            v = as_list(x)[1];
+        v = compound_val(x);
 
         if (!s || is_error(s) || s->type != TYPE_SYMBOL)
         {
@@ -1544,10 +1549,7 @@ obj_t rf_at(obj_t x, obj_t y)
         if (is_error(s))
             return s;
 
-        if (x->mmod & MMOD_EXTERNAL_COMPOUND)
-            v = x;
-        else
-            v = as_list(x)[1];
+        v = compound_val(x);
 
         yl = y->len;
 
@@ -2186,7 +2188,7 @@ obj_t rf_take(obj_t x, obj_t y)
         if (is_error(s))
             return s;
 
-        v = enum_val(x);
+        v = compound_val(x);
 
         l = y->i64;
 

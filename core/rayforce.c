@@ -846,7 +846,7 @@ nil_t __attribute__((hot)) drop(obj_t obj)
             for (i = 0; i < l; i++)
                 drop(as_list(obj)[i]);
 
-            if (obj->mmod & MMOD_EXTERNAL_SIMPLE)
+            if (is_external_simple(obj))
                 mmap_free(obj, size_of(obj));
             else
                 heap_free(obj);
@@ -855,7 +855,7 @@ nil_t __attribute__((hot)) drop(obj_t obj)
     case TYPE_ENUM:
         if (rc == 0)
         {
-            if (obj->mmod & MMOD_EXTERNAL_COMPOUND)
+            if (is_external_compound(obj))
                 mmap_free((str_t)obj - PAGE_SIZE, size_of(obj) + PAGE_SIZE);
             else
             {
@@ -896,7 +896,7 @@ nil_t __attribute__((hot)) drop(obj_t obj)
     default:
         if (rc == 0)
         {
-            if (obj->mmod & MMOD_EXTERNAL_SIMPLE)
+            if (is_external_simple(obj))
                 mmap_free(obj, size_of(obj));
             else
                 heap_free(obj);

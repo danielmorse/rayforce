@@ -101,8 +101,8 @@
         return _e;                          \
     }
 
-#define enum_key(x) (x->mmod == MMOD_INTERNAL ? symtostr(as_list(x)[0]->i64) : as_string((obj_t)((str_t)x - PAGE_SIZE)))
-#define enum_val(x) (x->mmod == MMOD_INTERNAL ? as_list(x)[1] : x)
+#define compound_key(x) (x->mmod == MMOD_INTERNAL ? symtostr(as_list(x)[0]->i64) : as_string((obj_t)((str_t)x - PAGE_SIZE)))
+#define compound_val(x) (x->mmod == MMOD_INTERNAL ? as_list(x)[1] : x)
 
 bool_t is_valid(obj_t obj);
 
