@@ -404,7 +404,7 @@ obj_t write_obj(obj_t *obj, u64_t idx, obj_t val)
         ret = write_raw(obj, idx, &val);
         break;
     default:
-        panic(str_fmt(0, "write obj: invalid type: %d", (*obj)->type));
+        throw("write obj: invalid type: %d", (*obj)->type);
     }
 
     return ret;
@@ -464,7 +464,7 @@ obj_t at_idx(obj_t obj, u64_t idx)
         return null(0);
 
     default:
-        panic(str_fmt(0, "at_idx: invalid type: %d", obj->type));
+        throw("at_idx: invalid type: %d", obj->type);
     }
 }
 
@@ -496,7 +496,7 @@ obj_t at_obj(obj_t obj, obj_t idx)
             return at_idx(as_list(obj)[1], i);
         }
 
-        panic(str_fmt(0, "at_obj: invalid type: %d", obj->type));
+        throw("at_obj: invalid type: %d", obj->type);
     }
 }
 
@@ -557,7 +557,7 @@ obj_t set_obj(obj_t *obj, obj_t idx, obj_t val)
                 res = join_obj(&as_list(*obj)[1], val);
 
                 if (res->type == TYPE_ERROR)
-                    panic("set_obj: inconsistent update");
+                    throw("set_obj: inconsistent update");
 
                 return *obj;
             }
@@ -592,7 +592,7 @@ obj_t pop_obj(obj_t *obj)
         return as_list(*obj)[--(*obj)->len];
 
     default:
-        panic(str_fmt(0, "pop_obj: invalid type: %d", (*obj)->type));
+        throw("pop_obj: invalid type: %d", (*obj)->type);
     }
 }
 
@@ -690,7 +690,7 @@ i64_t find_raw(obj_t obj, raw_t val)
                 return i;
         return l;
     default:
-        panic(str_fmt(0, "find: invalid type: %d", obj->type));
+        throw("find: invalid type: %d", obj->type);
     }
 }
 
@@ -712,7 +712,7 @@ i64_t find_obj(obj_t obj, obj_t val)
     case TYPE_LIST:
         return find_raw(obj, &val);
     default:
-        panic(str_fmt(0, "find: invalid type: %d", obj->type));
+        throw("find: invalid type: %d", obj->type);
     }
 }
 
@@ -736,7 +736,7 @@ obj_t cast(type_t type, obj_t obj)
     {
         s = obj_fmt(obj);
         if (s == NULL)
-            panic("obj_fmt() returned NULL");
+            throw("obj_fmt() returned NULL");
         res = string_from_str(s, strlen(s));
         heap_free(s);
         return res;

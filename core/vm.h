@@ -24,6 +24,7 @@
 #ifndef VM_H
 #define VM_H
 
+#include <setjmp.h>
 #include <time.h>
 #include "rayforce.h"
 #include "lambda.h"
@@ -65,11 +66,12 @@ typedef enum vm_opcode_t
 
 typedef struct vm_t
 {
-    i64_t ip;     // Instruction pointer
-    i64_t sp;     // Stack pointer
-    i64_t bp;     // Base pointer (beginning on stack frame)
-    i64_t timer;  // Timer for execution time
+    i32_t ip;     // Instruction pointer
+    i32_t sp;     // Stack pointer
+    i32_t bp;     // Base pointer (beginning on stack frame)
+    i32_t timer;  // Timer for execution time
     obj_t *stack; // Stack of arguments
+    jmp_buf jmp;  // Jump buffer for error handling.
 } vm_t;
 
 vm_t vm_new(obj_t *stack);

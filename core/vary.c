@@ -60,8 +60,9 @@ obj_t rf_call_vary(u8_t attrs, vary_f f, obj_t *x, u64_t n)
 obj_t rf_map_vary(obj_t *x, u64_t n)
 {
     u64_t i, j, l;
-    vm_t vm;
+    vm_t *vm;
     obj_t v, *b, res;
+    i32_t bp;
 
     if (n < 2)
         return null(0);
@@ -98,18 +99,20 @@ obj_t rf_map_vary(obj_t *x, u64_t n)
         if (l == 0xffffffffffffffff)
             l = 1;
 
-        vm = vm_new(runtime_get()->vm.stack);
-        vm.sp = runtime_get()->vm.sp;
+        vm = &runtime_get()->vm;
+        bp = vm->bp;
+        vm->bp = vm->sp;
 
         // first item to get type of res
         for (j = 1; j < n; j++)
         {
             b = x + j;
             v = is_vector(*b) ? at_idx(*b, 0) : clone(*b);
-            vm.stack[vm.sp++] = v;
+            vm->stack[vm->sp++] = v;
         }
 
-        v = vm_exec(&vm, *x);
+        v = vm_exec(vm, *x);
+        vm->bp = bp;
 
         if (is_error(v))
             return v;
@@ -120,7 +123,7 @@ obj_t rf_map_vary(obj_t *x, u64_t n)
 
         // drop args
         for (j = 1; j < n; j++)
-            drop(vm.stack[--vm.sp]);
+            drop(vm->stack[--vm->sp]);
 
         for (i = 1; i < l; i++)
         {
@@ -128,14 +131,15 @@ obj_t rf_map_vary(obj_t *x, u64_t n)
             {
                 b = x + j;
                 v = is_vector(*b) ? at_idx(*b, i) : clone(*b);
-                vm.stack[vm.sp++] = v;
+                vm->stack[vm->sp++] = v;
             }
 
-            v = vm_exec(&vm, *x);
+            v = vm_exec(vm, *x);
+            vm->bp = bp;
 
             // drop args
             for (j = 1; j < n; j++)
-                drop(vm.stack[--vm.sp]);
+                drop(vm->stack[--vm->sp]);
 
             // check error
             if (is_error(v))

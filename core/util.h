@@ -76,14 +76,8 @@
 
 #else
 #define debug(fmt, ...) (nil_t)0
-#define debug_assert(x) (nil_t)0
+#define debug_assert(x, fmt, ...) (nil_t)0
 #endif
-
-#define panic(x)                                                   \
-    {                                                              \
-        fprintf(stderr, "Process panicked with message: '%s'", x); \
-        exit(1);                                                   \
-    }
 
 #define printbits_n(x, n)                                        \
     {                                                            \
@@ -118,10 +112,10 @@
 #define anymap_val(x) (x)
 
 bool_t is_valid(obj_t obj);
-
 i32_t size_of_type(type_t type);
 u64_t size_of(obj_t obj);
 u32_t next_power_of_two_u32(u32_t n);
 u64_t next_power_of_two_u64(u64_t n);
+nil_t __attribute__((noreturn)) throw(str_t fmt, ...);
 
 #endif

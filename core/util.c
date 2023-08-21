@@ -21,11 +21,15 @@
  *   SOFTWARE.
  */
 
+#include <stdio.h>
+#include <stdarg.h>
 #include <stdlib.h>
+#include "vm.h"
 #include "util.h"
 #include "format.h"
 #include "heap.h"
 #include "env.h"
+#include "runtime.h"
 
 i32_t size_of_type(type_t type)
 {
@@ -48,7 +52,7 @@ i32_t size_of_type(type_t type)
     case TYPE_LIST:
         return sizeof(obj_t);
     default:
-        panic(str_fmt(0, "sizeof: unknown type: %d", type));
+        throw("sizeof: unknown type: %d", type);
     }
 }
 
@@ -77,7 +81,7 @@ u64_t size_of(obj_t obj)
         size += obj->len * sizeof(i64_t);
         return size;
     default:
-        panic(str_fmt(0, "sizeof: unknown type: %d", obj->type));
+        throw("sizeof: unknown type: %d", obj->type);
     }
 }
 
@@ -114,4 +118,23 @@ bool_t is_valid(obj_t obj)
            || obj->type == TYPE_ENUM        || obj->type == TYPE_ANYMAP       
            || obj->type == TYPE_ERROR;
     // clang-format on
+}
+
+nil_t throw(str_t fmt, ...)
+{
+    vm_t *vm = &runtime_get()->vm;
+    obj_t err;
+    str_t err_msg;
+
+    va_list args;
+    va_start(args, fmt);
+    err_msg = str_fmt(0, fmt, args);
+    va_end(args);
+
+    err = error(ERR_THROW, err_msg);
+    heap_free(err_msg);
+
+    vm->stack[vm->sp++] = err;
+
+    longjmp(vm->jmp, vm->sp);
 }

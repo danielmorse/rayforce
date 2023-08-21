@@ -38,7 +38,7 @@
 #include "vary.h"
 #include "cc.h"
 
-CASSERT(sizeof(struct vm_t) == 40, vm_h)
+// CASSERT(sizeof(struct vm_t) == 48, vm_h)
 CASSERT(OP_INVALID < 127, vm_h)
 
 #define stack_push(x) (vm->stack[vm->sp++] = x)
@@ -72,14 +72,40 @@ obj_t __attribute__((hot)) vm_exec(vm_t *vm, obj_t fun)
     type_t t;
     lambda_t *f = as_lambda(fun);
     str_t code = as_string(f->code);
-    obj_t x0, x1, x2, x3, *addr;
+    obj_t arg[4], e, r, *addr;
     u8_t n, attrs;
-    u64_t i, j, l, b;
-    vm_t cvm;
+    u64_t i, j, l, a;
+    i32_t b, sp, bp, ip;
 
     // init registers
     vm->ip = 0;
     vm->bp = vm->sp;
+
+    // offset into an args array
+    a = 0;
+
+    // we are getting here from call longjmp(vm->jmp, ..);
+    sp = setjmp(vm->jmp);
+    if (sp > 0)
+    {
+        sp ^= vm->sp;
+        vm->sp ^= sp;
+        sp ^= vm->sp;
+
+        e = stack_pop(); // pop en error
+        span_t span = nfo_get(&f->nfo, b);
+        *(span_t *)&as_list(e)[2] = span;
+
+        // clear stack (if any)
+        while (vm->sp > sp)
+            drop(stack_pop());
+
+        // clear args (if any)
+        for (; a > 0; a--)
+            drop(arg[a - 1]);
+
+        return e;
+    }
 
     // The indices of labels in the dispatch_table are the relevant opcodes
     static nil_t *dispatch_table[] = {
@@ -89,20 +115,23 @@ obj_t __attribute__((hot)) vm_exec(vm_t *vm, obj_t fun)
 
 #define dispatch() goto *dispatch_table[(i32_t)code[vm->ip]]
 
-#define unwrap(x, y)                                  \
-    {                                                 \
-        obj_t _o = x, _v;                             \
-        if (_o && _o->type == TYPE_ERROR)             \
-        {                                             \
-            span_t span = nfo_get(&f->nfo, (i64_t)y); \
-            *(span_t *)&as_list(_o)[2] = span;        \
-            while (vm->sp != vm->bp)                  \
-            {                                         \
-                _v = stack_pop();                     \
-                drop(_v);                             \
-            }                                         \
-            return _o;                                \
-        }                                             \
+#define unwrap(x, y)                                      \
+    {                                                     \
+        obj_t _o = x, _v;                                 \
+        if (_o && _o->type == TYPE_ERROR)                 \
+        {                                                 \
+            if (!as_list(_o)[2])                          \
+            {                                             \
+                span_t span = nfo_get(&f->nfo, (i64_t)y); \
+                *(span_t *)&as_list(_o)[2] = span;        \
+            }                                             \
+            while (vm->sp != vm->bp)                      \
+            {                                             \
+                _v = stack_pop();                         \
+                drop(_v);                                 \
+            }                                             \
+            return _o;                                    \
+        }                                                 \
     }
 
 #define load_u64(x, v)                                    \
@@ -123,8 +152,8 @@ op_ret:
 op_push:
     vm->ip++;
     n = code[vm->ip++];
-    x1 = clone(as_list(f->constants)[n]);
-    stack_push(x1);
+    arg[0] = clone(as_list(f->constants)[n]);
+    stack_push(arg[0]);
     dispatch();
 op_pop:
     vm->ip++;
@@ -132,10 +161,10 @@ op_pop:
     dispatch();
 op_swap:
     vm->ip++;
-    x1 = stack_pop();
-    x2 = stack_pop();
-    stack_push(x1);
-    stack_push(x2);
+    arg[1] = stack_pop();
+    arg[0] = stack_pop();
+    stack_push(arg[0]);
+    stack_push(arg[1]);
     dispatch();
 op_dup:
     vm->ip++;
@@ -144,11 +173,11 @@ op_dup:
     dispatch();
 op_jne:
     vm->ip++;
-    x1 = stack_pop();
+    arg[0] = stack_pop();
     load_u64(l, vm);
-    if (!rfi_as_bool(x1))
+    if (!rfi_as_bool(arg[0]))
         vm->ip = l;
-    drop(x1);
+    drop(arg[0]);
     dispatch();
 op_jmp:
     vm->ip++;
@@ -160,24 +189,26 @@ op_call1:
     attrs = code[vm->ip++];
     load_u64(l, vm);
 made_call1:
-    x2 = stack_pop();
-    x1 = rf_call_unary(attrs, (unary_f)l, x2);
-    drop(x2);
-    unwrap(x1, b);
-    stack_push(x1);
+    a = 1;
+    arg[0] = stack_pop();
+    r = rf_call_unary(attrs, (unary_f)l, arg[0]);
+    drop(arg[0]);
+    unwrap(r, b);
+    stack_push(r);
     dispatch();
 op_call2:
     b = vm->ip++;
     attrs = code[vm->ip++];
     load_u64(l, vm);
 made_call2:
-    x3 = stack_pop();
-    x2 = stack_pop();
-    x1 = rf_call_binary(attrs, (binary_f)l, x2, x3);
-    drop(x2);
-    drop(x3);
-    unwrap(x1, b);
-    stack_push(x1);
+    a = 2;
+    arg[1] = stack_pop();
+    arg[0] = stack_pop();
+    r = rf_call_binary(attrs, (binary_f)l, arg[0], arg[1]);
+    drop(arg[0]);
+    drop(arg[1]);
+    unwrap(r, b);
+    stack_push(r);
     dispatch();
 op_calln:
     b = vm->ip++;
@@ -185,54 +216,57 @@ op_calln:
     attrs = code[vm->ip++];
     load_u64(l, vm);
 made_calln:
+    a = 0;
     addr = (obj_t *)(&vm->stack[vm->sp - n]);
-    x1 = rf_call_vary(attrs, (vary_f)l, addr, n);
+    r = rf_call_vary(attrs, (vary_f)l, addr, n);
     for (i = 0; i < n; i++)
         drop(stack_pop()); // pop args
-    unwrap(x1, b);
-    stack_push(x1);
+    unwrap(r, b);
+    stack_push(r);
     dispatch();
 op_calld:
     b = vm->ip++;
     n = code[vm->ip++];
-    x0 = stack_pop();
-    switch (x0->type)
+    a = 0;
+    arg[0] = stack_pop();
+    switch (arg[0]->type)
     {
     case TYPE_UNARY:
         if (n != 1)
             unwrap(error(ERR_LENGTH, "wrong number of arguments"), b);
-        l = x0->i64;
-        attrs = x0->attrs;
-        drop(x0);
+        l = arg[0]->i64;
+        attrs = arg[0]->attrs;
+        drop(arg[0]);
         goto made_call1;
     case TYPE_BINARY:
         if (n != 2)
             unwrap(error(ERR_LENGTH, "wrong number of arguments"), b);
-        l = x0->i64;
-        attrs = x0->attrs;
-        drop(x0);
+        l = arg[0]->i64;
+        attrs = arg[0]->attrs;
+        drop(arg[0]);
         goto made_call2;
     case TYPE_VARY:
-        l = x0->i64;
-        attrs = x0->attrs;
-        drop(x0);
+        l = arg[0]->i64;
+        attrs = arg[0]->attrs;
+        drop(arg[0]);
         goto made_calln;
     case TYPE_LAMBDA:
-        l = as_lambda(x0)->args->len;
+        l = as_lambda(arg[0])->args->len;
         if (n != l)
             unwrap(error(ERR_LENGTH, "wrong number of arguments"), b);
-        if ((vm->sp + as_lambda(x0)->stack_size) * sizeof(obj_t) > VM_STACK_SIZE)
+        if ((vm->sp + as_lambda(arg[0])->stack_size) * sizeof(obj_t) > VM_STACK_SIZE)
             unwrap(error(ERR_STACK_OVERFLOW, "stack overflow"), b);
-        cvm = vm_new(vm->stack);
-        cvm.sp = vm->sp;
-        x1 = vm_exec(&cvm, x0);
-        vm->sp = cvm.sp;
-        drop(x0); // drop lambda
+        bp = vm->bp;
+        ip = vm->ip;
+        r = vm_exec(vm, arg[0]);
+        vm->bp = bp;
+        vm->ip = ip;
+        drop(arg[0]); // drop lambda
         // drop args
         for (i = 0; i < l; i++)
             drop(stack_pop());
-        unwrap(x1, b);
-        stack_push(x1);
+        unwrap(r, b);
+        stack_push(r);
         dispatch();
     default:
         unwrap(error(ERR_TYPE, "call"), b);
@@ -248,56 +282,58 @@ op_timer_get:
 op_store:
     b = vm->ip++;
     load_u64(t, vm);
-    x1 = stack_pop();
-    vm->stack[vm->bp - t] = x1;
+    r = stack_pop();
+    vm->stack[vm->bp - t] = r;
     dispatch();
 op_load:
     b = vm->ip++;
     load_u64(t, vm);
-    x1 = vm->stack[vm->bp - t];
-    stack_push(clone(x1));
+    r = vm->stack[vm->bp - t];
+    stack_push(clone(r));
     dispatch();
 op_lset:
     b = vm->ip++;
-    x2 = stack_pop();
-    x1 = stack_pop();
+    a = 2;
+    arg[1] = stack_pop();
+    arg[0] = stack_pop();
     if (f->locals->len == 0)
         join_obj(&f->locals, dict(vector_symbol(0), list(0)));
-    set_obj(&as_list(f->locals)[f->locals->len - 1], x1, clone(x2));
-    drop(x1);
-    stack_push(x2);
+    set_obj(&as_list(f->locals)[f->locals->len - 1], arg[0], clone(arg[1]));
+    drop(arg[0]);
+    stack_push(arg[1]);
     dispatch();
 op_lget:
     b = vm->ip++;
-    x1 = stack_pop();
+    a = 2;
     j = f->locals->len;
-    x2 = null(0);
+    arg[0] = stack_pop();
+    arg[1] = null(0);
     for (i = 0; i < j; i++)
     {
-        x2 = at_obj(as_list(f->locals)[j - i - 1], x1);
-        if (!is_null(x2))
+        arg[1] = at_obj(as_list(f->locals)[j - i - 1], arg[0]);
+        if (!is_null(arg[1]))
             break;
     }
-    if (is_null(x2))
-        x2 = rf_get(x1);
-    drop(x1);
-    unwrap(x2, b);
-    stack_push(x2);
+    if (is_null(arg[1]))
+        arg[1] = rf_get(arg[0]);
+    drop(arg[0]);
+    unwrap(arg[1], b);
+    stack_push(arg[1]);
     dispatch();
 op_lpush:
     b = vm->ip++;
-    x1 = stack_pop(); // table or dict
-    if (!x1 || (x1->type != TYPE_TABLE && x1->type != TYPE_DICT))
+    arg[0] = stack_pop(); // table or dict
+    if (!arg[0] || (arg[0]->type != TYPE_TABLE && arg[0]->type != TYPE_DICT))
     {
-        drop(x1);
+        drop(arg[0]);
         unwrap(error(ERR_TYPE, "expected dict or table"), b);
     }
-    join_obj(&f->locals, x1);
+    join_obj(&f->locals, arg[0]);
     dispatch();
 op_lpop:
     b = vm->ip++;
-    x1 = pop_obj(&f->locals);
-    stack_push(x1);
+    arg[0] = pop_obj(&f->locals);
+    stack_push(arg[0]);
     dispatch();
 op_try:
     b = vm->ip++;

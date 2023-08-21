@@ -28,7 +28,7 @@
 #include "cc.h"
 
 // Global runtime reference
-runtime_t _RUNTIME = NULL;
+__thread runtime_t _RUNTIME = NULL;
 
 nil_t runtime_init(u16_t slaves)
 {

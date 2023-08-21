@@ -68,7 +68,7 @@ nil_t rehash(obj_t *obj, hash_f hash)
     new_obj = ht_tab(size * 2, type);
 
     if (new_obj == NULL)
-        panic("ht rehash: oom");
+        throw("ht rehash: oom");
 
     factor = as_list(new_obj)[0]->len - 1;
     new_keys = as_i64(as_list(new_obj)[0]);
@@ -90,7 +90,7 @@ nil_t rehash(obj_t *obj, hash_f hash)
                 j++;
 
                 if (j == size)
-                    panic("ht is full");
+                    throw("ht is full");
             }
 
             new_keys[j] = key;

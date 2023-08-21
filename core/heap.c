@@ -33,7 +33,7 @@
 CASSERT(sizeof(struct node_t     ) ==            16, heap_h)
 CASSERT(sizeof(struct heap_t    ) % PAGE_SIZE == 0,  heap_h)
 
-static heap_t _HEAP = NULL;
+__thread heap_t _HEAP = NULL;
 
 #define AVAIL_MASK       ((u64_t)0xFFFFFFFFFFFFFFFF)
 #define BLOCK_ADDR_MASK  ((u64_t)0x00FFFFFFFFFFFFFF)
