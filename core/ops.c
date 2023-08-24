@@ -310,8 +310,8 @@ obj_t group(obj_t x)
     // use flat vector instead of hash table
     if (range <= xl)
     {
-        ht = vector_i64(range);
-        hk = as_i64(ht);
+        keys = vector_i64(range);
+        hk = as_i64(keys);
         memset(hk, 0, range * sizeof(i64_t));
 
         // First pass - Count occurrences
@@ -340,9 +340,7 @@ obj_t group(obj_t x)
             hv[hk[n]++] = i;
         }
 
-        drop(ht);
-
-        return vals; // The start of each group in this array is based on the values in hk.
+        return list(2, keys, vals);
     }
 
     ht = ht_tab(range < xl ? range : xl, TYPE_I64);
