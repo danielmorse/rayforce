@@ -384,8 +384,8 @@ obj_t rf_group(obj_t x)
         raise(ERR_TYPE, "group: expected vector_i64");
 
     obj_t g, vals, *vi, res;
-    u64_t i, j, l;
-    i64_t o, *iv, *offsets, *indices, *ki;
+    u64_t i, l;
+    i64_t j, *offsets, *indices;
 
     g = group(x);
 
@@ -396,11 +396,11 @@ obj_t rf_group(obj_t x)
     vals = vector(TYPE_LIST, l);
     vi = as_list(vals);
 
-    for (i = 0, o = 0; i < l; i++)
+    for (i = 0, j = 0; i < l; i++)
     {
-        vi[i] = vector_i64(offsets[i] - o);
-        memcpy(as_i64(vi[i]), indices + o, (offsets[i] - o) * sizeof(i64_t));
-        o = offsets[i];
+        vi[i] = vector_i64(offsets[i] - j);
+        memcpy(as_byte(vi[i]), indices + j, (offsets[i] - j) * sizeof(i64_t));
+        j = offsets[i];
     }
 
     res = dict(clone(as_list(g)[0]), vals);

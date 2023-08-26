@@ -288,8 +288,8 @@ obj_t distinct(obj_t x)
 
 obj_t group(obj_t x)
 {
-    i64_t i, j = 0, n, xl, idx, min, max, range, *iv, *hk, *hv, *kv, *vv;
-    obj_t keys, vals, v, ht;
+    i64_t i, j, n, m, xl, idx, min, max, range, *iv, *hk, *hv, *kv, *vv;
+    obj_t keys, vals, k, v, ht;
 
     if (x->len == 0)
         return dict(vector_i64(0), list(0));
@@ -308,23 +308,23 @@ obj_t group(obj_t x)
     range = max - min + 1;
 
     // use flat vector instead of hash table
-    // if (range <= xl)
+    if (range <= xl)
     {
         ht = vector_i64(range);
-        hv = as_i64(ht);
-        memset(hv, 0, range * sizeof(i64_t));
+        hk = as_i64(ht);
+        memset(hk, 0, range * sizeof(i64_t));
 
         // First pass - Count occurrences
-        for (i = 0; i < xl; i++)
+        for (i = 0, j = 0; i < xl; i++)
         {
             n = iv[i] - min;
-            if (hv[n] == 0)
+            if (hk[n] == 0)
             {
-                hv[n] = 1;
+                hk[n] = 1;
                 j++;
             }
             else
-                hv[n]++;
+                hk[n]++;
         }
 
         // allocate space for distinct keys
@@ -334,11 +334,11 @@ obj_t group(obj_t x)
         // Pre-compute offsets into all_indices array
         for (i = 0, n = 0; i < range; i++)
         {
-            if (hv[i] == 0)
+            if (hk[i] == 0)
                 continue;
 
-            j = hv[i];
-            hv[i] = n;
+            j = hk[i];
+            hk[i] = n;
             n += j;
         }
 
@@ -350,17 +350,17 @@ obj_t group(obj_t x)
         for (i = 0; i < xl; i++)
         {
             n = iv[i] - min;
-            vv[hv[n]++] = i;
+            vv[hk[n]++] = i;
         }
 
         // pack offsets and fill keys
         n = ht->len;
         for (i = 0, j = 0; i < n; i++)
         {
-            if (hv[i] != 0)
+            if (hk[i] != 0)
             {
                 kv[j] = i + min;
-                hv[j++] = hv[i];
+                hk[j++] = hk[i];
             }
         }
 
@@ -369,55 +369,73 @@ obj_t group(obj_t x)
         return list(3, keys, ht, vals);
     }
 
-    // ht = ht_tab(range < xl ? range : xl, TYPE_I64);
-    // hk = as_i64(as_list(ht)[0]);
-    // hv = as_i64(as_list(ht)[1]);
+    // Use hash table
+    ht = ht_tab(xl, TYPE_I64);
+    hk = as_i64(as_list(ht)[0]);
+    hv = as_i64(as_list(ht)[1]);
 
-    // // calculate counts for each key
-    // // #pragma clang loop vectorize(enable)
-    // for (i = 0; i < xl; i++)
-    // {
-    //     n = iv[i] - min;
-    //     idx = ht_tab_next(&ht, n);
-    //     if (hk[idx] == NULL_I64)
-    //     {
-    //         hk[idx] = n;
-    //         hv[idx] = 1;
-    //         j++;
-    //     }
-    //     else
-    //         hv[idx]++;
-    // }
+    // First pass - Count occurrences
+    for (i = 0; i < xl; i++)
+    {
+        n = iv[i] - min;
+        idx = ht_tab_next(&ht, n);
+        if (hk[idx] == NULL_I64)
+        {
+            hk[idx] = n;
+            hv[idx] = 1;
+        }
+        else
+            hv[idx]++;
+    }
 
-    // keys = vector_i64(j);
-    // kv = as_i64(keys);
-    // vals = vector(TYPE_LIST, j);
-    // vv = as_list(vals);
+    // Pre-compute offsets into all_indices array
+    m = as_list(ht)[0]->len;
+    hk = as_i64(as_list(ht)[0]);
+    hv = as_i64(as_list(ht)[1]);
+    for (i = 0, n = 0; i < m; i++)
+    {
+        if (hk[i] != NULL_I64)
+        {
+            j = hv[i];
+            hv[i] = n;
+            n += j;
+        }
+    }
 
-    // // finally, fill vectors with positions
-    // for (i = 0, j = 0; i < xl; i++)
-    // {
-    //     n = iv[i] - min;
-    //     idx = ht_tab_next(&ht, n);
-    //     if (hv[idx] & (1ll << 62))
-    //     {
-    //         v = (obj_t)(hv[idx] & ~(1ll << 62));
-    //         as_i64(v)[v->len++] = i;
-    //     }
-    //     else
-    //     {
-    //         kv[j] = iv[i];
-    //         v = vector_i64(hv[idx]);
-    //         v->len = 1;
-    //         as_i64(v)[0] = i;
-    //         vv[j++] = v;
-    //         hv[idx] = (i64_t)v | 1ll << 62;
-    //     }
-    // }
+    // Allocate space for all indices
+    vals = vector_i64(n);
+    vv = as_i64(vals);
 
-    // drop(ht);
+    // Single pass through the input, populating all_indices
+    for (i = 0; i < xl; i++)
+    {
+        n = iv[i] - min;
+        idx = ht_tab_next(&ht, n);
+        vv[as_i64(as_list(ht)[1])[idx]++] = i;
+    }
 
-    // return dict(keys, vals);
+    // pack offsets and fill keys
+    m = as_list(ht)[0]->len;
+    hk = as_i64(as_list(ht)[0]);
+    hv = as_i64(as_list(ht)[1]);
+    for (i = 0, j = 0; i < m; i++)
+    {
+        if (hk[i] != NULL_I64)
+        {
+            hk[j] = hk[i] + min;
+            hv[j++] = hv[i];
+        }
+    }
+
+    k = clone(as_list(ht)[0]);
+    v = clone(as_list(ht)[1]);
+
+    drop(ht);
+
+    resize(&k, j);
+    resize(&v, j);
+
+    return list(3, k, v, vals);
 }
 
 #if defined(_WIN32) || defined(__CYGWIN__)

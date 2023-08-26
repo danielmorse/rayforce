@@ -2790,7 +2790,7 @@ obj_t rf_except(obj_t x, obj_t y)
 
 obj_t rf_group_Table(obj_t x, obj_t y)
 {
-    i64_t i, j, k, m, group_start, group_size, g, l, o, *offsets, *indices;
+    i64_t i, j, k, group_start, group_size, g, l, *offsets, *indices;
     obj_t res;
 
     switch (mtype2(x->type, y->type))
