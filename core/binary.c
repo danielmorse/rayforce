@@ -2797,10 +2797,10 @@ obj_t rf_group_Table(obj_t x, obj_t y)
     {
     case mtype2(TYPE_LIST, TYPE_TABLE):
         l = as_list(y)[1]->len; // Number of columns
-        g = as_list(x)[0]->len; // Number of groups
+        g = as_list(x)[1]->len; // Number of groups
 
-        offsets = as_i64(as_list(x)[0]);
-        indices = as_i64(as_list(x)[1]);
+        offsets = as_i64(as_list(x)[1]);
+        indices = as_i64(as_list(x)[2]);
 
         // allocate columns
         res = vector(TYPE_LIST, l);
