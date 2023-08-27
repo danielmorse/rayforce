@@ -619,15 +619,12 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
 
         push_opcode(cc, obj, code, OP_CALL1);
         push_opcode(cc, obj, code, 0);
-        push_u64(code, group);
+        push_u64(code, rf_group);
 
         push_opcode(cc, obj, code, OP_DUP);
-        push_opcode(cc, obj, code, OP_PUSH);
-        push_const(cc, i64(0));
-        push_opcode(cc, obj, code, OP_CALL2);
+        push_opcode(cc, obj, code, OP_CALL1);
         push_opcode(cc, obj, code, 0);
-        push_u64(code, rf_at);
-        push_opcode(cc, car, code, OP_SWAP);
+        push_u64(code, rf_value);
 
         push_opcode(cc, car, code, OP_LPOP);
 

@@ -2790,70 +2790,18 @@ obj_t rf_except(obj_t x, obj_t y)
 
 obj_t rf_group_Table(obj_t x, obj_t y)
 {
-    u64_t i, j, l, n;
-    i64_t k, p, offset, *offsets, *indices;
-    obj_t cols, col, item, group;
+    i64_t i, l;
+    obj_t res;
 
     switch (mtype2(x->type, y->type))
     {
     case mtype2(TYPE_TABLE, TYPE_LIST):
-        l = as_list(x)[1]->len; // columns count
-        n = as_list(y)[1]->len; // groups count
-
-        offsets = as_i64(as_list(y)[1]);
-        indices = as_i64(as_list(y)[2]);
-
-        cols = vector(TYPE_LIST, l);
-
-        // apply indexes to each column
+        l = as_list(x)[1]->len;
+        res = vector(TYPE_LIST, l);
         for (i = 0; i < l; i++)
-        {
-            col = vector(TYPE_LIST, n);
+            as_list(res)[i] = rf_call_binary_right_atomic(rf_at, as_list(as_list(x)[1])[i], y);
 
-            // apply indexes to each group
-            for (j = 0, offset = 0; j < n; j++)
-            {
-                p = offsets[j] - offset;
-
-                // apply each index in the group
-                item = at_idx(as_list(as_list(x)[1])[i], indices[offset]);
-                if (is_error(item))
-                {
-                    col->len = j;
-                    drop(col);
-                    cols->len = i;
-                    drop(cols);
-                    return item;
-                }
-
-                group = item->type < 0 ? vector(item->type, p) : vector(TYPE_LIST, p);
-                write_obj(&group, 0, item);
-
-                for (k = 1; k < p; k++)
-                {
-                    item = at_idx(as_list(as_list(x)[1])[i], indices[offset + k]);
-
-                    if (is_error(item))
-                    {
-                        col->len = j;
-                        drop(col);
-                        cols->len = i;
-                        drop(cols);
-                        return item;
-                    }
-
-                    write_obj(&group, k, item);
-                }
-
-                offset = offsets[j];
-
-                as_list(col)[j] = group;
-            }
-
-            as_list(cols)[i] = col;
-        }
-
-        return table(clone(as_list(x)[0]), cols);
+        return table(clone(as_list(x)[0]), res);
 
     default:
         raise(ERR_TYPE, "group: unsupported types: %d %d", x->type, y->type);
