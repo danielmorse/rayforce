@@ -971,6 +971,7 @@ obj_t rf_add(obj_t x, obj_t y, ctx_t *ctx)
 {
     u64_t i, l;
     obj_t vec;
+    i64_t *xidx, *yidx, *xi, *yi;
 
     switch (mtype2(x->type, y->type))
     {
@@ -984,10 +985,22 @@ obj_t rf_add(obj_t x, obj_t y, ctx_t *ctx)
         return timestamp(addi64(x->i64, y->i64));
 
     case mtype2(-TYPE_I64, TYPE_I64):
-        l = y->len;
-        vec = vector_i64(l);
-        for (i = 0; i < l; i++)
-            as_i64(vec)[i] = addi64(x->i64, as_i64(y)[i]);
+        if (ctx && ctx->indices[1])
+        {
+            l = ctx->indices[1]->len;
+            yidx = as_i64(ctx->indices[1]);
+            yi = as_i64(y);
+            vec = vector_i64(l);
+            for (i = 0; i < l; i++)
+                as_i64(vec)[i] = addi64(x->i64, yi[yidx[i]]);
+        }
+        else
+        {
+            l = y->len;
+            vec = vector_i64(l);
+            for (i = 0; i < l; i++)
+                as_i64(vec)[i] = addi64(x->i64, as_i64(y)[i]);
+        }
 
         return vec;
 
@@ -999,45 +1012,63 @@ obj_t rf_add(obj_t x, obj_t y, ctx_t *ctx)
 
         return vec;
 
-    case mtype2(-TYPE_TIMESTAMP, TYPE_I64):
-        l = y->len;
-        vec = vector_timestamp(l);
-        for (i = 0; i < l; i++)
-            as_i64(vec)[i] = addi64(x->i64, as_i64(y)[i]);
-
-        return vec;
-
-    case mtype2(TYPE_TIMESTAMP, -TYPE_I64):
-        l = x->len;
-        vec = vector_timestamp(l);
-        for (i = 0; i < l; i++)
-            as_i64(vec)[i] = addi64(as_i64(x)[i], y->i64);
-
-        return vec;
-
-    case mtype2(TYPE_TIMESTAMP, TYPE_I64):
-        l = x->len;
-        vec = vector_timestamp(l);
-        for (i = 0; i < l; i++)
-            as_i64(vec)[i] = addi64(as_i64(x)[i], as_i64(y)[i]);
-
-        return vec;
-
     case mtype2(TYPE_I64, -TYPE_I64):
-        l = x->len;
-        vec = vector_i64(l);
-        for (i = 0; i < l; i++)
-            as_i64(vec)[i] = addi64(as_i64(x)[i], y->i64);
+        if (ctx && ctx->indices[0])
+        {
+            l = ctx->indices[0]->len;
+            xidx = as_i64(ctx->indices[0]);
+            xi = as_i64(x);
+            vec = vector_i64(l);
+            for (i = 0; i < l; i++)
+                as_i64(vec)[i] = addi64(xi[xidx[i]], y->i64);
+        }
+        else
+        {
+            l = x->len;
+            vec = vector_i64(l);
+            for (i = 0; i < l; i++)
+                as_i64(vec)[i] = addi64(as_i64(x)[i], y->i64);
+        }
 
         return vec;
 
     case mtype2(TYPE_I64, TYPE_I64):
-        l = x->len;
-        if (l != y->len)
-            return error(ERR_LENGTH, "add: vectors must be of the same length");
-        vec = vector_i64(l);
-        for (i = 0; i < l; i++)
-            as_i64(vec)[i] = addi64(as_i64(x)[i], as_i64(y)[i]);
+        if (ctx && ctx->indices[0] && ctx->indices[1])
+        {
+            l = ctx->indices[0]->len;
+            xidx = as_i64(ctx->indices[0]);
+            yidx = as_i64(ctx->indices[1]);
+            xi = as_i64(x);
+            yi = as_i64(y);
+            vec = vector_i64(l);
+            for (i = 0; i < l; i++)
+                as_i64(vec)[i] = addi64(xi[xidx[i]], yi[yidx[i]]);
+        }
+        else if (ctx && ctx->indices[0])
+        {
+            l = ctx->indices[0]->len;
+            xidx = as_i64(ctx->indices[0]);
+            xi = as_i64(x);
+            vec = vector_i64(l);
+            for (i = 0; i < l; i++)
+                as_i64(vec)[i] = addi64(xi[xidx[i]], as_i64(y)[i]);
+        }
+        else if (ctx && ctx->indices[1])
+        {
+            l = ctx->indices[1]->len;
+            yidx = as_i64(ctx->indices[1]);
+            yi = as_i64(y);
+            vec = vector_i64(l);
+            for (i = 0; i < l; i++)
+                as_i64(vec)[i] = addi64(as_i64(x)[i], yi[yidx[i]]);
+        }
+        else
+        {
+            l = x->len;
+            vec = vector_i64(l);
+            for (i = 0; i < l; i++)
+                as_i64(vec)[i] = addi64(as_i64(x)[i], as_i64(y)[i]);
+        }
 
         return vec;
 
