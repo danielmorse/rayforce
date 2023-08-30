@@ -50,6 +50,10 @@
 #define is_external_compound(x) (((x->mmod) & MMOD_EXTERNAL_COMPOUND) == (x)->mmod)
 #define is_external_serialized(x) (((x->mmod) & MMOD_EXTERNAL_SERIALIZED) == (x)->mmod)
 
+/*
+ * Aligns x to the nearest multiple of a
+ */
+#define alignup(x, a) (((x) + (a)-1) & ~((a)-1))
 #define align8(x) ((str_t)(((u64_t)x + 7) & ~7))
 
 #define mtype2(x, y) ((u8_t)(x) | ((u8_t)(y) << 8))
@@ -71,10 +75,6 @@
 #define maxf64(x, y) (x > y ? x : y)
 #define mini64(x, y) (is_null_i64(y) || (!is_null_i64(x) && (x < y)) ? x : y)
 #define minf64(x, y) (x < y ? x : y)
-/*
- * Aligns x to the nearest multiple of a
- */
-#define alignup(x, a) (((x) + (a)-1) & ~((a)-1))
 
 // Function types
 typedef u64_t (*hash_f)(i64_t);

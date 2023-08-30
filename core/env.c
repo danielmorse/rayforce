@@ -137,6 +137,7 @@ nil_t init_functions(obj_t functions)
     regf(functions,  "xdesc",     TYPE_BINARY,   FN_NONE,           rf_xdesc);
     regf(functions,  "enum",      TYPE_BINARY,   FN_NONE,           rf_enum);
     regf(functions,  "vecmap",      TYPE_BINARY,   FN_NONE,         rf_vecmap);
+    regf(functions,  "listmap",      TYPE_BINARY,   FN_NONE,         rf_listmap);
     
     // Lambdas       
     // regf(function s, "env",        rf_env);

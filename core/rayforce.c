@@ -872,6 +872,7 @@ nil_t __attribute__((hot)) drop(obj_t obj)
     {
     case TYPE_LIST:
     case TYPE_VECMAP:
+    case TYPE_LISTMAP:
         if (rc == 0)
         {
             l = obj->len;

@@ -2875,26 +2875,6 @@ obj_t rf_except(obj_t x, obj_t y)
     }
 }
 
-obj_t rf_group_Table(obj_t x, obj_t y)
-{
-    i64_t i, l;
-    obj_t res;
-
-    switch (mtype2(x->type, y->type))
-    {
-    case mtype2(TYPE_TABLE, TYPE_LIST):
-        l = as_list(x)[1]->len;
-        res = vector(TYPE_LIST, l);
-        for (i = 0; i < l; i++)
-            as_list(res)[i] = rf_call_binary_right_atomic(rf_at, as_list(as_list(x)[1])[i], y);
-
-        return table(clone(as_list(x)[0]), res);
-
-    default:
-        raise(ERR_TYPE, "group: unsupported types: %d %d", x->type, y->type);
-    }
-}
-
 obj_t rf_xasc(obj_t x, obj_t y)
 {
     obj_t idx, col, res;
@@ -3002,6 +2982,28 @@ obj_t rf_vecmap(obj_t x, obj_t y)
     default:
         res = list(2, clone(x), clone(y));
         res->type = TYPE_VECMAP;
+        return res;
+    }
+}
+
+obj_t rf_listmap(obj_t x, obj_t y)
+{
+    u64_t i, l;
+    obj_t res;
+
+    switch (x->type)
+    {
+    case TYPE_TABLE:
+        l = as_list(x)[1]->len;
+        res = vector(TYPE_LIST, l);
+        for (i = 0; i < l; i++)
+            as_list(res)[i] = rf_listmap(as_list(as_list(x)[1])[i], y);
+
+        return table(clone(as_list(x)[0]), res);
+
+    default:
+        res = list(2, clone(x), clone(y));
+        res->type = TYPE_LISTMAP;
         return res;
     }
 }

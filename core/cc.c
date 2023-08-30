@@ -426,7 +426,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
 {
     cc_result_t res;
     i64_t i, l;
-    obj_t car, params, key, val, cols, syms, k, v;
+    obj_t car, params, key, val, cols, k, v;
     lambda_t *func = as_lambda(cc->lambda);
     obj_t *code = &func->code, take = null(0);
     bool_t groupby = false, map = false;
@@ -458,7 +458,6 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
 
     // determine which of columns are used in select and which names will be used for result columns
     cols = vector_symbol(0);
-    syms = vector_symbol(0);
 
     // first check by because it is special case in mapping
     key = symboli64(KW_BY);
@@ -490,8 +489,6 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
                 continue;
             }
 
-            find_used_symbols(v, &syms);
-
             if (k->i64 == KW_BY)
             {
                 dropn(2, k, v);
@@ -505,16 +502,6 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
         else
             drop(k);
     }
-
-    k = rf_distinct(syms);
-
-    if (is_error(k))
-    {
-        dropn(2, cols, syms);
-        cerr(cc, car, ERR_TYPE, "invalid column name");
-    }
-
-    drop(syms);
 
     // compile filters
     key = symboli64(KW_WHERE);
@@ -538,52 +525,12 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
         push_u64(code, rf_where);
         push_opcode(cc, val, code, OP_LPOP);
 
-        // reduce by used columns (if any)
-        if (map)
-        {
-            push_opcode(cc, val, code, OP_DUP);
-            push_opcode(cc, val, code, OP_CALL1);
-            push_u8(code, 0);
-            push_u64(code, rf_key);
-            push_opcode(cc, val, code, OP_PUSH);
-            push_const(cc, k);
-            push_opcode(cc, val, code, OP_CALL2);
-            push_u8(code, 0);
-            push_u64(code, rf_sect);
-            push_opcode(cc, val, code, OP_CALL2);
-            push_u8(code, 0);
-            push_u64(code, rf_at);
-        }
-        else
-            drop(k);
-
         // create vecmaps over the table
         push_opcode(cc, val, code, OP_SWAP);
         push_opcode(cc, val, code, OP_CALL2);
         push_u8(code, 0);
         push_u64(code, rf_vecmap);
         drop(val);
-    }
-    else
-    {
-        // reduce by used columns (if any)
-        if (map)
-        {
-            push_opcode(cc, params, code, OP_DUP);
-            push_opcode(cc, params, code, OP_CALL1);
-            push_u8(code, 0);
-            push_u64(code, rf_key);
-            push_opcode(cc, params, code, OP_PUSH);
-            push_const(cc, k);
-            push_opcode(cc, params, code, OP_CALL2);
-            push_u8(code, 0);
-            push_u64(code, rf_sect);
-            push_opcode(cc, params, code, OP_CALL2);
-            push_u8(code, 0);
-            push_u64(code, rf_at);
-        }
-        else
-            drop(k);
     }
 
     // compile take (if any)
@@ -617,19 +564,19 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
         }
 
         push_opcode(cc, obj, code, OP_CALL1);
-        push_opcode(cc, obj, code, 0);
+        push_u8(code, FN_LAZY);
         push_u64(code, rf_group);
 
         push_opcode(cc, obj, code, OP_DUP);
         push_opcode(cc, obj, code, OP_CALL1);
-        push_opcode(cc, obj, code, 0);
+        push_u8(code, 0);
         push_u64(code, rf_value);
         push_opcode(cc, car, code, OP_LPOP);
 
         // remove column used for grouping from result
         push_opcode(cc, obj, code, OP_DUP);
         push_opcode(cc, car, code, OP_CALL1);
-        push_opcode(cc, car, code, 0);
+        push_u8(code, 0);
         push_u64(code, rf_key);
         push_opcode(cc, car, code, OP_PUSH);
         push_const(cc, at_idx(cols, 0));
@@ -637,7 +584,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
         push_u8(code, 0);
         push_u64(code, rf_except);
         push_opcode(cc, car, code, OP_CALL2);
-        push_opcode(cc, car, code, 0);
+        push_u8(code, 0);
         push_u64(code, rf_at);
 
         push_opcode(cc, car, code, OP_SWAP);
@@ -645,7 +592,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
         // apply grouping
         push_opcode(cc, car, code, OP_CALL2);
         push_u8(code, 0);
-        push_u64(code, rf_group_Table);
+        push_u64(code, rf_listmap);
 
         push_opcode(cc, car, code, OP_LPUSH);
 
@@ -688,7 +635,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
         push_u64(code, rf_list);
 
         push_opcode(cc, car, code, OP_CALL2);
-        push_u8(code, 0);
+        push_u8(code, FN_LAZY);
         push_u64(code, rf_table);
     }
     else

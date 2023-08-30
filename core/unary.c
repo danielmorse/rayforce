@@ -40,7 +40,8 @@
 
 obj_t call_unary(u8_t attrs, unary_f f, obj_t x)
 {
-    obj_t res;
+    u64_t i, l;
+    obj_t res, item, vmap;
 
     // If function is not lazy, i.e it does not support indexes types, then evaluate it first
     if ((x->type == TYPE_VECMAP) && (attrs & FN_LAZY) != FN_LAZY)
@@ -48,6 +49,53 @@ obj_t call_unary(u8_t attrs, unary_f f, obj_t x)
         x = rf_value(x);
         res = f(x);
         drop(x);
+        return res;
+    }
+    else if (x->type == TYPE_LISTMAP)
+    {
+        l = as_list(x)[1]->len;
+
+        if (l == 0)
+            return null(0);
+
+        vmap = list(2, as_list(x)[0], as_list(as_list(x)[1])[0]);
+        vmap->type = TYPE_VECMAP;
+
+        item = call_unary(attrs, f, vmap);
+
+        if (is_error(item))
+        {
+            vmap->len = 0;
+            drop(vmap);
+            return item;
+        }
+
+        res = item->type < 0 ? vector(item->type, l) : vector(TYPE_LIST, l);
+        write_obj(&res, 0, item);
+
+        for (i = 1; i < l; i++)
+        {
+            // reuse obj_t node for next vmap
+            as_list(vmap)[0] = as_list(x)[0];
+            as_list(vmap)[1] = as_list(as_list(x)[1])[i];
+
+            item = call_unary(attrs, f, vmap);
+
+            if (is_error(item))
+            {
+                res->len = i;
+                drop(res);
+                vmap->len = 0;
+                drop(vmap);
+                return item;
+            }
+
+            write_obj(&res, i, item);
+        }
+
+        vmap->len = 0;
+        drop(vmap);
+
         return res;
     }
 
@@ -460,8 +508,13 @@ dispatch:
         if (xids)
         {
             xfvals = as_f64(x);
+            // debug("----------------");
+            // debug_obj(x);
             for (i = 0; i < l; i++)
+            {
+                debug("xids[%lld]: %lld", i, xids[i]);
                 fsum += xfvals[xids[i]];
+            }
 
             return f64(fsum);
         }
@@ -476,10 +529,12 @@ dispatch:
     default:
         if (x->type == TYPE_VECMAP)
         {
-            // debug_obj(as_list(x)[1]);
+            debug("----------------");
+            debug_obj(as_list(x)[1]);
             xids = as_i64(as_list(x)[1]);
             l = as_list(x)[1]->len;
             x = as_list(x)[0];
+            debug("XT: %d", x->type);
             goto dispatch;
         }
 

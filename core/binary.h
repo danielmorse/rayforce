@@ -58,10 +58,10 @@ obj_t rf_in(obj_t x, obj_t y);
 obj_t rf_sect(obj_t x, obj_t y);
 obj_t rf_except(obj_t x, obj_t y);
 obj_t rf_cast(obj_t x, obj_t y);
-obj_t rf_group_Table(obj_t x, obj_t y);
 obj_t rf_xasc(obj_t x, obj_t y);
 obj_t rf_xdesc(obj_t x, obj_t y);
 obj_t rf_enum(obj_t x, obj_t y);
 obj_t rf_vecmap(obj_t x, obj_t y);
+obj_t rf_listmap(obj_t x, obj_t y);
 
 #endif
