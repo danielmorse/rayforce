@@ -68,7 +68,7 @@
 #define fdivi64(x, y) ((x == NULL_I64 || y == NULL_I64) ? NULL_F64 : ((f64_t)(x) / (f64_t)(y)))
 #define divf64(x, y) ((i64_t)(x / y))
 #define fdivf64(x, y) (x / y)
-#define modi64(x, y) ((y == 0) ? NULL_I64 : ((x == NULL_I64 || y == NULL_I64) ? NULL_I64 : ((x) % (y))))
+#define modi64(x, y) ((y == 0) ? NULL_I64 : ((x == NULL_I64 || y == NULL_I64) ? NULL_I64 : (((i64_t)x) % ((i64_t)y))))
 #define modf64(x, y) (x - y * ((i64_t)(x / y)))
 #define maxi64(x, y) (x > y ? x : y)
 #define maxf64(x, y) (x > y ? x : y)
