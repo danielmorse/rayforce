@@ -43,7 +43,7 @@ jobs:
 
     - name: Make (Windows)
       if: runner.os == 'Windows'
-      run: mingw32-make.exe CC="gcc" release 
+      run: mingw32-make.exe CC="C:\TDM-GCC-64\bin\gcc.exe" release 
     
     - name: Install dependencies (macOS)
       if: runner.os == 'macOS'
