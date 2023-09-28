@@ -4,7 +4,7 @@ on:
   push:
     tags:
       - 'v*.*'
-      
+
 jobs:
   build:
     strategy:
@@ -51,7 +51,7 @@ jobs:
         mkdir build
         cp ./rayforce ./build/
         cd build
-        zip -r ../rayforce.zip .  
+        zip -r ../linux.zip .  
 
     - name: Create build directory and copy binary (Windows)
       if: runner.os == 'Windows'
@@ -59,7 +59,7 @@ jobs:
         mkdir build
         cp ./rayforce.exe ./build/
         cd build
-        7z a ../rayforce.zip .
+        7z a ../windows.zip .
 
     - name: Create build directory and copy binary (macOS)
       if: runner.os == 'macOS'
@@ -67,8 +67,12 @@ jobs:
         mkdir build
         cp ./rayforce ./build/
         cd build
-        zip -r ../rayforce.zip .  
-
+        zip -r ../macos.zip .  
+  
+  create-release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -80,13 +84,32 @@ jobs:
         draft: false
         prerelease: false
 
-    - name: Upload Release Asset
-      id: upload-release-asset 
+    - name: Upload Release Asset (Linux)
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.PAT }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./rayforce.zip
-        asset_name: ${{ matrix.os }}.zip
+        asset_path: ./linux.zip
+        asset_name: linux.zip
+        asset_content_type: application/zip
+
+    - name: Upload Release Asset (Windows)
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.PAT }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./windows.zip
+        asset_name: windows.zip
+        asset_content_type: application/zip
+
+    - name: Upload Release Asset (macOS)
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.PAT }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./macos.zip
+        asset_name: macos.zip
         asset_content_type: application/zip
