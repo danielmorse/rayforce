@@ -1,5 +1,16 @@
 name: Build and Release
 
+changelog:
+  categories:
+    - title: 🏕 Features
+      labels:
+        - '*'
+      exclude:
+        labels:
+          - dependencies
+    - title: 👒 Dependencies
+      labels:
+        - dependencies
 on:
   push:
     tags:
