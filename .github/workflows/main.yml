@@ -9,7 +9,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [windows-latest]
         # os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
@@ -23,13 +23,15 @@ jobs:
       if: runner.os == 'Linux'
       run: make
 
-    # - name: Install dependencies (Windows)
-    #   if: runner.os == 'Windows'
-    #   run: choco install make mingw
+    - name: Install dependencies (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        choco install make mingw -y
+        choco install tdmgcc -y
 
-    # - name: Make (Windows)
-    #   if: runner.os == 'Windows'
-    #   run: make
+    - name: Make (Windows)
+      if: runner.os == 'Windows'
+      run: mingw32-make.exe CC="gcc" release 
 
     - name: Determine binary extension
       id: artifact_ext
@@ -65,5 +67,5 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ./rayforce.zip
-        asset_name: rayforce-${{ matrix.os }}.zip
+        asset_name: ${{ matrix.os }}.zip
         asset_content_type: application/zip
