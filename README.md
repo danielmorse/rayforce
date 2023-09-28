@@ -2,6 +2,8 @@
 
 Welcome to RayforceDB, where performance, efficiency, and simplicity converge to set a new standard in the world of database systems.
 
+[![Build and Release](https://github.com/singaraiona/rayforce/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/singaraiona/rayforce/actions/workflows/main.yml)
+
 ## Elevated Performance
 
 Leveraging the raw power of columnar storage, RayforceDB unlocks the full potential of data retrieval and querying. Coupled with the prowess of vectorization, the system promises seamless data processing, ensuring optimal speed regardless of the dataset size.
