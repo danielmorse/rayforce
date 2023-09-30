@@ -61,6 +61,7 @@ jobs:
       run: |
         mkdir build
         cp ./rayforce ./build/
+        cp -r ./examples ./build/
         tar -cvpzf ${{ matrix.os }}.tar.gz ./build
 
     - name: Create build directory and copy binary (Windows)
@@ -69,6 +70,7 @@ jobs:
         mkdir build
         cp ./rayforce.exe ./build/
         cp ${{ github.workspace }}/mingw/mingw64/bin/libmcfgthread-1.dll ./build/
+        cp -r ./examples ./build/
         cd build
         7z a ../${{ matrix.os }}.zip .
 
@@ -77,6 +79,7 @@ jobs:
       run: |
         mkdir build
         cp ./rayforce ./build/
+        cp -r ./examples ./build/
         tar -cvpzf ${{ matrix.os }}.tar.gz ./build
 
     - name: Upload Artifact (Linux)
