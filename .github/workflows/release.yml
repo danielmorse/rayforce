@@ -43,30 +43,30 @@ jobs:
       if: runner.os == 'Windows'
       run: |
         mingw32-make.exe CC="${{ github.workspace }}/mingw/mingw64/bin/gcc" LIBS="-lm -lws2_32 -lkernel32" release
-        
-        - name: Install dependencies (macOS)
-        if: runner.os == 'macOS'
-        run: |
+    
+    - name: Install dependencies (macOS)
+      if: runner.os == 'macOS'
+      run: |
         if ! command -v clang &> /dev/null
         then
-        xcode-select --install
+          xcode-select --install
         fi
-        
-        - name: Make (macOS)
-        if: runner.os == 'macOS'
-        run: make release
-        
-        - name: Create build directory and copy binary (Linux)
-        if: runner.os == 'Linux'
-        run: |
+
+    - name: Make (macOS)
+      if: runner.os == 'macOS'
+      run: make release
+
+    - name: Create build directory and copy binary (Linux)
+      if: runner.os == 'Linux'
+      run: |
         mkdir build
         cp ./rayforce ./build/
         cd build
         zip -r ../${{ matrix.os }}.zip .  
-        
-        - name: Create build directory and copy binary (Windows)
-        if: runner.os == 'Windows'
-        run: |
+
+    - name: Create build directory and copy binary (Windows)
+      if: runner.os == 'Windows'
+      run: |
         mkdir build
         cp ./rayforce.exe ./build/
         cp ${{ github.workspace }}/mingw/mingw64/bin/libmcfgthread-1.dll ./build/
