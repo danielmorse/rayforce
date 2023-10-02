@@ -91,37 +91,43 @@ nil_t runtime_init(i32_t argc, str_t argv[])
     _RUNTIME->env = create_env();
     _RUNTIME->parser = parser_new();
     _RUNTIME->vm = vm_new(NULL);
-    _RUNTIME->args = parse_cmdline(argc, argv);
     _RUNTIME->addr = (sock_addr_t){0};
-
-    i = find_sym(as_list(_RUNTIME->args)[0], "port");
-    if (i < (i64_t)as_list(_RUNTIME->args)[0]->len)
-        _RUNTIME->addr.port = atoi(as_string(as_list(as_list(_RUNTIME->args)[1])[i]));
-
     _RUNTIME->slaves = 0;
 
-    // load file
-    filename = runtime_get_arg("file");
-    if (filename != NULL)
+    if (argc)
     {
-        file = ray_read(filename);
-        if (file->type == TYPE_ERROR)
-            printf("No such file: '%s'\n", as_string(filename));
-        else
+        _RUNTIME->args = parse_cmdline(argc, argv);
+        i = find_sym(as_list(_RUNTIME->args)[0], "port");
+        if (i < (i64_t)as_list(_RUNTIME->args)[0]->len)
+            _RUNTIME->addr.port = atoi(as_string(as_list(as_list(_RUNTIME->args)[1])[i]));
+
+        // load file
+        filename = runtime_get_arg("file");
+        if (filename != NULL)
         {
-            res = eval_str(0, as_string(filename), as_string(file));
-            fmt = obj_fmt(res);
-            printf("%s\n", fmt);
-            heap_free(fmt);
-            drop(res);
+            file = ray_read(filename);
+            if (file->type == TYPE_ERROR)
+                printf("No such file: '%s'\n", as_string(filename));
+            else
+            {
+                res = eval_str(0, as_string(filename), as_string(file));
+                fmt = obj_fmt(res);
+                printf("%s\n", fmt);
+                heap_free(fmt);
+                drop(res);
+            }
+
+            drop(file);
         }
 
-        drop(file);
+        drop(filename);
+
+        _RUNTIME->select = poll_init(_RUNTIME->addr.port);
     }
-
-    drop(filename);
-
-    _RUNTIME->select = poll_init(_RUNTIME->addr.port);
+    else
+    {
+        _RUNTIME->select = NULL;
+    }
 }
 
 i32_t runtime_run()
@@ -132,7 +138,8 @@ i32_t runtime_run()
 nil_t runtime_cleanup()
 {
     drop(_RUNTIME->args);
-    poll_cleanup(_RUNTIME->select);
+    if (_RUNTIME->select)
+        poll_cleanup(_RUNTIME->select);
     symbols_free(_RUNTIME->symbols);
     mmap_free(_RUNTIME->symbols, sizeof(symbols_t));
     free_env(&_RUNTIME->env);
