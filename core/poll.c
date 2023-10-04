@@ -108,6 +108,7 @@ obj_t ipc_send_sync(poll_t select, i64_t fd, obj_t obj)
         data->rx.read_size = 0;
         data->rx.size = 0;
         heap_free(data->rx.buf);
+        data->rx.buf = NULL;
 
         return v;
     }
