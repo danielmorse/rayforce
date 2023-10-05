@@ -182,7 +182,7 @@ i64_t poll_del(poll_t select, i64_t fd)
     if (kevent(select->poll_fd, &ev, 1, NULL, 0, NULL) == -1)
         perror("select del");
 
-    remove_data(&select->data, fd);
+    del_data(&select->data, fd);
     return 0;
 }
 
@@ -479,7 +479,7 @@ ipc_data_t add_data(ipc_data_t *head, i32_t fd, i32_t size)
     return data;
 }
 
-nil_t remove_data(ipc_data_t *head, i64_t fd)
+nil_t del_data(ipc_data_t *head, i64_t fd)
 {
     ipc_data_t *next, data;
     nil_t *v;

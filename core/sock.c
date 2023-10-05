@@ -102,14 +102,6 @@ i64_t sock_open(sock_addr_t *addr)
         return -1;
     }
 
-    if (sock_set_nonblocking(fd, 1) == SOCKET_ERROR)
-    {
-        code = WSAGetLastError();
-        closesocket(fd);
-        WSASetLastError(code);
-        return -1;
-    }
-
     return (i64_t)fd;
 }
 

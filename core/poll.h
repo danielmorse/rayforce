@@ -111,14 +111,14 @@ typedef struct poll_t
 } *poll_t;
 
 nil_t prompt();
-nil_t remove_data(ipc_data_t *head, i64_t fd);
+nil_t del_data(ipc_data_t *head, i64_t fd);
 ipc_data_t add_data(ipc_data_t *head, i32_t fd, i32_t size);
 ipc_data_t find_data(ipc_data_t *head, i64_t fd);
 nil_t ipc_enqueue_msg(ipc_data_t data, obj_t obj, i8_t msg_type);
 
 poll_t poll_init(i64_t port);
-i64_t poll_recv(poll_t poll, ipc_data_t data);
-i64_t poll_send(poll_t poll, ipc_data_t data);
+i64_t poll_recv(poll_t poll, ipc_data_t data, bool_t block);
+i64_t poll_send(poll_t poll, ipc_data_t data, bool_t block);
 nil_t poll_cleanup(poll_t poll);
 obj_t ipc_send_sync(poll_t poll, i64_t fd, obj_t obj);
 obj_t ipc_send_async(poll_t poll, i64_t fd, obj_t obj);

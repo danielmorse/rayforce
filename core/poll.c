@@ -64,13 +64,13 @@ ipc_data_t find_data(ipc_data_t *head, i64_t fd)
     return NULL;
 }
 
-obj_t ipc_send_sync(poll_t select, i64_t fd, obj_t obj)
+obj_t ipc_send_sync(poll_t poll, i64_t fd, obj_t obj)
 {
     obj_t v;
     i64_t r;
     ipc_data_t data;
 
-    data = find_data(&select->data, fd);
+    data = find_data(&poll->data, fd);
 
     if (data == NULL)
         emit(ERR_IO, "ipc send sync: invalid socket fd: %lld", fd);
@@ -78,46 +78,37 @@ obj_t ipc_send_sync(poll_t select, i64_t fd, obj_t obj)
     ipc_enqueue_msg(data, clone(obj), MSG_TYPE_SYNC);
 
     // flush all messages in the queue
-    while (true)
+    r = poll_send(poll, data, true);
+    if (r != POLL_READY)
     {
-        r = poll_send(select, data);
-        if (r == POLL_READY)
-            break;
-        else if (r == POLL_ERROR)
-        {
-            poll_del(select, fd);
-            return sys_error(TYPE_GETLASTERROR, "ipc send sync");
-        }
+        v = sys_error(TYPE_WSAGETLASTERROR, "ipc send sync(tx)");
+        poll_del(poll, fd);
+        return v;
     }
 
     // read until we get response
-    while (true)
+    r = poll_recv(poll, data, true);
+    if (r != POLL_READY)
     {
-        r = poll_recv(select, data);
-
-        if (r == POLL_PENDING)
-            continue;
-
-        if (r == POLL_ERROR)
-        {
-            poll_del(select, fd);
-            return sys_error(TYPE_GETLASTERROR, "ipc send sync");
-        }
-
-        v = de_raw(data->rx.buf, data->rx.size);
-        data->rx.read_size = 0;
-        data->rx.size = 0;
-        heap_free(data->rx.buf);
-        data->rx.buf = NULL;
-
+        v = sys_error(TYPE_WSAGETLASTERROR, "ipc send sync(rx)");
+        poll_del(poll, fd);
         return v;
     }
+
+    v = de_raw(data->rx.buf, data->rx.size);
+    data->rx.read_size = 0;
+    data->rx.size = 0;
+    heap_free(data->rx.buf);
+    data->rx.buf = NULL;
+
+    return v;
 }
 
 obj_t ipc_send_async(poll_t select, i64_t fd, obj_t obj)
 {
     ipc_data_t data;
     i64_t snd;
+    obj_t err;
 
     data = find_data(&select->data, fd);
 
@@ -126,12 +117,13 @@ obj_t ipc_send_async(poll_t select, i64_t fd, obj_t obj)
 
     ipc_enqueue_msg(data, clone(obj), MSG_TYPE_ASYN);
 
-    snd = poll_send(select, data);
+    snd = poll_send(select, data, false);
 
     if (snd == POLL_ERROR)
     {
+        err = sys_error(TYPE_WSAGETLASTERROR, "ipc send async");
         poll_del(select, fd);
-        return sys_error(TYPE_GETLASTERROR, "ipc send async");
+        return err;
     }
 
     return null(0);

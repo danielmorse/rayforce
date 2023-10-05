@@ -37,6 +37,7 @@ obj_t ray_hopen(obj_t x)
     u8_t handshake[2] = {0, RAYFORCE_VERSION};
     ipc_data_t data;
     sock_addr_t addr;
+    obj_t err;
 
     if (x->type != TYPE_CHAR)
         emit(ERR_TYPE, "hopen: expected char");
@@ -47,22 +48,26 @@ obj_t ray_hopen(obj_t x)
     fd = sock_open(&addr);
 
     if (fd == -1)
-        return sys_error(TYPE_GETLASTERROR, "hopen");
+        return sys_error(TYPE_WSAGETLASTERROR, "hopen");
 
     if (sock_send(fd, handshake, 2) == -1)
     {
+        err = sys_error(TYPE_WSAGETLASTERROR, "hopen");
         sock_close(fd);
-        return sys_error(TYPE_GETLASTERROR, "hopen");
+        return err;
     }
 
     if (sock_recv(fd, handshake, 2) == -1)
     {
+        err = sys_error(TYPE_WSAGETLASTERROR, "hopen");
         sock_close(fd);
-        return sys_error(TYPE_GETLASTERROR, "hopen");
+        return err;
     }
 
     data = poll_add(runtime_get()->select, fd);
     data->rx.version = handshake[1];
+
+    sock_set_nonblocking(fd, true);
 
     return i64(fd);
 }
@@ -70,8 +75,6 @@ obj_t ray_hopen(obj_t x)
 obj_t ray_hclose(obj_t x)
 {
     sock_close(x->i64);
-
-    // poll_del(runtime_get()->select, x->i64);
 
     return null(0);
 }
