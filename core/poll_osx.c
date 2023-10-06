@@ -100,7 +100,7 @@ poll_t poll_init(i64_t port)
             exit(EXIT_FAILURE);
         }
 
-        EV_SET(&ev, add_data(&data, listen_fd, 0), EVFILT_READ | EVFILT_EXCEPT, EV_ADD, 0, 0, NULL);
+        EV_SET(&ev, listen_fd, EVFILT_READ | EVFILT_EXCEPT, EV_ADD, 0, 0, add_data(&data, listen_fd, 0));
         if (kevent(kq_fd, &ev, 1, NULL, 0, NULL) == -1)
         {
             perror("kevent: listenfd");
@@ -186,10 +186,10 @@ i64_t poll_del(poll_t select, i64_t fd)
     return 0;
 }
 
-i64_t poll_dispatch(poll_t select)
+i64_t poll_dispatch(poll_t poll)
 {
-    i64_t kq_fd = select->poll_fd, listen_fd = select->ipc_fd,
-          nfds, len, snd;
+    i64_t kq_fd = poll->poll_fd, listen_fd = poll->ipc_fd,
+          nfds, len, poll_result;
     i32_t n;
     ipc_data_t data;
     obj_t res, v;
@@ -226,7 +226,7 @@ i64_t poll_dispatch(poll_t select)
             // accept new connections
             else if (events[n].ident == listen_fd)
             {
-                poll_add(select, sock_accept(listen_fd));
+                poll_add(poll, sock_accept(listen_fd));
             }
             else if (events[n].ident == __EVENT_FD[0])
             {
@@ -240,56 +240,53 @@ i64_t poll_dispatch(poll_t select)
                 // ipc in
                 if (events[n].filter & EVFILT_READ)
                 {
-                    res = poll_recv(select, data);
+                    poll_result = poll_recv(poll, data, false);
 
-                    if (res == NULL)
+                    if (poll_result == POLL_PENDING)
                         continue;
-                    else if (is_error(res))
+                    else if (poll_result == POLL_ERROR)
                     {
-                        if (data->rx.read_size != data->rx.size)
-                        {
-                            fmt = obj_fmt(res);
-                            printf("%s%s%s\n", TOMATO, fmt, RESET);
-                            heap_free(fmt);
-                            prompt();
-                        }
-                        drop(res);
-                        poll_del(select, data->fd);
+                        del_data(&poll->data, data->fd);
+                        continue;
                     }
-                    else
+
+                    res = de_raw(data->rx.buf, data->rx.size);
+                    heap_free(data->rx.buf);
+                    data->rx.buf = NULL;
+                    data->rx.read_size = 0;
+                    data->rx.size = 0;
+
+                    // sync || async
+                    if (data->msgtype < 2)
                     {
-                        // sync || async
-                        if (data->msgtype < 2)
+                        if (res->type == TYPE_CHAR)
                         {
-                            if (res->type == TYPE_CHAR)
-                            {
-                                v = eval_str(0, "ipc", as_string(res));
-                                drop(res);
-                            }
-                            else
-                                v = eval_obj(0, "ipc", res);
-
-                            // sync request
-                            if (data->msgtype == MSG_TYPE_SYNC)
-                            {
-                                ipc_enqueue_msg(data, v, MSG_TYPE_RESP);
-                                snd = poll_send(select, data);
-
-                                if (snd == POLL_ERROR)
-                                    perror("send reply");
-                            }
-                            else
-                                drop(v);
+                            v = eval_str(0, "ipc", as_string(res));
+                            drop(res);
                         }
+                        else
+                            v = eval_obj(0, "ipc", res);
+
+                        // sync request
+                        if (data->msgtype == MSG_TYPE_SYNC)
+                        {
+                            ipc_enqueue_msg(data, v, MSG_TYPE_RESP);
+                            poll_result = poll_send(select, data, false);
+
+                            if (poll_result == POLL_ERROR)
+                                perror("send reply");
+                        }
+                        else
+                            drop(v);
                     }
                 }
                 // ipc out
                 if (events[n].filter & EVFILT_WRITE)
                 {
-                    snd = poll_send(select, data);
+                    poll_result = poll_send(poll, data, false);
 
-                    if (snd == -1)
-                        poll_del(select, data->fd);
+                    if (poll_result == POLL_ERROR)
+                        poll_del(poll, data->fd);
                 }
             }
         }
@@ -298,11 +295,9 @@ i64_t poll_dispatch(poll_t select)
     return 0;
 }
 
-obj_t poll_recv(poll_t select, ipc_data_t data)
+i64_t poll_recv(poll_t poll, ipc_data_t data, bool_t block)
 {
-    unused(select);
-    i64_t size, r;
-    obj_t res;
+    i64_t size;
     header_t *header;
 
     // read handshake first
@@ -314,31 +309,41 @@ obj_t poll_recv(poll_t select, ipc_data_t data)
         while (data->rx.read_size == 0 || data->rx.buf[data->rx.read_size - 1] != '\0')
         {
             size = sock_recv(data->fd, &data->rx.buf[data->rx.read_size], 1);
-            if (size < 0)
-                return error(ERR_IO, "IPC: Failed to read from socket");
+            if (size == -1)
+            {
+                del_data(&poll->data, data->fd);
+                return POLL_ERROR;
+            }
             else if (size == 0)
-                return null(0);
+                return POLL_PENDING;
 
             data->rx.read_size += size;
         }
 
         size = sock_recv(data->fd, &data->rx.buf[data->rx.read_size], 1);
-        if (size < 0)
-            return error(ERR_IO, "IPC: Failed to read from socket");
+        if (size == -1)
+        {
+            del_data(&poll->data, data->fd);
+            return POLL_ERROR;
+        }
         else if (size == 0)
-            return null(0);
+            return POLL_PENDING;
 
         data->rx.version = data->rx.buf[data->rx.read_size];
         data->rx.read_size += size;
 
         // send handshake back
+        size = 0;
         while (true)
         {
-            r = sock_send(data->fd, data->rx.buf, data->rx.read_size);
-            if (r == data->rx.read_size)
+            size += sock_send(data->fd, &data->rx.buf[size], data->rx.read_size);
+            if (size == data->rx.read_size)
                 break;
-            else if (r == -1)
-                emit(ERR_IO, "IPC: Failed to send handshake");
+            else if (size == -1)
+            {
+                del_data(&poll->data, data->fd);
+                return POLL_ERROR;
+            }
         }
 
         data->rx.read_size = 0;
@@ -353,10 +358,13 @@ obj_t poll_recv(poll_t select, ipc_data_t data)
         while (data->rx.read_size < (i64_t)sizeof(struct header_t))
         {
             size = sock_recv(data->fd, &data->rx.buf[data->rx.read_size], sizeof(struct header_t) - data->rx.read_size);
-            if (size < 0)
-                return error(ERR_IO, "IPC: Failed to read from socket");
+            if (size == -1)
+            {
+                del_data(&poll->data, data->fd);
+                return POLL_ERROR;
+            }
             else if (size == 0)
-                return null(0);
+                return POLL_PENDING;
 
             data->rx.read_size += size;
         }
@@ -371,24 +379,21 @@ obj_t poll_recv(poll_t select, ipc_data_t data)
     while (data->rx.read_size < data->rx.size)
     {
         size = sock_recv(data->fd, &data->rx.buf[data->rx.read_size], data->rx.size - data->rx.read_size);
-        if (size < 0)
-            return error(ERR_IO, "IPC: Failed to read from socket");
+        if (size == -1)
+        {
+            del_data(&poll->data, data->fd);
+            return POLL_ERROR;
+        }
         else if (size == 0)
-            return null(0);
+            return POLL_PENDING;
 
         data->rx.read_size += size;
     }
 
-    res = de_raw(data->rx.buf, data->rx.size);
-    heap_free(data->rx.buf);
-    data->rx.buf = NULL;
-    data->rx.read_size = 0;
-    data->rx.size = 0;
-
-    return res;
+    return POLL_READY;
 }
 
-i64_t poll_send(poll_t select, ipc_data_t data)
+i64_t poll_send(poll_t poll, ipc_data_t data, bool_t block)
 {
     i64_t size;
     obj_t obj;
@@ -405,7 +410,7 @@ send:
         else if (size == 0)
         {
             EV_SET(&ev, data->fd, EVFILT_WRITE, EV_ADD, 0, 0, NULL);
-            if (kevent(select->poll_fd, &ev, 1, NULL, 0, NULL) == -1)
+            if (kevent(poll->poll_fd, &ev, 1, NULL, 0, NULL) == -1)
                 perror("epollctl");
 
             return POLL_PENDING;
@@ -416,7 +421,7 @@ send:
         if (data->tx.write_size < data->tx.size)
         {
             EV_SET(&ev, data->fd, EVFILT_WRITE, EV_ADD, 0, 0, NULL);
-            if (kevent(select->poll_fd, &ev, 1, NULL, 0, NULL) == -1)
+            if (kevent(poll->poll_fd, &ev, 1, NULL, 0, NULL) == -1)
                 perror("epollctl");
 
             return POLL_PENDING;
@@ -447,7 +452,7 @@ send:
     data->tx.size = 0;
 
     EV_SET(&ev, data->fd, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
-    if (kevent(select->poll_fd, &ev, 1, NULL, 0, NULL) == -1)
+    if (kevent(poll->poll_fd, &ev, 1, NULL, 0, NULL) == -1)
         perror("epollctl");
 
     return POLL_READY;
