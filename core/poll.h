@@ -59,23 +59,29 @@ typedef struct selector_t
 {
     i64_t fd; // socket fd
     i64_t id; // selector id
-    u8_t msgtype;
     u8_t version;
 
     struct
     {
+        bool_t ignore;
         u8_t msgtype;
+        bool_t header;
         OVERLAPPED overlapped;
         DWORD flags;
         DWORD bytes_transfered;
+        i64_t size;
+        u8_t *buf;
         WSABUF wsa_buf;
     } rx;
 
     struct
     {
+        bool_t ignore;
         OVERLAPPED overlapped;
         DWORD flags;
         DWORD bytes_transfered;
+        i64_t size;
+        u8_t *buf;
         WSABUF wsa_buf;
         queue_t queue; // queue for async messages waiting to be sent
     } tx;
@@ -100,7 +106,6 @@ typedef struct selector_t
     struct
     {
         i64_t bytes_transfered;
-        u8_t msgtype;
         i64_t size;
         u8_t *buf;
         queue_t queue; // queue for async messages waiting to be sent

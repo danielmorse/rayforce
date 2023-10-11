@@ -170,7 +170,48 @@ i64_t sock_close(i64_t fd)
     return closesocket((SOCKET)fd);
 }
 
+i64_t sock_recv(i64_t fd, u8_t *buf, i64_t size)
+{
+    i64_t sz = recv(fd, (str_t)buf, size, MSG_NOSIGNAL);
+
+    switch (sz)
+    {
+    case -1:
+        if ((WSAGetLastError() == ERROR_IO_PENDING) || (errno == EAGAIN || errno == EWOULDBLOCK))
+            return 0;
+        else
+            return -1;
+
+    case 0:
+        return -1;
+
+    default:
+        return sz;
+    }
+}
+
+i64_t sock_send(i64_t fd, u8_t *buf, i64_t size)
+{
+    i64_t sz = send(fd, (str_t)buf, size, MSG_NOSIGNAL);
+
+    switch (sz)
+    {
+    case -1:
+        if ((WSAGetLastError() == ERROR_IO_PENDING) || (errno == EAGAIN || errno == EWOULDBLOCK))
+            return 0;
+        else
+            return -1;
+
+    case 0:
+        return -1;
+
+    default:
+        return sz;
+    }
+}
+
 #else
+
 i64_t sock_set_nonblocking(i64_t fd, bool_t flag)
 {
     i64_t flags = fcntl(fd, F_GETFL, 0);
@@ -262,8 +303,6 @@ i64_t sock_close(i64_t fd)
     return close(fd);
 }
 
-#endif
-
 i64_t sock_recv(i64_t fd, u8_t *buf, i64_t size)
 {
     i64_t sz = recv(fd, (str_t)buf, size, MSG_NOSIGNAL);
@@ -303,3 +342,5 @@ i64_t sock_send(i64_t fd, u8_t *buf, i64_t size)
         return sz;
     }
 }
+
+#endif

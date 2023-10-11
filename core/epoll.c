@@ -194,8 +194,9 @@ poll_result_t _recv(poll_t poll, selector_t selector)
 {
     unused(poll);
 
-    i64_t size;
+    i64_t sz, size;
     header_t *header;
+    u8_t handshake[2] = {RAYFORCE_VERSION, 0x00};
 
     // wait for handshake
     if (selector->version == 0)
@@ -223,15 +224,16 @@ poll_result_t _recv(poll_t poll, selector_t selector)
         selector->version = selector->rx.buf[selector->rx.bytes_transfered];
         selector->rx.bytes_transfered += size;
 
-        // send handshake back
+        // send handshake response
         size = 0;
-        while (true)
+        while (size < sizeof(handshake))
         {
-            size += sock_send(selector->fd, &selector->rx.buf[size], selector->rx.bytes_transfered - size);
-            if (size == selector->rx.bytes_transfered)
-                break;
-            else if (size == -1)
+            sz = sock_send(selector->fd, &handshake[size], sizeof(handshake) - size);
+
+            if (sz == -1)
                 return POLL_ERROR;
+
+            size += sz;
         }
 
         selector->rx.bytes_transfered = 0;

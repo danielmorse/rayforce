@@ -36,7 +36,7 @@ obj_t ray_hopen(obj_t x)
     i64_t fd;
     sock_addr_t addr;
     obj_t err;
-    u8_t handshake[2] = {0x00, RAYFORCE_VERSION};
+    u8_t handshake[2] = {RAYFORCE_VERSION, 0x00};
 
     if (x->type != TYPE_CHAR)
         emit(ERR_TYPE, "hopen: expected char");
@@ -51,14 +51,14 @@ obj_t ray_hopen(obj_t x)
 
     if (sock_send(fd, handshake, 2) == -1)
     {
-        err = sys_error(TYPE_WSAGETLASTERROR, "hopen");
+        err = sys_error(TYPE_WSAGETLASTERROR, "hopen: send handshake");
         sock_close(fd);
         return err;
     }
 
     if (sock_recv(fd, handshake, 2) == -1)
     {
-        err = sys_error(TYPE_WSAGETLASTERROR, "hopen");
+        err = sys_error(TYPE_WSAGETLASTERROR, "hopen: recv handshake");
         sock_close(fd);
         return err;
     }
