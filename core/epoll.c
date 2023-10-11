@@ -198,15 +198,15 @@ poll_result_t _recv(poll_t poll, selector_t selector)
     header_t *header;
     u8_t handshake[2] = {RAYFORCE_VERSION, 0x00};
 
+    if (selector->rx.buf == NULL)
+        selector->rx.buf = heap_alloc(sizeof(struct header_t));
+
     // wait for handshake
     if (selector->version == 0)
     {
-        if (selector->rx.buf == NULL)
-            selector->rx.buf = heap_alloc(128);
-
         while (selector->rx.bytes_transfered == 0 || selector->rx.buf[selector->rx.bytes_transfered - 1] != '\0')
         {
-            size = sock_recv(selector->fd, &selector->rx.buf[selector->rx.bytes_transfered], 1);
+            size = sock_recv(selector->fd, &selector->rx.buf[selector->rx.bytes_transfered], sizeof(struct header_t));
             if (size == -1)
                 return POLL_ERROR;
             else if (size == 0)
@@ -215,18 +215,12 @@ poll_result_t _recv(poll_t poll, selector_t selector)
             selector->rx.bytes_transfered += size;
         }
 
-        size = sock_recv(selector->fd, &selector->rx.buf[selector->rx.bytes_transfered], 1);
-        if (size == -1)
-            return POLL_ERROR;
-        else if (size == 0)
-            return POLL_PENDING;
-
-        selector->version = selector->rx.buf[selector->rx.bytes_transfered];
-        selector->rx.bytes_transfered += size;
+        selector->version = selector->rx.buf[selector->rx.bytes_transfered - 2];
+        selector->rx.bytes_transfered = 0;
 
         // send handshake response
         size = 0;
-        while (size < sizeof(handshake))
+        while (size < (i64_t)sizeof(handshake))
         {
             sz = sock_send(selector->fd, &handshake[size], sizeof(handshake) - size);
 
@@ -235,12 +229,7 @@ poll_result_t _recv(poll_t poll, selector_t selector)
 
             size += sz;
         }
-
-        selector->rx.bytes_transfered = 0;
     }
-
-    if (selector->rx.buf == NULL)
-        selector->rx.buf = heap_alloc(sizeof(struct header_t));
 
     // read header
     if (selector->rx.size == 0)
