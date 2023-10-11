@@ -109,9 +109,9 @@ u64_t count(obj_t x);
 
 typedef enum
 {
-    TYPE_STRERROR,
-    TYPE_GETLASTERROR,
-    TYPE_WSAGETLASTERROR
+    ERROR_TYPE_OS,
+    ERROR_TYPE_SYS,
+    ERROR_TYPE_SOCK
 } os_error_type_t;
 
 obj_t sys_error(os_error_type_t, str_t msg);

@@ -47,18 +47,18 @@ obj_t ray_hopen(obj_t x)
     fd = sock_open(&addr);
 
     if (fd == -1)
-        return sys_error(TYPE_WSAGETLASTERROR, "hopen");
+        return sys_error(ERROR_TYPE_SOCK, "hopen");
 
     if (sock_send(fd, handshake, 2) == -1)
     {
-        err = sys_error(TYPE_WSAGETLASTERROR, "hopen: send handshake");
+        err = sys_error(ERROR_TYPE_SOCK, "hopen: send handshake");
         sock_close(fd);
         return err;
     }
 
     if (sock_recv(fd, handshake, 2) == -1)
     {
-        err = sys_error(TYPE_WSAGETLASTERROR, "hopen: recv handshake");
+        err = sys_error(ERROR_TYPE_SOCK, "hopen: recv handshake");
         sock_close(fd);
         return err;
     }
@@ -87,7 +87,7 @@ obj_t ray_read(obj_t x)
 
         // error handling if file does not exist
         if (fd == -1)
-            return sys_error(TYPE_GETLASTERROR, as_string(x));
+            return sys_error(ERROR_TYPE_SYS, as_string(x));
 
         size = fs_fsize(fd);
         res = string(size);
@@ -97,7 +97,7 @@ obj_t ray_read(obj_t x)
         fs_fclose(fd);
 
         if (c != size)
-            return sys_error(TYPE_GETLASTERROR, as_string(x));
+            return sys_error(ERROR_TYPE_SYS, as_string(x));
 
         return res;
     default:

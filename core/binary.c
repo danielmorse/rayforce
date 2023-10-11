@@ -564,7 +564,7 @@ obj_t ray_set(obj_t x, obj_t y)
             fd = fs_fopen(as_string(x), ATTR_WRONLY | ATTR_CREAT);
 
             if (fd == -1)
-                return sys_error(TYPE_GETLASTERROR, as_string(x));
+                return sys_error(ERROR_TYPE_SYS, as_string(x));
 
             buf = ser(y);
 
@@ -579,7 +579,7 @@ obj_t ray_set(obj_t x, obj_t y)
             drop(buf);
 
             if (c == -1)
-                return sys_error(TYPE_GETLASTERROR, as_string(x));
+                return sys_error(ERROR_TYPE_SYS, as_string(x));
 
             return clone(x);
         case TYPE_TABLE:
@@ -683,7 +683,7 @@ obj_t ray_set(obj_t x, obj_t y)
             fd = fs_fopen(as_string(x), ATTR_WRONLY | ATTR_CREAT);
 
             if (fd == -1)
-                return sys_error(TYPE_GETLASTERROR, as_string(x));
+                return sys_error(ERROR_TYPE_SYS, as_string(x));
 
             if (is_external_compound(y))
             {
@@ -693,7 +693,7 @@ obj_t ray_set(obj_t x, obj_t y)
                 fs_fclose(fd);
 
                 if (c == -1)
-                    return sys_error(TYPE_GETLASTERROR, as_string(x));
+                    return sys_error(ERROR_TYPE_SYS, as_string(x));
 
                 return clone(x);
             }
@@ -711,7 +711,7 @@ obj_t ray_set(obj_t x, obj_t y)
             {
                 heap_free(p);
                 fs_fclose(fd);
-                return sys_error(TYPE_GETLASTERROR, as_string(x));
+                return sys_error(ERROR_TYPE_SYS, as_string(x));
             }
 
             p->type = TYPE_ENUM;
@@ -722,7 +722,7 @@ obj_t ray_set(obj_t x, obj_t y)
             {
                 heap_free(p);
                 fs_fclose(fd);
-                return sys_error(TYPE_GETLASTERROR, as_string(x));
+                return sys_error(ERROR_TYPE_SYS, as_string(x));
             }
 
             size = as_list(y)[1]->len * sizeof(i64_t);
@@ -732,7 +732,7 @@ obj_t ray_set(obj_t x, obj_t y)
             fs_fclose(fd);
 
             if (c == -1)
-                return sys_error(TYPE_GETLASTERROR, as_string(x));
+                return sys_error(ERROR_TYPE_SYS, as_string(x));
 
             return clone(x);
 
@@ -781,7 +781,7 @@ obj_t ray_set(obj_t x, obj_t y)
             fd = fs_fopen(as_string(x), ATTR_WRONLY | ATTR_CREAT);
 
             if (fd == -1)
-                return sys_error(TYPE_GETLASTERROR, as_string(x));
+                return sys_error(ERROR_TYPE_SYS, as_string(x));
 
             p = (obj_t)heap_alloc(PAGE_SIZE);
 
@@ -794,7 +794,7 @@ obj_t ray_set(obj_t x, obj_t y)
             {
                 heap_free(p);
                 fs_fclose(fd);
-                return sys_error(TYPE_GETLASTERROR, as_string(x));
+                return sys_error(ERROR_TYPE_SYS, as_string(x));
             }
 
             p->type = TYPE_ANYMAP;
@@ -805,7 +805,7 @@ obj_t ray_set(obj_t x, obj_t y)
             {
                 heap_free(p);
                 fs_fclose(fd);
-                return sys_error(TYPE_GETLASTERROR, as_string(x));
+                return sys_error(ERROR_TYPE_SYS, as_string(x));
             }
 
             size = k->len * sizeof(i64_t);
@@ -816,7 +816,7 @@ obj_t ray_set(obj_t x, obj_t y)
             fs_fclose(fd);
 
             if (c == -1)
-                return sys_error(TYPE_GETLASTERROR, as_string(x));
+                return sys_error(ERROR_TYPE_SYS, as_string(x));
 
             // --
 
@@ -828,7 +828,7 @@ obj_t ray_set(obj_t x, obj_t y)
                 fd = fs_fopen(as_string(x), ATTR_WRONLY | ATTR_CREAT);
 
                 if (fd == -1)
-                    return sys_error(TYPE_GETLASTERROR, as_string(x));
+                    return sys_error(ERROR_TYPE_SYS, as_string(x));
 
                 p = (obj_t)heap_alloc(sizeof(struct obj_t));
 
@@ -841,7 +841,7 @@ obj_t ray_set(obj_t x, obj_t y)
                 {
                     heap_free(p);
                     fs_fclose(fd);
-                    return sys_error(TYPE_GETLASTERROR, as_string(x));
+                    return sys_error(ERROR_TYPE_SYS, as_string(x));
                 }
 
                 size = size_of(y) - sizeof(struct obj_t);
@@ -851,7 +851,7 @@ obj_t ray_set(obj_t x, obj_t y)
                 fs_fclose(fd);
 
                 if (c == -1)
-                    return sys_error(TYPE_GETLASTERROR, as_string(x));
+                    return sys_error(ERROR_TYPE_SYS, as_string(x));
 
                 return clone(x);
             }

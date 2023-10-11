@@ -280,7 +280,7 @@ obj_t ray_get(obj_t x)
             fd = fs_fopen(as_string(x), ATTR_RDWR);
 
             if (fd == -1)
-                return sys_error(TYPE_GETLASTERROR, as_string(x));
+                return sys_error(ERROR_TYPE_SYS, as_string(x));
 
             size = fs_fsize(fd);
 

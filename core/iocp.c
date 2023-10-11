@@ -117,7 +117,7 @@ nil_t exit_werror()
     obj_t err;
     str_t fmt;
 
-    err = sys_error(TYPE_WSAGETLASTERROR, "poll_init");
+    err = sys_error(ERROR_TYPE_SOCK, "poll_init");
     fmt = obj_fmt(err);
     printf("%s\n", fmt);
     heap_free(fmt);
@@ -636,7 +636,7 @@ i64_t poll_run(poll_t poll)
         }
         else
         {
-            res = sys_error(TYPE_WSAGETLASTERROR, "poll_init");
+            res = sys_error(ERROR_TYPE_SOCK, "poll_init");
             fmt = obj_fmt(res);
             printf("%s\n", fmt);
             heap_free(fmt);

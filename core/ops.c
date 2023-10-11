@@ -538,13 +538,13 @@ obj_t sys_error(os_error_type_t type, str_t msg)
 
     switch (type)
     {
-    case TYPE_STRERROR:
+    case ERROR_TYPE_OS:
         emsg = str_fmt(0, "%s: %s", msg, strerror(errno));
         err = error(ERR_IO, emsg);
         heap_free(emsg);
         return err;
 
-    case TYPE_WSAGETLASTERROR:
+    case ERROR_TYPE_SOCK:
         dw = WSAGetLastError();
         break;
     default:
