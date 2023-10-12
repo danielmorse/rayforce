@@ -29,6 +29,7 @@
 #include <sys/eventfd.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #include <netinet/in.h>
 #include <unistd.h>
 #include "poll.h"
@@ -460,8 +461,10 @@ obj_t ipc_send_sync(poll_t poll, i64_t id, obj_t msg)
 {
     poll_result_t poll_result = POLL_PENDING;
     selector_t selector;
+    i32_t result;
     i64_t idx;
     obj_t res;
+    fd_set fds;
 
     idx = freelist_get(poll->selectors, id - SELECTOR_ID_OFFSET);
 
@@ -472,8 +475,25 @@ obj_t ipc_send_sync(poll_t poll, i64_t id, obj_t msg)
 
     queue_push(&selector->tx.queue, (nil_t *)((i64_t)msg | ((i64_t)MSG_TYPE_SYNC << 61)));
 
-    while (poll_result == POLL_PENDING)
+    FD_ZERO(&fds);
+    FD_SET(selector->fd, &fds);
+
+    while (true)
+    {
         poll_result = _send(poll, selector);
+
+        if (poll_result != POLL_PENDING)
+            break;
+
+        // block on select until we can send
+        result = select(selector->fd + 1, NULL, &fds, NULL, NULL);
+
+        if (result == -1)
+        {
+            poll_deregister(poll, selector->id);
+            emit(ERR_IO, "ipc_send_sync: error sending message (can't block on send)");
+        }
+    }
 
     if (poll_result == POLL_ERROR)
     {
@@ -484,8 +504,22 @@ obj_t ipc_send_sync(poll_t poll, i64_t id, obj_t msg)
     poll_result = POLL_PENDING;
 
 recv:
-    while (poll_result == POLL_PENDING)
+    while (true)
+    {
         poll_result = _recv(poll, selector);
+
+        if (poll_result != POLL_PENDING)
+            break;
+
+        // block on select until we can recv
+        result = select(selector->fd + 1, &fds, NULL, NULL, NULL);
+
+        if (result == -1)
+        {
+            poll_deregister(poll, selector->id);
+            emit(ERR_IO, "ipc_send_sync: error receiving message (can't block on recv)");
+        }
+    }
 
     if (poll_result == POLL_ERROR)
     {
