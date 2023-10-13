@@ -46,7 +46,15 @@
 #define STDIN_WAKER_ID ~0ull
 #define MAX_IOCP_RESULTS 64
 
-__thread char_t __STDIN_BUF[BUF_SIZE + 1];
+typedef struct listener_t
+{
+    u8_t buf[(sizeof(SOCKADDR_IN) + 16) * 2];
+    OVERLAPPED overlapped;
+    DWORD dwBytes;
+    SOCKET hAccepted;
+} *listener_t;
+
+char_t __STDIN_BUF[BUF_SIZE + 1];
 __thread listener_t __LISTENER;
 
 #define _recv_op(poll, selector)                                                                      \
@@ -80,13 +88,6 @@ __thread listener_t __LISTENER;
             return POLL_ERROR;                                                                        \
         }                                                                                             \
     }
-typedef struct listener_t
-{
-    u8_t buf[(sizeof(SOCKADDR_IN) + 16) * 2];
-    OVERLAPPED overlapped;
-    DWORD dwBytes;
-    SOCKET hAccepted;
-} *listener_t;
 
 DWORD WINAPI StdinThread(LPVOID lpParam)
 {
@@ -473,6 +474,51 @@ send:
     return POLL_DONE;
 }
 
+obj_t read_obj(selector_t selector)
+{
+    obj_t res;
+
+    res = de_raw(selector->rx.buf, selector->rx.size);
+    heap_free(selector->rx.buf);
+    selector->rx.buf = NULL;
+    selector->rx.size = 0;
+    selector->rx.wsa_buf.buf = NULL;
+    selector->rx.wsa_buf.len = 0;
+    selector->rx.bytes_transfered = 0;
+
+    return res;
+}
+
+nil_t process_request(poll_t poll, selector_t selector)
+{
+    obj_t v, res;
+    poll_result_t poll_result;
+
+    res = read_obj(selector);
+
+    if (is_error(res) || is_null(res))
+        v = res;
+    if (res->type == TYPE_CHAR)
+    {
+        v = eval_str(0, "ipc", as_string(res));
+        drop(res);
+    }
+    else
+        v = eval_obj(0, "ipc", res);
+
+    // sync request
+    if (selector->rx.msgtype == MSG_TYPE_SYNC)
+    {
+        queue_push(&selector->tx.queue, (nil_t *)((i64_t)v | ((i64_t)MSG_TYPE_RESP << 61)));
+        poll_result = _send(poll, selector);
+
+        if (poll_result == POLL_ERROR)
+            poll_deregister(poll, selector->id);
+    }
+    else
+        drop(v);
+}
+
 i64_t poll_run(poll_t poll)
 {
     DWORD i, num = 5, size;
@@ -482,7 +528,7 @@ i64_t poll_run(poll_t poll)
     OVERLAPPED_ENTRY events[MAX_EVENTS];
     BOOL success;
     i64_t key, poll_result, idx;
-    obj_t res, v;
+    obj_t res;
     str_t fmt;
     bool_t running = true;
     selector_t selector;
@@ -578,34 +624,7 @@ i64_t poll_run(poll_t poll)
 
                             if (poll_result == POLL_DONE)
                             {
-                                res = de_raw(selector->rx.buf, selector->rx.size);
-                                heap_free(selector->rx.buf);
-                                selector->rx.buf = NULL;
-                                selector->rx.size = 0;
-                                selector->rx.wsa_buf.buf = NULL;
-                                selector->rx.wsa_buf.len = 0;
-                                selector->rx.bytes_transfered = 0;
-
-                                if (res->type == TYPE_CHAR)
-                                {
-                                    v = eval_str(0, "ipc", as_string(res));
-                                    drop(res);
-                                }
-                                else
-                                    v = eval_obj(0, "ipc", res);
-
-                                // sync request
-                                if (selector->rx.msgtype == MSG_TYPE_SYNC)
-                                {
-                                    queue_push(&selector->tx.queue, (nil_t *)((i64_t)v | ((i64_t)MSG_TYPE_RESP << 61)));
-                                    poll_result = _send(poll, selector);
-
-                                    if (poll_result == POLL_ERROR)
-                                        poll_deregister(poll, selector->id);
-                                }
-                                else
-                                    drop(v);
-
+                                process_request(poll, selector);
                                 // setup next recv
                                 goto recv;
                             }
@@ -723,24 +742,16 @@ recv:
     }
 
     // recv until we get response
-    if (selector->rx.msgtype != MSG_TYPE_RESP)
+    switch (selector->rx.msgtype)
     {
+    case MSG_TYPE_RESP:
+        res = read_obj(selector);
+        break;
+    default:
         poll_result = POLL_PENDING;
-        heap_free(selector->rx.buf);
-        selector->rx.buf = NULL;
-        selector->rx.bytes_transfered = 0;
-        selector->rx.size = 0;
-        selector->rx.wsa_buf.buf = NULL;
-        selector->rx.wsa_buf.len = 0;
+        process_request(poll, selector);
         goto recv;
     }
-
-    res = de_raw(selector->rx.buf, selector->rx.size);
-    heap_free(selector->rx.buf);
-    selector->rx.buf = NULL;
-    selector->rx.size = 0;
-    selector->rx.wsa_buf.buf = NULL;
-    selector->rx.wsa_buf.len = 0;
 
     return res;
 }

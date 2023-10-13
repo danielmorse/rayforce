@@ -512,8 +512,6 @@ obj_t ipc_send_sync(poll_t poll, i64_t id, obj_t msg)
         emit(ERR_IO, "ipc_send_sync: error sending message");
     }
 
-    poll_result = POLL_PENDING;
-
 recv:
     while (true)
     {
