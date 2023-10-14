@@ -330,11 +330,14 @@ recv:
 
 i64_t sock_send(i64_t fd, u8_t *buf, i64_t size)
 {
-    i64_t sz = send(fd, (str_t)buf, size, MSG_NOSIGNAL);
-
+    i64_t sz;
+send:
+    sz = send(fd, (str_t)buf, size, MSG_NOSIGNAL);
     switch (sz)
     {
     case -1:
+        if (errno == EINTR)
+            goto send;
         if (errno == EAGAIN || errno == EWOULDBLOCK)
             return 0;
         else

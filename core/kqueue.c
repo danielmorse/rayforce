@@ -30,6 +30,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <errno.h>
 #include "poll.h"
 #include "string.h"
 #include "hash.h"
@@ -80,7 +81,7 @@ poll_t poll_init(i64_t port)
     signal(SIGINT, sigint_handler);
 
     // Add stdin
-    EV_SET(&ev, STDIN_FILENO, EVFILT_READ | EVFILT_EXCEPT, EV_ADD, 0, 0, NULL);
+    EV_SET(&ev, STDIN_FILENO, EVFILT_READ, EV_ADD, 0, 0, NULL);
     if (kevent(kq_fd, &ev, 1, NULL, 0, NULL) == -1)
     {
         perror("kevent: stdinfd");
@@ -97,7 +98,7 @@ poll_t poll_init(i64_t port)
             exit(EXIT_FAILURE);
         }
 
-        EV_SET(&ev, listen_fd, EVFILT_READ | EVFILT_EXCEPT, EV_ADD, 0, 0, NULL);
+        EV_SET(&ev, listen_fd, EVFILT_READ, EV_ADD, 0, 0, NULL);
         if (kevent(kq_fd, &ev, 1, NULL, 0, NULL) == -1)
         {
             perror("kevent: listenfd");
@@ -151,7 +152,7 @@ i64_t poll_register(poll_t poll, i64_t fd, u8_t version)
     selector->id = id;
     selector->version = version;
     selector->fd = fd;
-    selector->tx.events = EVFILT_READ;
+    selector->tx.isset = false;
     selector->rx.buf = NULL;
     selector->rx.size = 0;
     selector->rx.bytes_transfered = 0;
@@ -160,8 +161,7 @@ i64_t poll_register(poll_t poll, i64_t fd, u8_t version)
     selector->tx.bytes_transfered = 0;
     selector->tx.queue = queue_new(TX_QUEUE_SIZE);
 
-    EV_SET(&ev, fd, EVFILT_READ | EVFILT_WRITE, EV_ADD, 0, 0, selector);
-
+    EV_SET(&ev, fd, EVFILT_READ, EV_ADD, 0, 0, selector);
     if (kevent(poll->poll_fd, &ev, 1, NULL, 0, NULL) == -1)
         perror("kevent add");
 
@@ -172,7 +172,7 @@ nil_t poll_deregister(poll_t poll, i64_t id)
 {
     i64_t idx;
     selector_t selector;
-    struct kevent ev;
+    struct kevent ev[2];
 
     idx = freelist_pop(poll->selectors, id - SELECTOR_ID_OFFSET);
 
@@ -181,9 +181,9 @@ nil_t poll_deregister(poll_t poll, i64_t id)
 
     selector = (selector_t)idx;
 
-    EV_SET(&ev, selector->fd, EVFILT_READ | EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
-    if (kevent(poll->poll_fd, &ev, 1, NULL, 0, NULL) == -1)
-        perror("select del");
+    EV_SET(&ev[0], selector->fd, EVFILT_READ, EV_DELETE, 0, 0, NULL);
+    EV_SET(&ev[1], selector->fd, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
+    kevent(poll->poll_fd, ev, 2, NULL, 0, NULL);
 
     close(selector->fd);
 
@@ -288,7 +288,18 @@ send:
         if (size == -1)
             return POLL_ERROR;
         else if (size == 0)
+        {
+            // setup kqueue for EVFILT_WRITE only if it's not already set
+            if (!selector->tx.isset)
+            {
+                selector->tx.isset = true;
+                EV_SET(&ev, selector->fd, EVFILT_WRITE, EV_ADD, 0, 0, selector);
+                if (kevent(poll->poll_fd, &ev, 1, NULL, 0, NULL) == -1)
+                    return POLL_ERROR;
+            }
+
             return POLL_PENDING;
+        }
 
         selector->tx.bytes_transfered += size;
     }
@@ -312,6 +323,15 @@ send:
 
         ((header_t *)selector->tx.buf)->msgtype = msg_type;
         goto send;
+    }
+
+    // remove EVFILT_WRITE only if it's set
+    if (selector->tx.isset)
+    {
+        selector->tx.isset = false;
+        EV_SET(&ev, selector->fd, EVFILT_WRITE, EV_DELETE, 0, 0, selector);
+        if (kevent(poll->poll_fd, &ev, 1, NULL, 0, NULL) == -1)
+            return POLL_ERROR;
     }
 
     return POLL_DONE;
@@ -366,7 +386,7 @@ i64_t poll_run(poll_t poll)
           nfds, len, poll_result, sock;
     i32_t n;
     selector_t selector;
-    obj_t res, v;
+    obj_t res;
     str_t fmt;
     bool_t running = true;
     struct kevent ev, events[MAX_EVENTS];
@@ -419,7 +439,7 @@ i64_t poll_run(poll_t poll)
                 }
 
                 // ipc in
-                if (ev.filter & EVFILT_READ)
+                if (ev.filter == EVFILT_READ)
                 {
                     poll_result = _recv(poll, selector);
                     if (poll_result == POLL_PENDING)
@@ -435,7 +455,7 @@ i64_t poll_run(poll_t poll)
                 }
 
                 // ipc out
-                if (ev.filter & EVFILT_WRITE)
+                else if (ev.filter == EVFILT_WRITE)
                 {
                     poll_result = _send(poll, selector);
 
@@ -481,15 +501,18 @@ obj_t ipc_send_sync(poll_t poll, i64_t id, obj_t msg)
 
         if (result == -1)
         {
-            poll_deregister(poll, selector->id);
-            emit(ERR_IO, "ipc_send_sync: error sending message (can't block on send)");
+            if (errno != EINTR)
+            {
+                poll_deregister(poll, selector->id);
+                return sys_error(ERROR_TYPE_OS, "ipc_send_sync: error sending message (can't block on send)");
+            }
         }
     }
 
     if (poll_result == POLL_ERROR)
     {
         poll_deregister(poll, selector->id);
-        emit(ERR_IO, "ipc_send_sync: error sending message");
+        return sys_error(ERROR_TYPE_OS, "ipc_send_sync: error sending message");
     }
 
 recv:
@@ -507,15 +530,18 @@ recv:
 
         if (result == -1)
         {
-            poll_deregister(poll, selector->id);
-            emit(ERR_IO, "ipc_send_sync: error receiving message (can't block on recv)");
+            if (errno != EINTR)
+            {
+                poll_deregister(poll, selector->id);
+                return sys_error(ERROR_TYPE_OS, "ipc_send_sync: error receiving message (can't block on recv)");
+            }
         }
     }
 
     if (poll_result == POLL_ERROR)
     {
         poll_deregister(poll, selector->id);
-        emit(ERR_IO, "ipc_send_sync: error receiving message");
+        return sys_error(ERROR_TYPE_OS, "ipc_send_sync: error receiving message");
     }
 
     // recv until we get response

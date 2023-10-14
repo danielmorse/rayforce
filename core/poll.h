@@ -105,7 +105,7 @@ typedef struct selector_t
 
     struct
     {
-        u32_t events;
+        bool_t isset;
         i64_t bytes_transfered;
         i64_t size;
         u8_t *buf;
