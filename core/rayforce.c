@@ -132,7 +132,10 @@ obj_t guid(u8_t buf[16])
     obj_t guid = vector(TYPE_I64, 2);
     guid->type = -TYPE_GUID;
 
-    memcpy(as_guid(guid)[0].buf, buf, 16);
+    if (buf == NULL)
+        memset(as_guid(guid), 0, 16);
+    else
+        memcpy(as_guid(guid)[0].buf, buf, 16);
 
     return guid;
 }
@@ -871,31 +874,25 @@ obj_t cast(type_t type, obj_t obj)
         for (i = 0; i < l; i++)
             as_bool(res)[i] = (bool_t)as_i64(obj)[i];
         return res;
-        // case mtype2(-TYPE_GUID, TYPE_CHAR):
-        //     res = guid(NULL);
+    case mtype2(-TYPE_GUID, TYPE_CHAR):
+        res = guid(NULL);
 
-        //     if (strlen(as_string(obj)) != 36)
-        //         break;
+        if (obj->len != 36)
+            break;
 
-        //     res->guid = heap_alloc(sizeof(guid_t));
+        i = sscanf(as_string(obj),
+                   "%02hhx%02hhx%02hhx%02hhx-%02hhx%02hhx-%02hhx%02hhx-%02hhx%02hhx-%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx",
+                   &as_guid(res)->buf[0], &as_guid(res)->buf[1], &as_guid(res)->buf[2], &as_guid(res)->buf[3],
+                   &as_guid(res)->buf[4], &as_guid(res)->buf[5],
+                   &as_guid(res)->buf[6], &as_guid(res)->buf[7],
+                   &as_guid(res)->buf[8], &as_guid(res)->buf[9],
+                   &as_guid(res)->buf[10], &as_guid(res)->buf[11], &as_guid(res)->buf[12],
+                   &as_guid(res)->buf[13], &as_guid(res)->buf[14], &as_guid(res)->buf[15]);
 
-        //     i = sscanf(as_string(y),
-        //                "%02hhx%02hhx%02hhx%02hhx-%02hhx%02hhx-%02hhx%02hhx-%02hhx%02hhx-%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx",
-        //                &res.guid->data[0], &res.guid->data[1], &res.guid->data[2], &res.guid->data[3],
-        //                &res.guid->data[4], &res.guid->data[5],
-        //                &res.guid->data[6], &res.guid->data[7],
-        //                &res.guid->data[8], &res.guid->data[9],
-        //                &res.guid->data[10], &res.guid->data[11], &res.guid->data[12],
-        //                &res.guid->data[13], &res.guid->data[14], &res.guid->data[15]);
+        if (i != 16)
+            memset(as_guid(res)->buf, 0, 16);
 
-        //     if (i != 16)
-        //     {
-        //         heap_free(res.guid);
-        //         res = guid(NULL);
-        //     }
-
-        //     break;
-
+        return res;
     case mtype2(TYPE_I64, TYPE_TIMESTAMP):
         l = obj->len;
         res = vector_i64(l);
