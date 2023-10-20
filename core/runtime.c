@@ -87,6 +87,7 @@ nil_t runtime_init(i32_t argc, str_t argv[])
 
     heap_init();
     __RUNTIME = mmap_malloc(sizeof(struct runtime_t));
+    __RUNTIME->sync = false;
     __RUNTIME->symbols = symbols_new();
     __RUNTIME->env = create_env();
     __RUNTIME->parser = parser_new();

@@ -924,9 +924,7 @@ obj_t __attribute__((hot)) clone(obj_t obj)
     if (obj == NULL)
         return NULL;
 
-    u16_t slaves = runtime_get()->slaves;
-
-    if (slaves)
+    if (runtime_get()->sync)
         __atomic_fetch_add(&((obj)->rc), 1, __ATOMIC_RELAXED);
     else
         (obj)->rc += 1;
@@ -943,10 +941,9 @@ nil_t __attribute__((hot)) drop(obj_t obj)
 
     u32_t rc;
     u64_t i, l;
-    u16_t slaves = runtime_get()->slaves;
     obj_t id, k;
 
-    if (slaves)
+    if (runtime_get()->sync)
         rc = __atomic_sub_fetch(&((obj)->rc), 1, __ATOMIC_RELAXED);
     else
     {
@@ -1074,9 +1071,8 @@ obj_t cow(obj_t obj)
 u32_t rc(obj_t obj)
 {
     u32_t rc;
-    u16_t slaves = runtime_get()->slaves;
 
-    if (slaves)
+    if (runtime_get()->sync)
         rc = __atomic_load_n(&((obj)->rc), __ATOMIC_RELAXED);
     else
         rc = (obj)->rc;

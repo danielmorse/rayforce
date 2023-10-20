@@ -37,15 +37,16 @@
  */
 typedef struct runtime_t
 {
-    u16_t slaves;       // Number of slave threads.
-    env_t env;          // Environment.
+    bool_t sync;        // Synchronization flag (use atomics on rc operations).
+    obj_t args;         // Command line arguments.
     parser_t parser;    // Parser.
     vm_t vm;            // Virtual machine.
-    poll_t poll;        // I/O event loop handle.
-    obj_t args;         // Command line arguments.
+    env_t env;          // Environment.
     symbols_t *symbols; // vector_symbols pool.
-    sock_addr_t addr;   // Socket address that a process listen.
+    poll_t poll;        // I/O event loop handle.
     obj_t fds;          // File descriptors.
+    u16_t slaves;       // Number of slave threads.
+    sock_addr_t addr;   // Socket address that a process listen.
 } *runtime_t;
 
 extern nil_t runtime_init(i32_t argc, str_t argv[]);
