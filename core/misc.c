@@ -175,3 +175,9 @@ obj_t ray_read_parse_compile(obj_t x)
         emit(ERR_TYPE, "read_parse_compile: unsupported type: %d", x->type);
     }
 }
+
+obj_t ray_rc(obj_t x)
+{
+    // substract 1 to skip the our reference
+    return i64(rc(x) - 1);
+}

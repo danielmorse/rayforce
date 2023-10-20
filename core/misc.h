@@ -31,5 +31,6 @@ obj_t ray_count(obj_t x);
 obj_t ray_distinct(obj_t x);
 obj_t ray_parse(obj_t x);
 obj_t ray_read_parse_compile(obj_t x);
+obj_t ray_rc(obj_t x);
 
 #endif // MISC_H

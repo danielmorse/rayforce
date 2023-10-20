@@ -45,29 +45,33 @@
 #endif
 
 #define push_u8(c, x)       \
+    do                      \
     {                       \
         u8_t _x = x;        \
         push_raw((c), &_x); \
-    }
+    } while (0)
 
 #define push_const(c, k)                        \
+    do                                          \
     {                                           \
         obj_t _k = k;                           \
         lambda_t *_f = as_lambda((c)->lambda);  \
         push_u8(&_f->code, _f->constants->len); \
         push_raw(&_f->constants, &_k);          \
-    }
+    } while (0)
 
 #define push_opcode(c, k, v, x)                  \
+    do                                           \
     {                                            \
         nfo_t *d = (c)->nfo;                     \
         nfo_t *p = &as_lambda((c)->lambda)->nfo; \
         span_t u = nfo_get(d, (i64_t)k);         \
         nfo_insert(p, (u32_t)((*v))->len, u);    \
         push_u8(v, x);                           \
-    }
+    } while (0)
 
 #define push_un(c, x, n)                              \
+    do                                                \
     {                                                 \
         u64_t _l = (*c)->len;                         \
         str_t _p = align8(as_string(*c) + _l);        \
@@ -75,7 +79,18 @@
         resize((c), _l + _o);                         \
         _p = align8(as_string(*c) + _l);              \
         *(n *)_p = (n)x;                              \
-    }
+    } while (0)
+
+#define push_obj(c, x)                                        \
+    do                                                        \
+    {                                                         \
+        u64_t _l = (*c)->len;                                 \
+        str_t _p = align8(as_string(*c) + _l);                \
+        u64_t _o = _p - (as_string(*c) + _l) + sizeof(obj_t); \
+        resize((c), _l + _o);                                 \
+        _p = align8(as_string(*c) + _l);                      \
+        *(obj_t *)_p = x;                                     \
+    } while (0)
 
 #define push_u32(c, x) push_un(c, x, u32_t)
 
@@ -103,7 +118,7 @@ cc_result_t cc_compile_quote(bool_t has_consumer, cc_t *cc, obj_t obj)
         return CC_NULL;
 
     push_opcode(cc, car, code, OP_PUSH);
-    push_const(cc, clone(as_list(obj)[1]));
+    push_obj(code, as_list(obj)[1]);
 
     return CC_OK;
 }
@@ -140,7 +155,7 @@ cc_result_t cc_compile_set(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t arity
         cerr(cc, car, ERR_LENGTH, "'set' takes two arguments");
 
     push_opcode(cc, car, code, OP_PUSH);
-    push_const(cc, clone(as_list(obj)[1]));
+    push_obj(code, as_list(obj)[1]);
     res = cc_compile_expr(true, cc, as_list(obj)[2]);
 
     if (res == CC_ERROR)
@@ -170,7 +185,7 @@ cc_result_t cc_compile_let(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t arity
         cerr(cc, car, ERR_TYPE, "'let' first argument must be a symbol");
 
     push_opcode(cc, car, code, OP_PUSH);
-    push_const(cc, clone(as_list(obj)[1]));
+    push_obj(code, as_list(obj)[1]);
 
     res = cc_compile_expr(true, cc, as_list(obj)[2]);
 
@@ -205,7 +220,7 @@ cc_result_t cc_compile_fn(cc_t *cc, obj_t obj, u32_t arity)
         return CC_ERROR;
     }
 
-    push_opcode(cc, obj, code, OP_PUSH);
+    push_opcode(cc, obj, code, OP_PUSH_CONST);
     push_const(cc, fun);
     func->stack_size++;
 
@@ -343,7 +358,7 @@ cc_result_t cc_compile_call(cc_t *cc, obj_t car, u8_t arity)
     if (car->type == -TYPE_SYMBOL && car->i64 == KW_SELF)
     {
         push_opcode(cc, car, code, OP_PUSH);
-        push_const(cc, cc->lambda);
+        push_obj(code, cc->lambda);
 
         push_opcode(cc, car, code, OP_CALLD);
         push_u8(code, arity);
@@ -541,7 +556,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
     if (!is_null(take))
     {
         push_opcode(cc, car, code, OP_PUSH);
-        push_const(cc, take);
+        push_obj(code, take);
         push_opcode(cc, car, code, OP_SWAP);
         push_opcode(cc, car, code, OP_CALL2);
         push_u8(code, 0);
@@ -583,7 +598,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
         push_u8(code, 0);
         push_u64(code, ray_key);
         push_opcode(cc, car, code, OP_PUSH);
-        push_const(cc, at_idx(cols, 0));
+        push_obj(code, at_idx(cols, 0));
         push_opcode(cc, car, code, OP_CALL2);
         push_u8(code, 0);
         push_u64(code, ray_except);
@@ -612,7 +627,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
     if (map)
     {
         push_opcode(cc, car, code, OP_PUSH);
-        push_const(cc, cols);
+        push_obj(code, cols);
 
         if (groupby)
             push_opcode(cc, car, code, OP_SWAP);
@@ -667,7 +682,7 @@ cc_result_t cc_compile_return(cc_t *cc, obj_t obj, u32_t arity)
     {
     case 0:
         push_opcode(cc, car, code, OP_PUSH);
-        push_const(cc, null(0));
+        push_obj(code, null(0));
         break;
     case 1:
         res = cc_compile_expr(true, cc, as_list(obj)[1]);
@@ -731,7 +746,7 @@ cc_result_t cc_compile_expr(bool_t has_consumer, cc_t *cc, obj_t obj)
 
         // then in a local or global env
         push_opcode(cc, obj, code, OP_PUSH);
-        push_const(cc, clone(obj));
+        push_obj(code, obj);
         func->stack_size++;
 
         return CC_OK;
@@ -746,7 +761,7 @@ cc_result_t cc_compile_expr(bool_t has_consumer, cc_t *cc, obj_t obj)
         // Symbol is quoted
         if (obj->attrs & ATTR_QUOTED)
         {
-            push_opcode(cc, obj, code, OP_PUSH);
+            push_opcode(cc, obj, code, OP_PUSH_CONST);
             push_const(cc, symboli64(obj->i64));
             func->stack_size++;
 
@@ -763,7 +778,7 @@ cc_result_t cc_compile_expr(bool_t has_consumer, cc_t *cc, obj_t obj)
             if (id == (i64_t)as_list(runtime_get()->env.functions)[0]->len)
                 cerr(cc, obj, ERR_LENGTH, "function not found");
 
-            push_const(cc, clone(as_list(as_list(runtime_get()->env.functions)[1])[id]));
+            push_obj(code, as_list(as_list(runtime_get()->env.functions)[1])[id]);
             func->stack_size++;
 
             return CC_OK;
@@ -783,7 +798,7 @@ cc_result_t cc_compile_expr(bool_t has_consumer, cc_t *cc, obj_t obj)
 
         // then in a local or global env
         push_opcode(cc, obj, code, OP_PUSH);
-        push_const(cc, clone(obj));
+        push_obj(code, obj);
         push_opcode(cc, obj, code, OP_LGET);
         func->stack_size++;
 
@@ -833,7 +848,7 @@ cc_result_t cc_compile_expr(bool_t has_consumer, cc_t *cc, obj_t obj)
             return CC_NULL;
 
         push_opcode(cc, obj, code, OP_PUSH);
-        push_const(cc, clone(obj));
+        push_obj(code, obj);
         func->stack_size++;
 
         return CC_OK;
@@ -887,7 +902,7 @@ obj_t cc_compile_lambda(str_t name, obj_t args, obj_t body, nfo_t *nfo)
     if (len == 0)
     {
         push_opcode(&cc, body, code, OP_PUSH);
-        push_const(&cc, null(0));
+        push_obj(code, null(0));
         goto epilogue;
     }
 
@@ -931,5 +946,5 @@ epilogue:
  */
 obj_t cc_compile(obj_t body, nfo_t *nfo)
 {
-    return cc_compile_lambda("top-level", vector_symbol(0), clone(body), nfo);
+    return cc_compile_lambda("top-level", vector_symbol(0), body, nfo);
 }

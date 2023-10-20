@@ -115,6 +115,7 @@ nil_t init_functions(obj_t functions)
     regf(functions,  "de",        TYPE_UNARY,    FN_NONE,           de);
     regf(functions,  "hopen",     TYPE_UNARY,    FN_NONE,           ray_hopen);
     regf(functions,  "hclose",    TYPE_UNARY,    FN_NONE,           ray_hclose);
+    regf(functions,  "rc",        TYPE_UNARY,    FN_NONE,           ray_rc);
     
     // Binary           
     regf(functions,  "write",     TYPE_BINARY,   FN_NONE,           ray_write);

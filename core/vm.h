@@ -35,29 +35,30 @@
 
 typedef enum vm_opcode_t
 {
-    OP_RET = 0,   // Return
-    OP_PUSH,      // Push an obj_t to the stack
-    OP_POP,       // Pop an obj_t from the stack
-    OP_SWAP,      // Swap two obj_ts on the stack
-    OP_DUP,       // Duplicate an obj_t on the stack
-    OP_JNE,       // Jump if not equal
-    OP_JMP,       // Jump
-    OP_CALL1,     // Call unary
-    OP_CALL2,     // Call binary
-    OP_CALLN,     // Call vary
-    OP_CALLD,     // Dynamic call (call function from stack with n arguments)
-    OP_TIMER_SET, // Start timer
-    OP_TIMER_GET, // Get timer value
-    OP_STORE,     // Store value somewhere in a stack pointed by argument
-    OP_LOAD,      // Load value from somewhere in a stack pointed by argument
-    OP_LSET,      // Set local variable
-    OP_LGET,      // Get local variable
-    OP_LPUSH,     // Attach dict frame to local variables
-    OP_LPOP,      // Detach dict frame from local variables
-    OP_TRY,       // Trap an expression to return here on error
-    OP_CATCH,     // Catch an error from vm register and push it onto the stack
-    OP_THROW,     // Throw an error
-    OP_TRACE,     // Print stack trace (limit)
+    OP_RET = 0,    // Return
+    OP_PUSH,       // Push an obj_t (from the lambda body) to the stack
+    OP_PUSH_CONST, // Push an const obj_t (from the lambda constants) to the stack
+    OP_POP,        // Pop an obj_t from the stack
+    OP_SWAP,       // Swap two obj_ts on the stack
+    OP_DUP,        // Duplicate an obj_t on the stack
+    OP_JNE,        // Jump if not equal
+    OP_JMP,        // Jump
+    OP_CALL1,      // Call unary
+    OP_CALL2,      // Call binary
+    OP_CALLN,      // Call vary
+    OP_CALLD,      // Dynamic call (call function from stack with n arguments)
+    OP_TIMER_SET,  // Start timer
+    OP_TIMER_GET,  // Get timer value
+    OP_STORE,      // Store value somewhere in a stack pointed by argument
+    OP_LOAD,       // Load value from somewhere in a stack pointed by argument
+    OP_LSET,       // Set local variable
+    OP_LGET,       // Get local variable
+    OP_LPUSH,      // Attach dict frame to local variables
+    OP_LPOP,       // Detach dict frame from local variables
+    OP_TRY,        // Trap an expression to return here on error
+    OP_CATCH,      // Catch an error from vm register and push it onto the stack
+    OP_THROW,      // Throw an error
+    OP_TRACE,      // Print stack trace (limit)
 
     OP_INVALID, // Invalid opcode
 } vm_opcode_t;

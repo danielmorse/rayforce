@@ -1098,7 +1098,6 @@ obj_t eval_obj(i64_t fd, str_t name, obj_t obj)
     if (fd == 0)
     {
         compiled = cc_compile(obj, &parser->nfo);
-        drop(obj);
 
         if (is_error(compiled))
         {
