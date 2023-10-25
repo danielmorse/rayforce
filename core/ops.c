@@ -91,8 +91,9 @@ bool_t rfi_lt(obj_t x, obj_t y)
     }
 }
 
-i32_t i64_cmp(i64_t a, i64_t b)
+i32_t i64_cmp(i64_t a, i64_t b, nil_t *seed)
 {
+    unused(seed);
     return a != b;
 }
 
@@ -121,14 +122,16 @@ u64_t rfi_rand_u64()
     return __RND_SEED__;
 }
 
-u64_t rfi_kmh_hash(i64_t key)
+u64_t rfi_kmh_hash(i64_t key, nil_t *seed)
 {
+    unused(seed);
 #define LARGE_PRIME 6364136223846793005ULL
     return (key * LARGE_PRIME) >> 32;
 }
 
-u64_t rfi_fnv1a_hash_64(i64_t key)
+u64_t rfi_fnv1a_hash_64(i64_t key, nil_t *seed)
 {
+    unused(seed);
 #define FNV_OFFSET_64 14695981039346656037ULL
 #define FNV_PRIME_64 1099511628211ULL
     u64_t hash = FNV_OFFSET_64;
@@ -143,8 +146,9 @@ u64_t rfi_fnv1a_hash_64(i64_t key)
     return hash;
 }
 
-u64_t rfi_i64_hash(i64_t key)
+u64_t rfi_i64_hash(i64_t key, nil_t *seed)
 {
+    unused(seed);
     return (u64_t)key;
 }
 

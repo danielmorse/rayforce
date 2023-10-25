@@ -78,13 +78,13 @@
 #define minf64(x, y) (x < y ? x : y)
 
 // Function types
-typedef u64_t (*hash_f)(i64_t);
-typedef i32_t (*cmp_f)(i64_t, i64_t);
+typedef u64_t (*hash_f)(i64_t, nil_t *);
+typedef i32_t (*cmp_f)(i64_t, i64_t, nil_t *);
 typedef obj_t (*unary_f)(obj_t);
 typedef obj_t (*binary_f)(obj_t, obj_t);
 typedef obj_t (*vary_f)(obj_t *, i64_t n);
 
-i32_t i64_cmp(i64_t a, i64_t b);
+i32_t i64_cmp(i64_t a, i64_t b, nil_t *);
 
 bool_t rfi_is_nan(f64_t x);
 bool_t rfi_eq(obj_t x, obj_t y);
@@ -97,11 +97,11 @@ i64_t rfi_ceil_f64(f64_t x);
 u64_t rfi_rand_u64();
 
 // Knuth's multiplicative hash
-u64_t rfi_kmh_hash(i64_t key);
+u64_t rfi_kmh_hash(i64_t key, nil_t *seed);
 // FNV-1a hash
-u64_t rfi_fnv1a_hash_64(i64_t key);
+u64_t rfi_fnv1a_hash_64(i64_t key, nil_t *seed);
 // Identity
-u64_t rfi_i64_hash(i64_t a);
+u64_t rfi_i64_hash(i64_t a, nil_t *seed);
 
 obj_t distinct(obj_t x);
 obj_t group(i64_t values[], i64_t indices[], i64_t len);

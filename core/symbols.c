@@ -46,8 +46,9 @@ typedef struct str_slice_t
  * by Dan Bernstein
  * http://www.cse.yorku.ca/~oz/hash.html
  */
-u64_t string_hash(i64_t val)
+u64_t string_hash(i64_t val, nil_t *seed)
 {
+    unused(seed);
     str_slice_t *string;
     u64_t hash = 5381, len, i;
     str_t str;
@@ -77,8 +78,9 @@ u64_t string_hash(i64_t val)
  * a: raw C string already stored in a hash
  * b: str_slice_t string to be inserted
  */
-i32_t string_str_cmp(i64_t a, i64_t b)
+i32_t string_str_cmp(i64_t a, i64_t b, nil_t *seed)
 {
+    unused(seed);
     str_t str_a = (str_t)a;
     str_slice_t *str_b = (str_slice_t *)(b & ~(1ull << 63));
 
@@ -163,7 +165,7 @@ i64_t intern_symbol(str_t s, i64_t len)
     symbols_t *symbols = runtime_get()->symbols;
     str_slice_t str_slice = {s, len};
     i64_t idx = ht_tab_next_with(&symbols->str_to_id, (1ull << 63) | (i64_t)&str_slice,
-                                 &string_hash, &string_str_cmp);
+                                 &string_hash, &string_str_cmp, NULL);
 
     // insert new symbol
     if (as_i64(as_list(symbols->str_to_id)[0])[idx] == NULL_I64)
@@ -191,7 +193,7 @@ i64_t intern_keyword(str_t s, i64_t len)
     symbols_t *symbols = runtime_get()->symbols;
     str_slice_t str_slice = {s, len};
     i64_t idx = ht_tab_next_with(&symbols->str_to_id, (1ull << 63) | (i64_t)&str_slice,
-                                 &string_hash, &string_str_cmp);
+                                 &string_hash, &string_str_cmp, NULL);
 
     // insert new symbol
     if (as_i64(as_list(symbols->str_to_id)[0])[idx] == NULL_I64)
