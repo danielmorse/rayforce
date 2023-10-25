@@ -158,7 +158,7 @@ extern obj_t dict(obj_t keys,  obj_t vals); // dict
       
 // Reference counting         
 extern obj_t clone(obj_t obj); // clone
-extern obj_t cow(obj_t   obj); // clone if refcount > 1
+extern obj_t cow(obj_t  *obj); // clone if refcount > 1
 extern u32_t rc(obj_t    obj); // get refcount
 
 // Error

@@ -32,6 +32,7 @@
 #include "runtime.h"
 #include "compose.h"
 #include "order.h"
+#include "misc.h"
 
 obj_t ray_at(obj_t x, obj_t y)
 {
@@ -95,24 +96,24 @@ obj_t ray_at(obj_t x, obj_t y)
             if (as_i64(y)[i] >= (i64_t)xl)
                 as_f64(res)[i] = NULL_F64;
             else
-                as_f64(res)[i] = as_f64(x)[(i32_t)as_i64(y)[i]];
+                as_f64(res)[i] = as_f64(x)[as_i64(y)[i]];
         }
 
         return res;
 
-        // case mtype2(TYPE_GUID, TYPE_I64):
-        //     yl = y->len;
-        //     xl = x->len;
-        //     vec = vector_guid(yl);
-        //     for (i = 0; i < yl; i++)
-        //     {
-        //         if (as_i64(y)[i] >= xl)
-        //             as_guid(vec)[i] = guid(NULL_GUID);
-        //         else
-        //             as_guid(vec)[i] = as_guid(x)[(i32_t)as_i64(y)[i]];
-        //     }
+    case mtype2(TYPE_GUID, TYPE_I64):
+        yl = y->len;
+        xl = x->len;
+        res = vector_guid(yl);
+        for (i = 0; i < yl; i++)
+        {
+            if (as_i64(y)[i] >= (i64_t)xl)
+                as_guid(res)[i] = (guid_t){0};
+            else
+                as_guid(res)[i] = as_guid(x)[as_i64(y)[i]];
+        }
 
-        //     return vec;
+        return res;
 
     case mtype2(TYPE_CHAR, TYPE_I64):
         yl = y->len;
@@ -169,6 +170,19 @@ obj_t ray_at(obj_t x, obj_t y)
     case mtype2(TYPE_TABLE, TYPE_SYMBOL):
         xl = as_list(x)[1]->len;
         yl = y->len;
+        if (yl == 0)
+            return null(0);
+        if (yl == 1)
+        {
+            for (j = 0; j < xl; j++)
+            {
+                if (as_symbol(as_list(x)[0])[j] == as_symbol(y)[0])
+                    return clone(as_list(as_list(x)[1])[j]);
+            }
+
+            emit(ERR_INDEX, "at: column '%s' has not found in a table", symtostr(as_symbol(y)[0]));
+        }
+
         cols = vector(TYPE_LIST, yl);
         for (i = 0; i < yl; i++)
         {
@@ -189,9 +203,7 @@ obj_t ray_at(obj_t x, obj_t y)
             }
         }
 
-        res = table(clone(y), cols);
-
-        return res;
+        return cols;
 
     case mtype2(TYPE_ENUM, -TYPE_I64):
         k = ray_key(x);
@@ -971,6 +983,17 @@ obj_t ray_except(obj_t x, obj_t y)
     default:
         emit(ERR_TYPE, "except: unsupported types: %d %d", x->type, y->type);
     }
+}
+
+// TODO: implement
+obj_t ray_union(obj_t x, obj_t y)
+{
+    obj_t c, res;
+
+    c = ray_concat(x, y);
+    res = ray_distinct(c);
+    drop(c);
+    return res;
 }
 
 obj_t ray_first(obj_t x)

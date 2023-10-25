@@ -21,41 +21,11 @@
  *   SOFTWARE.
  */
 
-#include "amend.h"
-#include "heap.h"
-#include "util.h"
-#include "runtime.h"
+#ifndef JOIN_H
+#define JOIN_H
 
-obj_t ray_amend(obj_t *x, u64_t n)
-{
-    u64_t i;
-    obj_t obj, *env;
+#include "rayforce.h"
 
-    if (n != 4)
-        emit(ERR_LENGTH, "amend");
+obj_t ray_lj(obj_t *x, u64_t n);
 
-    switch (x[0]->type)
-    {
-    case TYPE_SYMBOL:
-        env = as_list(runtime_get()->env.variables);
-        i = find_obj(env[0], x[0]);
-        if (i == env[0]->len)
-            emit(ERR_NOT_FOUND, "amend");
-        obj = cow(&as_list(env[1])[i]);
-        break;
-    default:
-        obj = cow(&x[0]);
-        break;
-    }
-
-    obj = set_obj(&obj, x[1], clone(x[3]));
-    return obj;
-}
-
-obj_t ray_dmend(obj_t *x, u64_t n)
-{
-    unused(x);
-    unused(n);
-
-    emit(ERR_NOT_IMPLEMENTED, "ray_dmend");
-}
+#endif // JOIN_H

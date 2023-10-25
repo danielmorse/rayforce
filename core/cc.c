@@ -441,6 +441,43 @@ nil_t find_used_symbols(obj_t lst, obj_t *syms)
     }
 }
 
+obj_t at_sym(obj_t x, obj_t y)
+{
+    u64_t i, j, xl, yl;
+    obj_t cols;
+
+    switch (mtype2(x->type, y->type))
+    {
+    case mtype2(TYPE_TABLE, TYPE_SYMBOL):
+        xl = as_list(x)[1]->len;
+        yl = y->len;
+        cols = vector(TYPE_LIST, yl);
+        for (i = 0; i < yl; i++)
+        {
+            for (j = 0; j < xl; j++)
+            {
+                if (as_symbol(as_list(x)[0])[j] == as_symbol(y)[i])
+                {
+                    as_list(cols)[i] = clone(as_list(as_list(x)[1])[j]);
+                    break;
+                }
+            }
+
+            if (j == xl)
+            {
+                cols->len = i;
+                drop(cols);
+                emit(ERR_INDEX, "at: column '%s' has not found in a table", symtostr(as_symbol(y)[i]));
+            }
+        }
+
+        return table(clone(y), cols);
+
+    default:
+        emit(ERR_TYPE, "at: unsupported types");
+    }
+}
+
 cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t arity)
 {
     cc_result_t res;
@@ -604,7 +641,7 @@ cc_result_t cc_compile_select(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t ar
         cc_push_u64(code, ray_except);
         cc_push_opcode(cc, car, code, OP_CALL2);
         cc_push_u8(code, 0);
-        cc_push_u64(code, ray_at);
+        cc_push_u64(code, at_sym);
 
         cc_push_opcode(cc, car, code, OP_SWAP);
 

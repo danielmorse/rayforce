@@ -365,6 +365,9 @@ obj_t ins_obj(obj_t *obj, i64_t idx, obj_t val)
     if (*obj == NULL || !is_vector(*obj))
         return *obj;
 
+    if (!val)
+        val = null((*obj)->type);
+
     // we need to convert vector to list
     if ((*obj)->type != -val->type && (*obj)->type != TYPE_LIST)
     {
@@ -1037,13 +1040,15 @@ nil_t dropn(u64_t n, ...)
     va_end(args);
 }
 
-obj_t cow(obj_t obj)
+obj_t cow(obj_t *obj)
 {
+    u32_t rc;
+    i64_t size;
     obj_t id, fd, res;
 
-    if (!is_internal(obj))
+    if (!is_internal(*obj))
     {
-        id = i64((i64_t)obj);
+        id = i64((i64_t)*obj);
         fd = at_obj(runtime_get()->fds, id);
         if (is_null(fd))
         {
@@ -1051,7 +1056,7 @@ obj_t cow(obj_t obj)
             exit(1);
         }
 
-        res = mmap_file(fd->i64, size_of(obj));
+        res = mmap_file(fd->i64, size_of(*obj));
         res->rc = 1;
         drop(id);
         id = i64((i64_t)res);
@@ -1064,8 +1069,36 @@ obj_t cow(obj_t obj)
         return res;
     }
 
-    // TODO: implement copy on write
-    return clone(obj);
+    if (runtime_get()->sync)
+        rc = __atomic_fetch_add(&((*obj)->rc), 1, __ATOMIC_ACQ_REL);
+    else
+        rc = (*obj)->rc++;
+
+    // we only owns the reference, so we can freely modify it
+    if (rc == 1)
+        return *obj;
+
+    // we don't own the reference, so we need to copy it
+    switch ((*obj)->type)
+    {
+    case TYPE_I64:
+    case TYPE_SYMBOL:
+    case TYPE_TIMESTAMP:
+    case TYPE_F64:
+    case TYPE_CHAR:
+    case TYPE_LIST:
+    case TYPE_GUID:
+        drop(*obj); // drop the rc we already incremented
+        size = size_of(*obj);
+        res = heap_alloc(size);
+        memcpy(res, obj, size);
+        res->rc = 1;
+        *obj = res;
+        return res;
+    default:
+        drop(*obj); // drop the rc we already incremented
+        emit(ERR_NOT_IMPLEMENTED, "cow: not implemented");
+    }
 }
 
 u32_t rc(obj_t obj)

@@ -36,6 +36,7 @@ obj_t ray_take(obj_t x, obj_t y);
 obj_t ray_in(obj_t x, obj_t y);
 obj_t ray_sect(obj_t x, obj_t y);
 obj_t ray_except(obj_t x, obj_t y);
+obj_t ray_union(obj_t x, obj_t y);
 obj_t ray_first(obj_t x);
 obj_t ray_last(obj_t x);
 obj_t ray_key(obj_t x);

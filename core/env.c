@@ -41,6 +41,7 @@
 #include "misc.h"
 #include "io.h"
 #include "amend.h"
+#include "join.h"
 
 #define regf(r, n, t, f, o)                      \
     {                                            \
@@ -164,6 +165,7 @@ nil_t init_functions(obj_t functions)
     regf(functions,  "amend",     TYPE_VARY,     FN_NONE,           ray_amend);
     regf(functions,  "dmend",     TYPE_VARY,     FN_NONE,           ray_dmend);
     regf(functions,  "csv",       TYPE_VARY,     FN_NONE,           ray_csv);
+    regf(functions,  "lj",        TYPE_VARY,     FN_NONE,           ray_lj);
 }    
     
 nil_t init_typenames(obj_t typenames)    

@@ -523,9 +523,11 @@ obj_t ray_concat(obj_t x, obj_t y)
         return vec;
 
     case mtype2(TYPE_I64, TYPE_I64):
+    case mtype2(TYPE_SYMBOL, TYPE_SYMBOL):
+    case mtype2(TYPE_TIMESTAMP, TYPE_TIMESTAMP):
         xl = x->len;
         yl = y->len;
-        vec = vector_i64(xl + yl);
+        vec = vector(x->type, xl + yl);
         for (i = 0; i < xl; i++)
             as_i64(vec)[i] = as_i64(x)[i];
         for (i = 0; i < yl; i++)
@@ -540,16 +542,6 @@ obj_t ray_concat(obj_t x, obj_t y)
             as_f64(vec)[i] = as_f64(x)[i];
         for (i = 0; i < yl; i++)
             as_f64(vec)[i + xl] = as_f64(y)[i];
-        return vec;
-
-    case mtype2(TYPE_TIMESTAMP, TYPE_TIMESTAMP):
-        xl = x->len;
-        yl = y->len;
-        vec = vector_timestamp(xl + yl);
-        for (i = 0; i < xl; i++)
-            as_timestamp(vec)[i] = as_timestamp(x)[i];
-        for (i = 0; i < yl; i++)
-            as_timestamp(vec)[i + xl] = as_timestamp(y)[i];
         return vec;
 
     case mtype2(TYPE_GUID, TYPE_GUID):

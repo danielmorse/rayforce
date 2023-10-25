@@ -45,10 +45,10 @@
 #define MMOD_EXTERNAL_COMPOUND 0xfe
 #define MMOD_EXTERNAL_SERIALIZED 0xfa
 
-#define is_internal(x) (((x->mmod) & MMOD_INTERNAL) == (x)->mmod)
-#define is_external_simple(x) (((x->mmod) & MMOD_EXTERNAL_SIMPLE) == (x)->mmod)
-#define is_external_compound(x) (((x->mmod) & MMOD_EXTERNAL_COMPOUND) == (x)->mmod)
-#define is_external_serialized(x) (((x->mmod) & MMOD_EXTERNAL_SERIALIZED) == (x)->mmod)
+#define is_internal(x) ((((x)->mmod) & MMOD_INTERNAL) == (x)->mmod)
+#define is_external_simple(x) ((((x)->mmod) & MMOD_EXTERNAL_SIMPLE) == (x)->mmod)
+#define is_external_compound(x) ((((x)->mmod) & MMOD_EXTERNAL_COMPOUND) == (x)->mmod)
+#define is_external_serialized(x) ((((x)->mmod) & MMOD_EXTERNAL_SERIALIZED) == (x)->mmod)
 
 /*
  * Aligns x to the nearest multiple of a
