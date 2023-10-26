@@ -446,11 +446,11 @@ obj_t ray_concat(obj_t x, obj_t y)
         as_timestamp(vec)[1] = y->i64;
         return vec;
 
-        // case mtype2(-TYPE_GUID, -TYPE_GUID):
-        //     vec = vector_guid(2);
-        //     memcpy(&as_guid(vec)[0], x->guid, sizeof(guid_t));
-        //     memcpy(&as_guid(vec)[1], y->guid, sizeof(guid_t));
-        //     return vec;
+    case mtype2(-TYPE_GUID, -TYPE_GUID):
+        vec = vector_guid(2);
+        memcpy(&as_guid(vec)[0], as_guid(x), sizeof(guid_t));
+        memcpy(&as_guid(vec)[1], as_guid(y), sizeof(guid_t));
+        return vec;
 
     case mtype2(-TYPE_CHAR, -TYPE_CHAR):
         vec = string(2);
@@ -503,14 +503,23 @@ obj_t ray_concat(obj_t x, obj_t y)
         as_timestamp(vec)[xl] = y->i64;
         return vec;
 
-        // case mtype2(TYPE_GUID, -TYPE_GUID):
-        //     xl = x->len;
-        //     vec = vector_guid(xl + 1);
-        //     for (i = 0; i < xl; i++)
-        //         as_guid(vec)[i] = as_guid(x)[i];
+    case mtype2(TYPE_GUID, -TYPE_GUID):
+        xl = x->len;
+        vec = vector_guid(xl + 1);
+        for (i = 0; i < xl; i++)
+            as_guid(vec)[i] = as_guid(x)[i];
 
-        //     memcpy(&as_guid(vec)[xl], y->guid, sizeof(guid_t));
-        //     return vec;
+        memcpy(&as_guid(vec)[xl], as_guid(y), sizeof(guid_t));
+        return vec;
+
+    case mtype2(-TYPE_GUID, TYPE_GUID):
+        yl = y->len + 1;
+        vec = vector_guid(yl);
+        memcpy(&as_guid(vec)[0], as_guid(x), sizeof(guid_t));
+        for (i = 1; i < yl; i++)
+            as_guid(vec)[i] = as_guid(y)[i];
+
+        return vec;
 
     case mtype2(TYPE_BOOL, TYPE_BOOL):
         xl = x->len;
