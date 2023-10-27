@@ -928,7 +928,7 @@ obj_t __attribute__((hot)) clone(obj_t obj)
         return NULL;
 
     if (runtime_get()->sync)
-        __atomic_fetch_add(&((obj)->rc), 1, __ATOMIC_RELAXED);
+        __atomic_fetch_add(&obj->rc, 1, __ATOMIC_RELAXED);
     else
         (obj)->rc += 1;
 
@@ -947,7 +947,7 @@ nil_t __attribute__((hot)) drop(obj_t obj)
     obj_t id, k;
 
     if (runtime_get()->sync)
-        rc = __atomic_sub_fetch(&((obj)->rc), 1, __ATOMIC_RELAXED);
+        rc = __atomic_sub_fetch(&obj->rc, 1, __ATOMIC_RELAXED);
     else
     {
         (obj)->rc -= 1;
@@ -1040,15 +1040,15 @@ nil_t dropn(u64_t n, ...)
     va_end(args);
 }
 
-obj_t cow(obj_t *obj)
+obj_t cow(obj_t obj)
 {
     u32_t rc;
     i64_t size;
     obj_t id, fd, res;
 
-    if (!is_internal(*obj))
+    if (!is_internal(obj))
     {
-        id = i64((i64_t)*obj);
+        id = i64((i64_t)obj);
         fd = at_obj(runtime_get()->fds, id);
         if (is_null(fd))
         {
@@ -1056,8 +1056,8 @@ obj_t cow(obj_t *obj)
             exit(1);
         }
 
-        res = mmap_file(fd->i64, size_of(*obj));
-        res->rc = 1;
+        res = mmap_file(fd->i64, size_of(obj));
+        res->rc = 2;
         drop(id);
         id = i64((i64_t)res);
 
@@ -1069,17 +1069,21 @@ obj_t cow(obj_t *obj)
         return res;
     }
 
+    /*
+    Since it is forbidden to modify globals from several threads simultenously,
+    we can just check for rc == 1 and if it is the case, we can just return the object
+    */
     if (runtime_get()->sync)
-        rc = __atomic_fetch_add(&((*obj)->rc), 1, __ATOMIC_ACQ_REL);
+        rc = __atomic_load_n(&obj->rc, __ATOMIC_RELAXED);
     else
-        rc = (*obj)->rc++;
+        rc = (obj)->rc;
 
     // we only owns the reference, so we can freely modify it
     if (rc == 1)
-        return *obj;
+        return obj;
 
     // we don't own the reference, so we need to copy it
-    switch ((*obj)->type)
+    switch (obj->type)
     {
     case TYPE_I64:
     case TYPE_SYMBOL:
@@ -1088,15 +1092,12 @@ obj_t cow(obj_t *obj)
     case TYPE_CHAR:
     case TYPE_LIST:
     case TYPE_GUID:
-        drop(*obj); // drop the rc we already incremented
-        size = size_of(*obj);
+        size = size_of(obj);
         res = heap_alloc(size);
         memcpy(res, obj, size);
-        res->rc = 1;
-        *obj = res;
+        res->rc = 2;
         return res;
     default:
-        drop(*obj); // drop the rc we already incremented
         emit(ERR_NOT_IMPLEMENTED, "cow: not implemented");
     }
 }
@@ -1106,7 +1107,7 @@ u32_t rc(obj_t obj)
     u32_t rc;
 
     if (runtime_get()->sync)
-        rc = __atomic_load_n(&((obj)->rc), __ATOMIC_RELAXED);
+        rc = __atomic_load_n(&obj->rc, __ATOMIC_RELAXED);
     else
         rc = (obj)->rc;
 

@@ -41,10 +41,10 @@ obj_t ray_amend(obj_t *x, u64_t n)
         i = find_obj(env[0], x[0]);
         if (i == env[0]->len)
             emit(ERR_NOT_FOUND, "amend");
-        obj = cow(&as_list(env[1])[i]);
+        obj = cow(as_list(env[1])[i]);
         break;
     default:
-        obj = cow(&x[0]);
+        obj = cow(x[0]);
         break;
     }
 

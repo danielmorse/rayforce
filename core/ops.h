@@ -105,6 +105,34 @@ u64_t rfi_i64_hash(i64_t a, nil_t *seed);
 obj_t distinct(obj_t x);
 obj_t group(i64_t values[], i64_t indices[], i64_t len);
 u64_t count(obj_t x);
+/**
+ * Returns the value at the given index of the object as an unsigned 64-bit integer.
+ * The type of the object determines the underlying type of the value.
+ *
+ * @param obj The object to retrieve the value from.
+ * @param idx The index of the value to retrieve.
+ * @return The value at the given index of the object as an unsigned 64-bit integer.
+ */
+inline __attribute__((always_inline)) u64_t as_u64(obj_t obj, i64_t idx)
+{
+    switch (obj->type)
+    {
+    case TYPE_BOOL:
+    case TYPE_BYTE:
+    case TYPE_CHAR:
+        return (u64_t)as_u8(obj)[idx];
+    case TYPE_I64:
+    case TYPE_SYMBOL:
+    case TYPE_TIMESTAMP:
+        return (u64_t)as_i64(obj)[idx];
+    case TYPE_F64:
+        return (u64_t)as_f64(obj)[idx];
+    case TYPE_GUID:
+        return *(u64_t *)&as_guid(obj)[idx];
+    default:
+        return (u64_t)as_list(obj)[idx];
+    }
+}
 
 typedef enum
 {

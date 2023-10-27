@@ -26,6 +26,7 @@
 #include "util.h"
 #include "items.h"
 #include "rel.h"
+#include "ops.h"
 #include "binary.h"
 #include "compose.h"
 
@@ -65,27 +66,6 @@ obj_t lj_column(obj_t left_col, obj_t right_col, i64_t ids[], u64_t len)
     }
 
     return res;
-}
-
-inline __attribute__((always_inline)) u64_t as_u64(obj_t obj, i64_t idx)
-{
-    switch (obj->type)
-    {
-    case TYPE_BOOL:
-    case TYPE_BYTE:
-    case TYPE_CHAR:
-        return (u64_t)as_u8(obj)[idx];
-    case TYPE_I64:
-    case TYPE_SYMBOL:
-    case TYPE_TIMESTAMP:
-        return (u64_t)as_i64(obj)[idx];
-    case TYPE_F64:
-        return (u64_t)as_f64(obj)[idx];
-    case TYPE_GUID:
-        return *(u64_t *)&as_guid(obj)[idx];
-    default:
-        return (u64_t)as_list(obj)[idx];
-    }
 }
 
 u64_t hash_row(i64_t row, nil_t *seed)
@@ -212,8 +192,7 @@ obj_t ray_lj(obj_t *x, u64_t n)
 
     if (is_error(cols))
     {
-        drop(k1);
-        drop(idx);
+        dropn(2, k1, idx);
         return cols;
     }
 
@@ -221,9 +200,7 @@ obj_t ray_lj(obj_t *x, u64_t n)
 
     if (l == 0)
     {
-        drop(k1);
-        drop(idx);
-        drop(cols);
+        dropn(3, k1, idx, cols);
         emit(ERR_LENGTH, "lj: no columns to join on");
     }
 
@@ -257,9 +234,7 @@ obj_t ray_lj(obj_t *x, u64_t n)
         col = lj_column(c1, c2, as_i64(idx), ll);
         if (is_error(col))
         {
-            drop(k1);
-            drop(cols);
-            drop(vals);
+            dropn(4, k1, cols, idx, vals);
             return col;
         }
 
