@@ -34,6 +34,7 @@ typedef struct lj_ctx_t
 {
     obj_t lcols;
     obj_t rcols;
+    u64_t *hashes;
 } lj_ctx_t;
 
 obj_t lj_column(obj_t left_col, obj_t right_col, i64_t ids[], u64_t len)
@@ -68,34 +69,30 @@ obj_t lj_column(obj_t left_col, obj_t right_col, i64_t ids[], u64_t len)
     return res;
 }
 
-u64_t hash_row(i64_t row, nil_t *seed)
+inline __attribute__((always_inline)) u64_t hashi64(u64_t h, u64_t k)
 {
-    u64_t i, n, h, k;
-    lj_ctx_t *ctx = (lj_ctx_t *)seed;
-    obj_t cols = ctx->rcols;
+    k *= 0x87c37b91114253d5ull;
+    k = roti64(k, 31);
+    k *= 0x4cf5ad432745937full;
+    h ^= k;
+    h = roti64(h, 27);
+    h = h * 5 + 0x52dce729;
 
-    n = cols->len;
-    h = 0;
-
-    for (i = 0; i < n; i++)
-    {
-        k = hash_idx(as_list(cols)[i], row);
-        k *= 0x87c37b91114253d5ull;
-        k = roti64(k, 31);
-        k *= 0x4cf5ad432745937full;
-        h ^= k;
-        h = roti64(h, 27);
-        h = h * 5 + 0x52dce729;
-    }
-
-    h ^= n;
-    h ^= h >> 33;
-    h *= 0xff51afd7ed558ccdULL;
-    h ^= h >> 33;
-    h *= 0xc4ceb9fe1a85ec53ULL;
-    h ^= h >> 33;
+    // Additional mixing for small input sizes
+    h ^= h >> 25;
+    h *= 0x9e3779b97f4a7c15ull; // another 64-bit prime
 
     return h;
+}
+
+inline __attribute__((always_inline)) u64_t fmixi64(u64_t h, u64_t n)
+{
+    h ^= n;
+    h ^= h >> 33;
+    h *= 0xff51afd7ed558ccdull;
+    h ^= h >> 33;
+    h *= 0xc4ceb9fe1a85ec53ull;
+    return h ^ (h >> 33);
 }
 
 inline __attribute__((always_inline)) bool_t __eq(obj_t a, i64_t ai, obj_t b, i64_t bi)
@@ -119,6 +116,12 @@ inline __attribute__((always_inline)) bool_t __eq(obj_t a, i64_t ai, obj_t b, i6
     }
 }
 
+u64_t hash_get(i64_t row, nil_t *seed)
+{
+    lj_ctx_t *ctx = (lj_ctx_t *)seed;
+    return ctx->hashes[row];
+}
+
 i32_t cmp_row(i64_t row1, i64_t row2, nil_t *seed)
 {
     u64_t i, l;
@@ -137,8 +140,8 @@ i32_t cmp_row(i64_t row1, i64_t row2, nil_t *seed)
 
 obj_t build_idx(obj_t lcols, obj_t rcols, u64_t len)
 {
-    u64_t i, ll, rl;
-    obj_t ht, res;
+    u64_t i, j, ll, rl, k;
+    obj_t ht, v, res;
     i64_t idx;
     lj_ctx_t ctx;
 
@@ -149,19 +152,58 @@ obj_t build_idx(obj_t lcols, obj_t rcols, u64_t len)
     rl = as_list(rcols)[0]->len;
     ht = ht_tab(maxi64(ll, rl), -1);
 
-    ctx = (lj_ctx_t){rcols, rcols};
+    // Precalculate right hashes
+    res = vector_i64(maxi64(ll, rl));
+
+    // initialization
+    for (j = 0; j < rl; j++)
+        as_i64(res)[j] = 0xa5b6c7d8e9f01234ull;
+
+    for (i = 0; i < len; i++)
+    {
+        v = as_list(rcols)[i];
+        for (j = 0; j < rl; j++)
+        {
+            k = hashi64(as_i64(res)[j], hash_idx(v, j));
+            as_i64(res)[j] = k;
+        }
+    }
+
+    // finalization
+    for (j = 0; j < rl; j++)
+        as_i64(res)[j] = fmixi64(as_i64(res)[j], len);
+
+    // Build hash table
+    ctx = (lj_ctx_t){rcols, rcols, (u64_t *)as_i64(res)};
     for (i = 0; i < rl; i++)
     {
-        idx = ht_tab_next_with(&ht, i, &hash_row, &cmp_row, &ctx);
+        idx = ht_tab_next_with(&ht, i, &hash_get, &cmp_row, &ctx);
         if (as_i64(as_list(ht)[0])[idx] == NULL_I64)
             as_i64(as_list(ht)[0])[idx] = i;
     }
 
-    res = vector(TYPE_I64, ll);
-    ctx = (lj_ctx_t){rcols, lcols};
+    // Precalculate left hashes
+    for (j = 0; j < ll; j++)
+        as_i64(res)[j] = 0xa5b6c7d8e9f01234ull;
+
+    for (i = 0; i < len; i++)
+    {
+        v = as_list(lcols)[i];
+        for (j = 0; j < ll; j++)
+        {
+            k = hashi64(as_i64(res)[j], hash_idx(v, j));
+            as_i64(res)[j] = k;
+        }
+    }
+
+    // finalization
+    for (j = 0; j < ll; j++)
+        as_i64(res)[j] = fmixi64(as_i64(res)[j], len);
+
+    ctx = (lj_ctx_t){rcols, lcols, (u64_t *)as_i64(res)};
     for (i = 0; i < ll; i++)
     {
-        idx = ht_tab_get_with(ht, i, &hash_row, &cmp_row, &ctx);
+        idx = ht_tab_get_with(ht, i, &hash_get, &cmp_row, &ctx);
         as_i64(res)[i] = (idx == NULL_I64) ? NULL_I64 : as_i64(as_list(ht)[0])[idx];
     }
 
