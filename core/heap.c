@@ -29,30 +29,32 @@
 #include "mmap.h"
 #include "util.h"
 
-CASSERT(sizeof(struct node_t) ==            16, heap_h)
-CASSERT(sizeof(struct heap_t) % PAGE_SIZE == 0,  heap_h)
+CASSERT(sizeof(struct node_t) == 16, heap_h)
+CASSERT(sizeof(struct heap_t) % PAGE_SIZE == 0, heap_h)
 
 __thread heap_t __HEAP = NULL;
+__thread nil_t *__HEAP_16_BLOCKS_START = NULL;
+__thread nil_t *__HEAP_16_BLOCKS_END = NULL;
 
-#define AVAIL_MASK       ((u64_t)0xFFFFFFFFFFFFFFFF)
-#define BLOCK_ADDR_MASK  ((u64_t)0x00FFFFFFFFFFFFFF)
+#define AVAIL_MASK ((u64_t)0xffffffffffffffff)
+#define BLOCK_ADDR_MASK ((u64_t)0x00ffffffffffffff)
 #define BLOCK_ORDER_MASK (~BLOCK_ADDR_MASK)
-#define blockorder(p)    ((u64_t)(p) >> 56)
-#define blockaddr(p)     ((nil_t *)((u64_t)(p) & BLOCK_ADDR_MASK))
-#define blocksize(i)     (1ull << (i))
+#define blockorder(p) ((u64_t)(p) >> 56)
+#define blockaddr(p) ((nil_t *)((u64_t)(p) & BLOCK_ADDR_MASK))
+#define blocksize(i) (1ull << (i))
 #define buddyof(p, b, i) ((nil_t *)(((u64_t)(p - b) ^ blocksize(i)) + b))
-#define orderof(s)       (64ull - __builtin_clzll(s - 1))
-#define is16block(b)     ((b) >= __HEAP->blocks16 && (b) < __HEAP->blocks16 + NUM_16_BLOCKS * 16)
+#define orderof(s) (64ull - __builtin_clzll(s - 1))
+#define is16block(b) ((b) >= __HEAP_16_BLOCKS_START && (b) < __HEAP_16_BLOCKS_END)
 
 #ifdef SYS_MALLOC
 
-nil_t  *heap_alloc(u64_t size)                   { return malloc(size);           }
-nil_t   heap_free(nil_t *block)                  { free(block);                   }
-nil_t  *heap_realloc(nil_t *ptr, u64_t new_size) { return realloc(ptr, new_size); }
-i64_t   heap_gc()                                { return 0;                      }
-nil_t   heap_cleanup()                           {                                }
-heap_t  heap_init()                              { return NULL;                   }
-memstat_t heap_memstat()                         { return (memstat_t){0};         }
+nil_t *heap_alloc(u64_t size) { return malloc(size); }
+nil_t heap_free(nil_t *block) { free(block); }
+nil_t *heap_realloc(nil_t *ptr, u64_t new_size) { return realloc(ptr, new_size); }
+i64_t heap_gc() { return 0; }
+nil_t heap_cleanup() {}
+heap_t heap_init() { return NULL; }
+memstat_t heap_memstat() { return (memstat_t){0}; }
 
 #else
 
@@ -60,6 +62,7 @@ nil_t heap_print_blocks()
 {
     i32_t i = 0;
     node_t *node;
+
     for (; i <= MAX_POOL_ORDER; i++)
     {
         node = __HEAP->freelist[i];
@@ -77,13 +80,14 @@ nil_t *heap_add_pool(u64_t order)
 {
     u64_t size = blocksize(order);
     nil_t *pool = mmap_malloc(size);
+    node_t *node;
 
     if (pool == NULL)
         return NULL;
 
     debug_assert((i64_t)pool % 16 == 0, "pool is not aligned");
 
-    node_t *node = (node_t *)pool;
+    node = (node_t *)pool;
     node->base = (nil_t *)(order << 56 | (u64_t)pool);
     node->size = size;
 
@@ -93,6 +97,7 @@ nil_t *heap_add_pool(u64_t order)
 heap_t heap_init()
 {
     i32_t i;
+    nil_t *block16;
 
     __HEAP = (heap_t)mmap_malloc(sizeof(struct heap_t));
     __HEAP->avail = 0;
@@ -102,10 +107,13 @@ heap_t heap_init()
     // fill linked list of 16 bytes blocks
     for (i = NUM_16_BLOCKS - 1; i >= 0; i--)
     {
-        nil_t *block16 = __HEAP->blocks16 + i * 16;
+        block16 = __HEAP->blocks16 + i * 16;
         *(nil_t **)block16 = __HEAP->freelist16;
         __HEAP->freelist16 = block16;
     }
+
+    __HEAP_16_BLOCKS_START = __HEAP->blocks16;
+    __HEAP_16_BLOCKS_END = __HEAP->blocks16 + NUM_16_BLOCKS * 16;
 
     return __HEAP;
 }
@@ -176,7 +184,7 @@ memstat_t heap_memstat()
     return stat;
 }
 
-nil_t __attribute__((hot)) * heap_alloc(u64_t size)
+nil_t *__attribute__((hot)) heap_alloc(u64_t size)
 {
     u32_t i, order;
     nil_t *block, *base;
@@ -215,13 +223,13 @@ nil_t __attribute__((hot)) * heap_alloc(u64_t size)
             return (nil_t *)((node_t *)block + 1);
         }
 
-        node_t *node = (node_t *)heap_add_pool(MAX_ORDER);
+        i = MAX_ORDER;
+
+        node_t *node = (node_t *)heap_add_pool(i);
 
         node->next = NULL;
-        __HEAP->freelist[MAX_ORDER] = node;
-        __HEAP->avail |= 1 << MAX_ORDER;
-
-        i = MAX_ORDER;
+        __HEAP->freelist[i] = node;
+        __HEAP->avail |= blocksize(i);
     }
     else
         i = __builtin_ctzl(i);
@@ -245,6 +253,7 @@ nil_t __attribute__((hot)) * heap_alloc(u64_t size)
     }
 
     ((node_t *)block)->size = capacity;
+
     return (nil_t *)((node_t *)block + 1);
 }
 
