@@ -41,10 +41,10 @@ obj_t ray_hopen(obj_t x)
     u8_t handshake[2] = {RAYFORCE_VERSION, 0x00};
 
     if (x->type != TYPE_CHAR)
-        emit(ERR_TYPE, "hopen: expected char");
+        throw(ERR_TYPE, "hopen: expected char");
 
     if (sock_addr_from_str(as_string(x), &addr) == -1)
-        emit(ERR_IO, "hopen: invalid address: %s", as_string(x));
+        throw(ERR_IO, "hopen: invalid address: %s", as_string(x));
 
     fd = sock_open(&addr);
 
@@ -103,7 +103,7 @@ obj_t ray_read(obj_t x)
 
         return res;
     default:
-        emit(ERR_TYPE, "read: unsupported type: %d", x->type);
+        throw(ERR_TYPE, "read: unsupported type: %d", x->type);
     }
 }
 
@@ -139,7 +139,7 @@ obj_t ray_write(obj_t x, obj_t y)
             return ipc_send_async(runtime_get()->poll, -x->i64, clone(y));
     }
 
-    emit(ERR_NOT_IMPLEMENTED, "write: not implemented");
+    throw(ERR_NOT_IMPLEMENTED, "write: not implemented");
 }
 
 obj_t parse_csv_field(type_t type, str_t start, str_t end, i64_t row, obj_t out)
@@ -198,7 +198,7 @@ obj_t parse_csv_field(type_t type, str_t start, str_t end, i64_t row, obj_t out)
         as_list(out)[row] = string_from_str(start, end - start);
         break;
     default:
-        emit(ERR_TYPE, "csv: unsupported type: %d", type);
+        throw(ERR_TYPE, "csv: unsupported type: %d", type);
     }
 
     return null(0);
@@ -232,7 +232,7 @@ obj_t parse_csv_line(type_t types[], i64_t cnt, str_t start, str_t end, i64_t ro
             pos = memchr(prev, '"', len - 1);
 
             if (pos == NULL)
-                emit(ERR_LENGTH, "csv: invalid field: %s", prev);
+                throw(ERR_LENGTH, "csv: invalid field: %s", prev);
 
             res = parse_csv_field(types[i], prev, pos, row, as_list(cols)[i]);
             pos += 2; // skip quote and comma
@@ -280,11 +280,11 @@ obj_t ray_csv(obj_t *x, i64_t n)
     case 2:
         // expect vector of types as 1st arg:
         if (x[0]->type != TYPE_SYMBOL)
-            emit(ERR_TYPE, "csv: expected vector of types as 1st argument, got: %d", x[0]->type);
+            throw(ERR_TYPE, "csv: expected vector of types as 1st argument, got: %d", x[0]->type);
 
         // expect string as 2nd arg:
         if (x[1]->type != TYPE_CHAR)
-            emit(ERR_TYPE, "csv: expected string as 2nd argument, got: %d", x[1]->type);
+            throw(ERR_TYPE, "csv: expected string as 2nd argument, got: %d", x[1]->type);
 
         // check that all symbols are valid typenames and convert them to types
         l = x[0]->len;
@@ -295,7 +295,7 @@ obj_t ray_csv(obj_t *x, i64_t n)
             if (type == TYPE_ERROR)
             {
                 drop(types);
-                emit(ERR_TYPE, "csv: invalid type: %s", symtostr(as_symbol(x[0])[i]));
+                throw(ERR_TYPE, "csv: invalid type: %s", symtostr(as_symbol(x[0])[i]));
             }
 
             if (type < 0)
@@ -318,7 +318,7 @@ obj_t ray_csv(obj_t *x, i64_t n)
         {
             drop(types);
             fs_fclose(fd);
-            emit(ERR_LENGTH, "get: file '%s': invalid size: %d", as_string(x[1]), size);
+            throw(ERR_LENGTH, "get: file '%s': invalid size: %d", as_string(x[1]), size);
         }
 
         buf = (str_t)mmap_file(fd, size);
@@ -327,7 +327,7 @@ obj_t ray_csv(obj_t *x, i64_t n)
         {
             drop(types);
             fs_fclose(fd);
-            emit(ERR_IO, "csv: mmap failed");
+            throw(ERR_IO, "csv: mmap failed");
         }
 
         pos = buf;
@@ -344,7 +344,7 @@ obj_t ray_csv(obj_t *x, i64_t n)
             drop(types);
             fs_fclose(fd);
             mmap_free(buf, size);
-            emit(ERR_LENGTH, "csv: file '%s': invalid size: %d", as_string(x[1]), size);
+            throw(ERR_LENGTH, "csv: file '%s': invalid size: %d", as_string(x[1]), size);
         }
 
         // Adjust for the file not ending with a newline
@@ -375,7 +375,7 @@ obj_t ray_csv(obj_t *x, i64_t n)
             drop(names);
             fs_fclose(fd);
             mmap_free(buf, size);
-            emit(ERR_LENGTH, "csv: file '%s': invalid header (number of fields is less then csv contains)", as_string(x[1]));
+            throw(ERR_LENGTH, "csv: file '%s': invalid header (number of fields is less then csv contains)", as_string(x[1]));
         }
 
         // exclude header
@@ -415,6 +415,6 @@ obj_t ray_csv(obj_t *x, i64_t n)
 
         return table(names, cols);
     default:
-        emit(ERR_LENGTH, "csv: expected 1 or 2 arguments, got %d", n);
+        throw(ERR_LENGTH, "csv: expected 1 or 2 arguments, got %d", n);
     }
 }

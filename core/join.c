@@ -51,7 +51,7 @@ obj_t select_column(obj_t left_col, obj_t right_col, i64_t ids[], u64_t len)
     type = is_null(left_col) ? right_col->type : left_col->type;
 
     if (right_col->type != type)
-        emit(ERR_TYPE, "join_column: incompatible types");
+        throw(ERR_TYPE, "join_column: incompatible types");
 
     res = vector(type, len);
 
@@ -153,16 +153,16 @@ obj_t ray_lj(obj_t *x, u64_t n)
     obj_t k1, k2, c1, c2, un, col, cols, vals, idx, rescols, resvals;
 
     if (n != 3)
-        emit(ERR_LENGTH, "lj");
+        throw(ERR_LENGTH, "lj");
 
     if (x[0]->type != TYPE_SYMBOL)
-        emit(ERR_TYPE, "lj: first argument must be a symbol vector");
+        throw(ERR_TYPE, "lj: first argument must be a symbol vector");
 
     if (x[1]->type != TYPE_TABLE)
-        emit(ERR_TYPE, "lj: second argument must be a table");
+        throw(ERR_TYPE, "lj: second argument must be a table");
 
     if (x[2]->type != TYPE_TABLE)
-        emit(ERR_TYPE, "lj: third argument must be a table");
+        throw(ERR_TYPE, "lj: third argument must be a table");
 
     if (ops_count(x[1]) == 0 || ops_count(x[2]) == 0)
         return clone(x[1]);
@@ -211,7 +211,7 @@ obj_t ray_lj(obj_t *x, u64_t n)
     if (l == 0)
     {
         dropn(3, k1, idx, cols);
-        emit(ERR_LENGTH, "lj: no columns to join on");
+        throw(ERR_LENGTH, "lj: no columns to join on");
     }
 
     // resulting columns

@@ -39,7 +39,7 @@ obj_t ray_cast(obj_t x, obj_t y)
     str_t fmt, msg;
 
     if (x->type != -TYPE_SYMBOL)
-        emit(ERR_TYPE, "cast: first argument must be a symbol");
+        throw(ERR_TYPE, "cast: first argument must be a symbol");
 
     type = env_get_type_by_typename(&runtime_get()->env, x->i64);
 
@@ -125,7 +125,7 @@ obj_t ray_reverse(obj_t x)
         return res;
 
     default:
-        emit(ERR_TYPE, "reverse: unsupported type: %d", x->type);
+        throw(ERR_TYPE, "reverse: unsupported type: %d", x->type);
     }
 }
 
@@ -275,7 +275,7 @@ obj_t ray_guid(obj_t x)
         return vec;
 
     default:
-        emit(ERR_TYPE, "guid: unsupported type: %d", x->type);
+        throw(ERR_TYPE, "guid: unsupported type: %d", x->type);
     }
 }
 
@@ -321,7 +321,7 @@ obj_t ray_enum(obj_t x, obj_t y)
         if (!s || s->type != TYPE_SYMBOL)
         {
             drop(s);
-            emit(ERR_TYPE, "enum: expected vector symbol");
+            throw(ERR_TYPE, "enum: expected vector symbol");
         }
 
         v = ops_find(as_i64(s), s->len, as_i64(y), y->len);
@@ -330,12 +330,12 @@ obj_t ray_enum(obj_t x, obj_t y)
         if (is_error(v))
         {
             drop(v);
-            emit(ERR_TYPE, "enum: can not be fully indexed");
+            throw(ERR_TYPE, "enum: can not be fully indexed");
         }
 
         return venum(clone(x), v);
     default:
-        emit(ERR_TYPE, "enum: unsupported types: %d %d", x->type, y->type);
+        throw(ERR_TYPE, "enum: unsupported types: %d %d", x->type, y->type);
     }
 }
 
@@ -411,7 +411,7 @@ obj_t ray_rand(obj_t x, obj_t y)
         return vec;
 
     default:
-        emit(ERR_TYPE, "rand: unsupported types: %d %d", x->type, y->type);
+        throw(ERR_TYPE, "rand: unsupported types: %d %d", x->type, y->type);
     }
 }
 
@@ -608,6 +608,6 @@ obj_t ray_concat(obj_t x, obj_t y)
             return vec;
         }
 
-        emit(ERR_TYPE, "join: unsupported types: %d %d", x->type, y->type);
+        throw(ERR_TYPE, "join: unsupported types: %d %d", x->type, y->type);
     }
 }

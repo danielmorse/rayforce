@@ -97,7 +97,7 @@
 /*
  * Create a new error object and return it
  */
-#define emit(t, ...)                        \
+#define throw(t, ...)                        \
     {                                       \
         str_t _m = str_fmt(0, __VA_ARGS__); \
         obj_t _e = error(t, _m);            \
@@ -114,6 +114,6 @@
 bool_t is_valid(obj_t obj);
 u32_t next_power_of_two_u32(u32_t n);
 u64_t next_power_of_two_u64(u64_t n);
-nil_t __attribute__((noreturn)) throw(str_t fmt, ...);
+nil_t __attribute__((noreturn)) panic(str_t fmt, ...);
 
 #endif

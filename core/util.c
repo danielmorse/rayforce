@@ -67,7 +67,7 @@ bool_t is_valid(obj_t obj)
     // clang-format on
 }
 
-nil_t throw(str_t fmt, ...)
+nil_t panic(str_t fmt, ...)
 {
     vm_t *vm = &runtime_get()->vm;
     obj_t err;

@@ -114,7 +114,7 @@ obj_t __attribute__((hot)) vm_exec(vm_t *vm, obj_t fun)
     static nil_t *dispatch_table[] = {
         &&op_ret, &&op_push, &&op_cc_push_const, &&op_pop, &&op_swap, &&op_dup, &&op_jne, &&op_jmp, &&op_call1,
         &&op_call2, &&op_calln, &&op_calld, &&op_timer_set, &&op_timer_get, &&op_store, &&op_load,
-        &&op_lset, &&op_lget, &&op_lpush, &&op_lpop, &&op_try, &&op_catch, &&op_throw, &&op_trace};
+        &&op_lset, &&op_lget, &&op_lpush, &&op_lpop, &&op_try, &&op_catch, &&op_panic, &&op_trace};
 
 #define dispatch() goto *dispatch_table[(i32_t)code[vm->ip]]
 
@@ -369,7 +369,7 @@ op_catch:
     // vm->acc = null(0);
     // stack_push( x1);
     dispatch();
-op_throw:
+op_panic:
     b = vm->ip++;
     // x1 = stack_pop();
     // x1.type = TYPE_ERROR;
@@ -501,7 +501,7 @@ str_t vm_code_fmt(obj_t fun)
             str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] catch ", c++, ip++);
             break;
         case OP_THROW:
-            str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] throw\n", c++, ip++);
+            str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] panic\n", c++, ip++);
             break;
         case OP_TRACE:
             str_fmt_into(&s, &l, &o, 0, "%.4d: [%.4d] trace\n", c++, ip++);

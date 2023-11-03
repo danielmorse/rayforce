@@ -75,7 +75,7 @@ i32_t str_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, str_t fmt
         if (s == NULL)
         {
             heap_free(*dst);
-            throw("str_fmt_into: OOM");
+            panic("str_fmt_into: OOM");
         }
 
         *dst = s;
@@ -95,7 +95,7 @@ i32_t str_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, str_t fmt
             if (*dst != NULL)
                 heap_free(*dst);
 
-            throw("str_fmt_into: OOM");
+            panic("str_fmt_into: OOM");
         }
 
         if (n < size)
@@ -113,7 +113,7 @@ i32_t str_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, str_t fmt
         if (s == NULL)
         {
             heap_free(*dst);
-            throw("str_fmt_into: OOM");
+            panic("str_fmt_into: OOM");
         }
 
         *dst = s;
@@ -139,7 +139,7 @@ str_t str_fmt(i32_t limit, str_t fmt, ...)
         if (n < 0)
         {
             heap_free(p);
-            throw("str_fmt_into: OOM");
+            panic("str_fmt_into: OOM");
         }
 
         if (n < size)
@@ -154,7 +154,7 @@ str_t str_fmt(i32_t limit, str_t fmt, ...)
         if (s == NULL)
         {
             heap_free(p);
-            throw("str_fmt_into: OOM");
+            panic("str_fmt_into: OOM");
         }
 
         p = s;
@@ -319,7 +319,7 @@ i32_t error_fmt_into(str_t *dst, i32_t *len, i32_t *offset, i32_t limit, obj_t o
             error_desc = "stack overflow";
             break;
         case ERR_THROW:
-            error_desc = "throw";
+            error_desc = "panic";
             break;
         default:
             error_desc = "unknown";
@@ -833,7 +833,7 @@ str_t obj_fmt(obj_t obj)
         obj_fmt_into(&dst, &len, &offset, 0, limit, true, obj);
 
     if (dst == NULL)
-        throw("format: returns null");
+        panic("format: returns null");
 
     return dst;
 }

@@ -202,13 +202,13 @@ obj_t ray_get(obj_t x)
         res = at_obj(runtime_get()->env.variables, x);
 
         if (is_null(res))
-            emit(ERR_NOT_EXIST, "variable '%s' does not exist", symtostr(x->i64));
+            throw(ERR_NOT_EXIST, "variable '%s' does not exist", symtostr(x->i64));
 
         return res;
 
     case TYPE_CHAR:
         if (x->len == 0)
-            emit(ERR_LENGTH, "get: empty string path");
+            throw(ERR_LENGTH, "get: empty string path");
 
         // get splayed table
         if (as_string(x)[x->len - 1] == '/')
@@ -226,7 +226,7 @@ obj_t ray_get(obj_t x)
             if (keys->type != TYPE_SYMBOL)
             {
                 drop(keys);
-                emit(ERR_TYPE, "get: expected table schema as a symbol vector, got: %d", keys->type);
+                throw(ERR_TYPE, "get: expected table schema as a symbol vector, got: %d", keys->type);
             }
 
             l = keys->len;
@@ -287,7 +287,7 @@ obj_t ray_get(obj_t x)
             if (size < sizeof(struct obj_t))
             {
                 fs_fclose(fd);
-                emit(ERR_LENGTH, "get: file '%s': invalid size: %d", as_string(x), size);
+                throw(ERR_LENGTH, "get: file '%s': invalid size: %d", as_string(x), size);
             }
 
             res = (obj_t)mmap_file(fd, size);
@@ -323,7 +323,7 @@ obj_t ray_get(obj_t x)
                 {
                     drop(keys);
                     mmap_free(res, size);
-                    emit(ERR_TYPE, "get: expected anymap schema as a byte vector, got: %d", keys->type);
+                    throw(ERR_TYPE, "get: expected anymap schema as a byte vector, got: %d", keys->type);
                 }
 
                 ((obj_t)((str_t)res - PAGE_SIZE))->obj = keys;
@@ -335,6 +335,6 @@ obj_t ray_get(obj_t x)
         }
 
     default:
-        emit(ERR_TYPE, "get: unsupported type: %d", x->type);
+        throw(ERR_TYPE, "get: unsupported type: %d", x->type);
     }
 }

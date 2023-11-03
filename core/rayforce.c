@@ -52,7 +52,7 @@ obj_t atom(type_t type)
     obj_t a = (obj_t)heap_alloc(sizeof(struct obj_t));
 
     if (!a)
-        emit(ERR_HEAP, "oom");
+        throw(ERR_HEAP, "oom");
 
     a->mmod = MMOD_INTERNAL;
     a->refc = 1;
@@ -174,7 +174,7 @@ obj_t vector(type_t type, u64_t len)
     vec = (obj_t)heap_alloc(sizeof(struct obj_t) + len * size_of_type(t));
 
     if (!vec)
-        emit(ERR_HEAP, "oom");
+        throw(ERR_HEAP, "oom");
 
     vec->mmod = MMOD_INTERNAL;
     vec->refc = 1;
@@ -191,7 +191,7 @@ obj_t string(u64_t len)
     obj_t string = vector(TYPE_CHAR, len + 1);
 
     if (!string)
-        emit(ERR_HEAP, "oom");
+        throw(ERR_HEAP, "oom");
 
     as_string(string)[len] = '\0';
     string->len = len;
@@ -208,7 +208,7 @@ obj_t list(u64_t len, ...)
     l = (obj_t)heap_alloc(sizeof(struct obj_t) + sizeof(obj_t) * len);
 
     if (!l)
-        emit(ERR_HEAP, "oom");
+        throw(ERR_HEAP, "oom");
 
     l->mmod = MMOD_INTERNAL;
     l->refc = 1;
@@ -234,7 +234,7 @@ obj_t dict(obj_t keys, obj_t vals)
     dict = list(2, keys, vals);
 
     if (!dict)
-        emit(ERR_HEAP, "oom");
+        throw(ERR_HEAP, "oom");
 
     dict->type = TYPE_DICT;
 
@@ -246,7 +246,7 @@ obj_t table(obj_t keys, obj_t vals)
     obj_t t = list(2, keys, vals);
 
     if (!t)
-        emit(ERR_HEAP, "oom");
+        throw(ERR_HEAP, "oom");
 
     t->type = TYPE_TABLE;
 
@@ -258,7 +258,7 @@ obj_t venum(obj_t sym, obj_t vec)
     obj_t e = list(2, sym, vec);
 
     if (!e)
-        emit(ERR_HEAP, "oom");
+        throw(ERR_HEAP, "oom");
 
     e->type = TYPE_ENUM;
 
@@ -270,7 +270,7 @@ obj_t anymap(obj_t sym, obj_t vec)
     obj_t e = list(2, sym, vec);
 
     if (!e)
-        emit(ERR_HEAP, "oom");
+        throw(ERR_HEAP, "oom");
 
     e->type = TYPE_ANYMAP;
 
@@ -287,7 +287,7 @@ obj_t error(i8_t code, str_t msg)
     obj_t obj = list(5, i64(code), string_from_str(msg, strlen(msg)), NULL, NULL, NULL);
 
     if (!obj)
-        emit(ERR_HEAP, "oom");
+        throw(ERR_HEAP, "oom");
 
     obj->mmod = MMOD_INTERNAL;
     obj->refc = 1;
@@ -374,7 +374,7 @@ obj_t push_obj(obj_t *obj, obj_t val)
             return res;
         }
 
-        emit(ERR_TYPE, "join: invalid types: %d, %d", (*obj)->type, val->type);
+        throw(ERR_TYPE, "join: invalid types: %d, %d", (*obj)->type, val->type);
     }
 }
 
@@ -449,7 +449,7 @@ obj_t ins_obj(obj_t *obj, i64_t idx, obj_t val)
         ret = ins_raw(obj, idx, &val);
         break;
     default:
-        throw("write obj: invalid type: %d", (*obj)->type);
+        throw(ERR_TYPE, "write obj: invalid type: %d", (*obj)->type);
     }
 
     return ret;
@@ -580,7 +580,7 @@ dispatch:
         return res;
 
     default:
-        throw("at_idx: invalid type: %d", obj->type);
+        throw(ERR_TYPE, "at_idx: invalid type: %d", obj->type);
     }
 }
 
@@ -614,7 +614,7 @@ obj_t at_obj(obj_t obj, obj_t idx)
             return at_idx(as_list(obj)[1], i);
         }
 
-        throw("at_obj: invalid type: %d", obj->type);
+        throw(ERR_TYPE, "at_obj: invalid type: %d", obj->type);
     }
 }
 
@@ -644,7 +644,7 @@ obj_t set_idx(obj_t *obj, i64_t idx, obj_t val)
             return *obj;
         }
 
-        emit(ERR_TYPE, "set_idx: invalid types: %d, %d", (*obj)->type, val->type);
+        throw(ERR_TYPE, "set_idx: invalid types: %d, %d", (*obj)->type, val->type);
     }
 }
 
@@ -675,7 +675,7 @@ obj_t set_obj(obj_t *obj, obj_t idx, obj_t val)
                 res = push_obj(&as_list(*obj)[1], val);
 
                 if (res->type == TYPE_ERROR)
-                    throw("set_obj: inconsistent update");
+                    panic("set_obj: inconsistent update");
 
                 return *obj;
             }
@@ -685,7 +685,7 @@ obj_t set_obj(obj_t *obj, obj_t idx, obj_t val)
             return *obj;
         }
 
-        emit(ERR_TYPE, "set_obj: invalid types: %d, %d", (*obj)->type, val->type);
+        throw(ERR_TYPE, "set_obj: invalid types: %d, %d", (*obj)->type, val->type);
     }
 }
 
@@ -710,7 +710,7 @@ obj_t pop_obj(obj_t *obj)
         return as_list(*obj)[--(*obj)->len];
 
     default:
-        throw("pop_obj: invalid type: %d", (*obj)->type);
+        panic("pop_obj: invalid type: %d", (*obj)->type);
     }
 }
 
@@ -860,7 +860,7 @@ i64_t find_raw(obj_t obj, raw_t val)
                 return i;
         return l;
     default:
-        throw("find: invalid type: %d", obj->type);
+        panic("find: invalid type: %d", obj->type);
     }
 }
 
@@ -882,7 +882,7 @@ i64_t find_obj(obj_t obj, obj_t val)
     case TYPE_LIST:
         return find_raw(obj, &val);
     default:
-        throw("find: invalid type: %d", obj->type);
+        panic("find: invalid type: %d", obj->type);
     }
 }
 
@@ -906,7 +906,7 @@ obj_t cast(type_t type, obj_t obj)
     {
         s = obj_fmt(obj);
         if (s == NULL)
-            throw("obj_fmt() returned NULL");
+            panic("obj_fmt() returned NULL");
         res = string_from_str(s, strlen(s));
         heap_free(s);
         return res;
@@ -1171,7 +1171,7 @@ obj_t cow(obj_t obj)
         res->rc = 2;
         return res;
     default:
-        emit(ERR_NOT_IMPLEMENTED, "cow: not implemented");
+        throw(ERR_NOT_IMPLEMENTED, "cow: not implemented");
     }
 }
 
@@ -1226,7 +1226,7 @@ obj_t eval_obj(i64_t fd, str_t name, obj_t obj)
         return executed;
     }
 
-    emit(ERR_NOT_IMPLEMENTED, "eval: not implemented");
+    throw(ERR_NOT_IMPLEMENTED, "eval: not implemented");
 
     // sync request
     if (fd > 0)
@@ -1236,10 +1236,10 @@ obj_t eval_obj(i64_t fd, str_t name, obj_t obj)
         // drop(v);
 
         // if (r == -1)
-        //     emit(ERR_IO, "write: failed to write to socket: %s", get_os_error());
+        //     throw(ERR_IO, "write: failed to write to socket: %s", get_os_error());
 
         // if (sock_recv(x->i64, (u8_t *)&header, sizeof(header_t)) == -1)
-        //     emit(ERR_IO, "write: failed to read from socket: %s", get_os_error());
+        //     throw(ERR_IO, "write: failed to read from socket: %s", get_os_error());
 
         // buf = heap_alloc(header.size + sizeof(header_t));
         // memcpy(buf, &header, sizeof(header_t));
@@ -1247,7 +1247,7 @@ obj_t eval_obj(i64_t fd, str_t name, obj_t obj)
         // if (sock_recv(x->i64, buf + sizeof(header_t), header.size) == -1)
         // {
         //     heap_free(buf);
-        //     emit(ERR_IO, "write: failed to read from socket: %s", get_os_error());
+        //     throw(ERR_IO, "write: failed to read from socket: %s", get_os_error());
         // }
 
         // v = de_raw(buf, header.size + sizeof(header_t));

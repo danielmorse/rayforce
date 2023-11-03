@@ -52,7 +52,7 @@ u64_t size_of_type(type_t type)
     case TYPE_LIST:
         return sizeof(obj_t);
     default:
-        throw("sizeof: unknown type: %d", type);
+        panic("sizeof: unknown type: %d", type);
     }
 }
 
@@ -81,7 +81,7 @@ u64_t size_of(obj_t obj)
         size += obj->len * sizeof(i64_t);
         return size;
     default:
-        throw("sizeof: unknown type: %d", obj->type);
+        panic("sizeof: unknown type: %d", obj->type);
     }
 }
 
@@ -327,7 +327,7 @@ obj_t ser(obj_t obj)
     header_t *header;
 
     if (size == 0)
-        emit(ERR_NOT_SUPPORTED, "ser: unsupported type: %d", obj->type);
+        throw(ERR_NOT_SUPPORTED, "ser: unsupported type: %d", obj->type);
 
     buf = vector(TYPE_BYTE, sizeof(struct header_t) + size);
     header = (header_t *)as_u8(buf);
@@ -342,7 +342,7 @@ obj_t ser(obj_t obj)
     if (save_obj(as_u8(buf) + sizeof(struct header_t), size, obj) == 0)
     {
         drop(buf);
-        emit(ERR_NOT_SUPPORTED, "ser: unsupported type: %d", obj->type);
+        throw(ERR_NOT_SUPPORTED, "ser: unsupported type: %d", obj->type);
     }
 
     return buf;
@@ -532,7 +532,7 @@ obj_t load_obj(u8_t **buf, u64_t len)
         return obj;
 
     default:
-        emit(ERR_NOT_SUPPORTED, "load_obj: unsupported type: %d", type);
+        throw(ERR_NOT_SUPPORTED, "load_obj: unsupported type: %d", type);
     }
 }
 
@@ -541,7 +541,7 @@ obj_t de_raw(u8_t *buf, u64_t len)
     header_t *header = (header_t *)buf;
 
     if (header->version > RAYFORCE_VERSION)
-        emit(ERR_NOT_SUPPORTED, "de: version '%d' is higher than supported", header->version);
+        throw(ERR_NOT_SUPPORTED, "de: version '%d' is higher than supported", header->version);
 
     if (header->size + sizeof(struct header_t) != len)
         return error(ERR_IO, "de: corrupted data in a buffer");

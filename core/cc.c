@@ -313,7 +313,7 @@ cc_result_t cc_compile_try(bool_t has_consumer, cc_t *cc, obj_t obj, u32_t arity
     return CC_OK;
 }
 
-cc_result_t cc_compile_throw(cc_t *cc, obj_t obj, u32_t arity)
+cc_result_t cc_compile_panic(cc_t *cc, obj_t obj, u32_t arity)
 {
     cc_result_t res;
     obj_t car = as_list(obj)[0];
@@ -321,7 +321,7 @@ cc_result_t cc_compile_throw(cc_t *cc, obj_t obj, u32_t arity)
     obj_t *code = &func->code;
 
     if (arity != 1)
-        cerr(cc, car, ERR_LENGTH, "'throw': expects 1 argument");
+        cerr(cc, car, ERR_LENGTH, "'panic': expects 1 argument");
 
     res = cc_compile_expr(true, cc, as_list(obj)[1]);
 
@@ -467,14 +467,14 @@ obj_t at_sym(obj_t x, obj_t y)
             {
                 cols->len = i;
                 drop(cols);
-                emit(ERR_INDEX, "at: column '%s' has not found in a table", symtostr(as_symbol(y)[i]));
+                throw(ERR_INDEX, "at: column '%s' has not found in a table", symtostr(as_symbol(y)[i]));
             }
         }
 
         return table(clone(y), cols);
 
     default:
-        emit(ERR_TYPE, "at: unsupported types");
+        throw(ERR_TYPE, "at: unsupported types");
     }
 }
 
@@ -754,7 +754,7 @@ cc_result_t cc_compile_special_forms(bool_t has_consumer, cc_t *cc, obj_t obj, u
     case KW_TRY:
         return cc_compile_try(has_consumer, cc, obj, arity);
     case KW_THROW:
-        return cc_compile_throw(cc, obj, arity);
+        return cc_compile_panic(cc, obj, arity);
     case KW_SELECT:
         return cc_compile_select(has_consumer, cc, obj, arity);
     // case KW_EVAL:

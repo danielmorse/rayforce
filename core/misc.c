@@ -60,7 +60,7 @@ obj_t ray_distinct(obj_t x)
         res->type = TYPE_SYMBOL;
         return res;
     default:
-        emit(ERR_TYPE, "distinct: invalid type: %d", x->type);
+        throw(ERR_TYPE, "distinct: invalid type: %d", x->type);
     }
 }
 
@@ -103,7 +103,7 @@ dispatch:
         x = as_list(x)[0];
         goto dispatch;
     default:
-        emit(ERR_TYPE, "group: invalid type: %d", x->type);
+        throw(ERR_TYPE, "group: invalid type: %d", x->type);
     }
 
     l = as_list(g)[0]->len;
@@ -139,7 +139,7 @@ obj_t ray_parse(obj_t x)
         parser_free(&parser);
         return res;
     default:
-        emit(ERR_TYPE, "parse: unsupported type: %d", x->type);
+        throw(ERR_TYPE, "parse: unsupported type: %d", x->type);
     }
 }
 
@@ -172,7 +172,7 @@ obj_t ray_read_parse_compile(obj_t x)
 
     //     return com;
     default:
-        emit(ERR_TYPE, "read_parse_compile: unsupported type: %d", x->type);
+        throw(ERR_TYPE, "read_parse_compile: unsupported type: %d", x->type);
     }
 }
 

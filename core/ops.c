@@ -202,7 +202,7 @@ bool_t ops_eq_idx(obj_t a, i64_t ai, obj_t b, i64_t bi)
         dropn(2, lv, rv);
         return eq;
     default:
-        throw("hash: unsupported type: %d", a->type);
+        panic("hash: unsupported type: %d", a->type);
     }
 }
 
@@ -244,7 +244,7 @@ u64_t ops_hash_obj(obj_t obj)
         return hash;
 
     default:
-        throw("hash: unsupported type: %d", obj->type);
+        panic("hash: unsupported type: %d", obj->type);
     }
 }
 
@@ -309,7 +309,7 @@ nil_t ops_hash_list(obj_t obj, u64_t out[], u64_t len)
         }
         break;
     default:
-        throw("hash list: unsupported type: %d", obj->type);
+        panic("hash list: unsupported type: %d", obj->type);
     }
 }
 

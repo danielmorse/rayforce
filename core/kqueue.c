@@ -481,7 +481,7 @@ obj_t ipc_send_sync(poll_t poll, i64_t id, obj_t msg)
     idx = freelist_get(poll->selectors, id - SELECTOR_ID_OFFSET);
 
     if (idx == NULL_I64)
-        emit(ERR_IO, "ipc_send_sync: invalid socket fd: %lld", id);
+        throw(ERR_IO, "ipc_send_sync: invalid socket fd: %lld", id);
 
     selector = (selector_t)idx;
 
@@ -566,16 +566,16 @@ obj_t ipc_send_async(poll_t poll, i64_t id, obj_t msg)
     idx = freelist_get(poll->selectors, id - SELECTOR_ID_OFFSET);
 
     if (idx == NULL_I64)
-        emit(ERR_IO, "ipc_send_sync: invalid socket fd: %lld", id);
+        throw(ERR_IO, "ipc_send_sync: invalid socket fd: %lld", id);
 
     selector = (selector_t)idx;
     if (selector == NULL)
-        emit(ERR_IO, "ipc_send_async: invalid socket fd: %lld", id);
+        throw(ERR_IO, "ipc_send_async: invalid socket fd: %lld", id);
 
     queue_push(&selector->tx.queue, (nil_t *)msg);
 
     if (_send(poll, selector) == POLL_ERROR)
-        emit(ERR_IO, "ipc_send_async: error sending message");
+        throw(ERR_IO, "ipc_send_async: error sending message");
 
     return null(0);
 }

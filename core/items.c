@@ -180,7 +180,7 @@ obj_t ray_at(obj_t x, obj_t y)
                     return clone(as_list(as_list(x)[1])[j]);
             }
 
-            emit(ERR_INDEX, "at: column '%s' has not found in a table", symtostr(as_symbol(y)[0]));
+            throw(ERR_INDEX, "at: column '%s' has not found in a table", symtostr(as_symbol(y)[0]));
         }
 
         cols = vector(TYPE_LIST, yl);
@@ -199,7 +199,7 @@ obj_t ray_at(obj_t x, obj_t y)
             {
                 cols->len = i;
                 drop(cols);
-                emit(ERR_INDEX, "at: column '%s' has not found in a table", symtostr(as_symbol(y)[i]));
+                throw(ERR_INDEX, "at: column '%s' has not found in a table", symtostr(as_symbol(y)[i]));
             }
         }
 
@@ -215,7 +215,7 @@ obj_t ray_at(obj_t x, obj_t y)
         if (y->i64 >= (i64_t)v->len)
         {
             drop(s);
-            emit(ERR_INDEX, "at: enum can not be resolved: index out of range");
+            throw(ERR_INDEX, "at: enum can not be resolved: index out of range");
         }
 
         if (!s || is_error(s) || s->type != TYPE_SYMBOL)
@@ -227,7 +227,7 @@ obj_t ray_at(obj_t x, obj_t y)
         if (as_i64(v)[y->i64] >= (i64_t)s->len)
         {
             drop(s);
-            emit(ERR_INDEX, "at: enum can not be resolved: index out of range");
+            throw(ERR_INDEX, "at: enum can not be resolved: index out of range");
         }
 
         res = at_idx(s, as_i64(v)[y->i64]);
@@ -261,7 +261,7 @@ obj_t ray_at(obj_t x, obj_t y)
                 {
                     drop(s);
                     drop(res);
-                    emit(ERR_INDEX, "at: enum can not be resolved: index out of range");
+                    throw(ERR_INDEX, "at: enum can not be resolved: index out of range");
                 }
 
                 as_i64(res)[i] = as_i64(v)[as_i64(y)[i]];
@@ -280,7 +280,7 @@ obj_t ray_at(obj_t x, obj_t y)
             {
                 drop(s);
                 drop(res);
-                emit(ERR_INDEX, "at: enum can not be resolved: index out of range");
+                throw(ERR_INDEX, "at: enum can not be resolved: index out of range");
             }
 
             as_symbol(res)[i] = as_symbol(s)[as_i64(v)[as_i64(y)[i]]];
@@ -298,7 +298,7 @@ obj_t ray_at(obj_t x, obj_t y)
         yl = v->len;
 
         if (y->i64 >= (i64_t)v->len)
-            emit(ERR_INDEX, "at: anymap can not be resolved: index out of range");
+            throw(ERR_INDEX, "at: anymap can not be resolved: index out of range");
 
         buf = as_u8(k) + as_i64(v)[y->i64];
 
@@ -319,7 +319,7 @@ obj_t ray_at(obj_t x, obj_t y)
             {
                 res->len = i;
                 drop(res);
-                emit(ERR_INDEX, "at: anymap can not be resolved: index out of range");
+                throw(ERR_INDEX, "at: anymap can not be resolved: index out of range");
             }
 
             buf = as_u8(k) + as_i64(v)[as_i64(y)[i]];
@@ -331,8 +331,6 @@ obj_t ray_at(obj_t x, obj_t y)
     default:
         return at_obj(x, y);
     }
-
-    return null(0);
 }
 
 typedef struct __items_find_ctx_t
@@ -420,7 +418,7 @@ obj_t ray_find(obj_t x, obj_t y)
 
         return res;
     default:
-        emit(ERR_TYPE, "find: unsupported types: %d %d", x->type, y->type);
+        throw(ERR_TYPE, "find: unsupported types: %d %d", x->type, y->type);
     }
 }
 
@@ -557,7 +555,7 @@ obj_t ray_filter(obj_t x, obj_t y)
         return table(clone(as_list(x)[0]), res);
 
     default:
-        emit(ERR_TYPE, "filter: unsupported types: %d %d", x->type, y->type);
+        throw(ERR_TYPE, "filter: unsupported types: %d %d", x->type, y->type);
     }
 }
 
@@ -670,7 +668,7 @@ obj_t ray_take(obj_t x, obj_t y)
                 {
                     drop(s);
                     drop(res);
-                    emit(ERR_INDEX, "take: enum can not be resolved: index out of range");
+                    throw(ERR_INDEX, "take: enum can not be resolved: index out of range");
                 }
 
                 as_symbol(res)[i] = as_symbol(s)[as_i64(v)[i % m]];
@@ -684,7 +682,7 @@ obj_t ray_take(obj_t x, obj_t y)
                 {
                     drop(s);
                     drop(res);
-                    emit(ERR_INDEX, "take: enum can not be resolved: index out of range");
+                    throw(ERR_INDEX, "take: enum can not be resolved: index out of range");
                 }
 
                 as_symbol(res)[i] = as_symbol(s)[as_i64(v)[m - 1 - (i % m)]];
@@ -727,7 +725,7 @@ obj_t ray_take(obj_t x, obj_t y)
                 {
                     res->len = i;
                     drop(res);
-                    emit(ERR_INDEX, "anymap value: index out of range: %d", as_i64(s)[i % n]);
+                    throw(ERR_INDEX, "anymap value: index out of range: %d", as_i64(s)[i % n]);
                 }
             }
         }
@@ -753,7 +751,7 @@ obj_t ray_take(obj_t x, obj_t y)
                 {
                     res->len = i;
                     drop(res);
-                    emit(ERR_INDEX, "anymap value: index out of range: %d", as_i64(s)[n - 1 - (i % n)]);
+                    throw(ERR_INDEX, "anymap value: index out of range: %d", as_i64(s)[n - 1 - (i % n)]);
                 }
             }
         }
@@ -856,7 +854,7 @@ obj_t ray_take(obj_t x, obj_t y)
         return res;
 
     default:
-        emit(ERR_TYPE, "take: unsupported types: %d %d", x->type, y->type);
+        throw(ERR_TYPE, "take: unsupported types: %d %d", x->type, y->type);
     }
 }
 
@@ -896,7 +894,7 @@ obj_t ray_in(obj_t x, obj_t y)
             return vec;
 
         default:
-            emit(ERR_TYPE, "in: unsupported types: %d %d", x->type, y->type);
+            throw(ERR_TYPE, "in: unsupported types: %d %d", x->type, y->type);
         }
 
     return null(0);
@@ -916,7 +914,7 @@ obj_t ray_sect(obj_t x, obj_t y)
         return res;
 
     default:
-        emit(ERR_TYPE, "sect: unsupported types: %d %d", x->type, y->type);
+        throw(ERR_TYPE, "sect: unsupported types: %d %d", x->type, y->type);
     }
 
     return null(0);
@@ -952,7 +950,7 @@ obj_t ray_except(obj_t x, obj_t y)
         drop(nmask);
         return res;
     default:
-        emit(ERR_TYPE, "except: unsupported types: %d %d", x->type, y->type);
+        throw(ERR_TYPE, "except: unsupported types: %d %d", x->type, y->type);
     }
 }
 
@@ -1087,7 +1085,7 @@ obj_t ray_value(obj_t x)
             {
                 res->len = i;
                 drop(res);
-                emit(ERR_INDEX, "anymap value: index out of range: %d", as_i64(e)[i]);
+                throw(ERR_INDEX, "anymap value: index out of range: %d", as_i64(e)[i]);
             }
         }
 
@@ -1174,6 +1172,6 @@ obj_t ray_where(obj_t x)
         return res;
 
     default:
-        emit(ERR_TYPE, "where: unsupported type: %d", x->type);
+        throw(ERR_TYPE, "where: unsupported type: %d", x->type);
     }
 }

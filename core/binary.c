@@ -359,7 +359,7 @@ obj_t ray_call_binary_atomic(binary_f f, obj_t x, obj_t y)
     type_t xt, yt;
 
     if (!x || !y)
-        emit(ERR_TYPE, "binary: null argument");
+        throw(ERR_TYPE, "binary: null argument");
 
     xt = x->type;
     yt = y->type;
@@ -584,7 +584,7 @@ obj_t ray_set(obj_t x, obj_t y)
             return clone(x);
         case TYPE_TABLE:
             if (as_string(x)[x->len - 1] != '/')
-                emit(ERR_TYPE, "set: table path must be a directory");
+                throw(ERR_TYPE, "set: table path must be a directory");
 
             // save columns schema
             s = string_from_str(".d", 2);
@@ -758,7 +758,7 @@ obj_t ray_set(obj_t x, obj_t y)
                     drop(buf);
                     drop(k);
 
-                    emit(ERR_NOT_SUPPORTED, "set: unsupported type: %d", y->type);
+                    throw(ERR_NOT_SUPPORTED, "set: unsupported type: %d", y->type);
                 }
 
                 as_i64(k)[i] = size;
@@ -856,10 +856,10 @@ obj_t ray_set(obj_t x, obj_t y)
                 return clone(x);
             }
 
-            emit(ERR_TYPE, "set: unsupported types: %d %d", x->type, y->type);
+            throw(ERR_TYPE, "set: unsupported types: %d %d", x->type, y->type);
         }
 
     default:
-        emit(ERR_TYPE, "set: unsupported types: %d %d", x->type, y->type);
+        throw(ERR_TYPE, "set: unsupported types: %d %d", x->type, y->type);
     }
 }
