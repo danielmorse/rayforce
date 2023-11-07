@@ -243,6 +243,7 @@ obj_t ray_table(obj_t x, obj_t y)
             drop(c);
             break;
         case TYPE_VECMAP:
+        case TYPE_ENUM:
         case TYPE_LISTMAP:
             as_list(lst)[i] = ray_value(as_list(y)[i]);
             break;

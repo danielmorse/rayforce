@@ -86,6 +86,19 @@ u64_t ops_rand_u64()
     return __RND_SEED__;
 }
 
+inline __attribute__((always_inline)) u64_t hashu64(u64_t h, u64_t k)
+{
+    u64_t a, b;
+
+    a = (h ^ k) * 0x9ddfea08eb382d69ull;
+    a ^= (a >> 47);
+    b = (roti64(k, 31) ^ a) * 0x9ddfea08eb382d69ull;
+    b ^= (b >> 47);
+    b *= 0x9ddfea08eb382d69ull;
+
+    return b;
+}
+
 bool_t cnt_update(i64_t key, i64_t val, nil_t *seed, i64_t *tkey, i64_t *tval)
 {
     unused(key);
@@ -122,77 +135,115 @@ bool_t pos_update(i64_t key, i64_t val, nil_t *seed, i64_t *tkey, i64_t *tval)
     return true;
 }
 
-obj_t ops_distinct(obj_t x)
+obj_t ops_distinct_raw(i64_t x[], u64_t len)
 {
-    i64_t i, j, l, r, p, min, max, range, k, w, b;
-    obj_t mask, vec, set;
+    u64_t i, j, range;
+    i64_t p, min, max, k, *out;
+    obj_t vec, set;
 
-    if (!x || x->len == 0)
-        return vector_i64(0);
+    min = max = x[0];
 
-    if (x->attrs & ATTR_DISTINCT)
-        return clone(x);
-
-    min = max = as_i64(x)[0];
-
-    l = x->len;
-
-    for (i = 0; i < l; i++)
+    for (i = 0; i < len; i++)
     {
-        if (as_i64(x)[i] < min)
-            min = as_i64(x)[i];
-        else if (as_i64(x)[i] > max)
-            max = as_i64(x)[i];
+        max = (x[i] > max) ? x[i] : max;
+        min = (x[i] < min) ? x[i] : min;
     }
 
     range = max - min + 1;
 
-    if (range <= l)
+    // use open addressing if range is small
+    if (range <= len)
     {
-        r = alignup(range / 8, 8);
-        if (!r)
-            r = 1;
-
-        mask = vector_bool(r);
-        memset(as_bool(mask), 0, r);
         vec = vector_i64(range);
+        out = as_i64(vec);
+        memset(out, 0, sizeof(i64_t) * range);
 
-        for (i = 0, j = 0; i < l; i++)
+        for (i = 0; i < len; i++)
+            out[x[i] - min]++;
+
+        // compact keys
+        for (i = 0, j = 0; i < range; i++)
         {
-            k = as_i64(x)[i] - min;
-            w = k >> 3; // k / 8
-            b = k & 7;  // k % 8
-
-            if (as_bool(mask)[w] & (1 << b))
-                continue;
-
-            as_bool(mask)[w] |= (1 << b);
-            as_i64(vec)[j++] = as_i64(x)[i];
+            if (out[i])
+                out[j++] = i + min;
         }
 
-        drop(mask);
-
         resize(&vec, j);
+        vec->attrs |= ATTR_DISTINCT;
 
         return vec;
     }
 
-    set = ht_tab(l, -1);
-    vec = vector_i64(l);
+    // otherwise, use a hash table
+    set = ht_tab(len, -1);
 
-    for (i = 0, j = 0; i < l; i++)
+    for (i = 0; i < len; i++)
     {
-        p = ht_tab_next(&set, as_i64(x)[i] - min);
-        if (as_i64(as_list(set)[0])[p] == NULL_I64)
-        {
-            as_i64(as_list(set)[0])[p] = as_i64(x)[i] - min;
-            as_i64(vec)[j++] = as_i64(x)[i];
-        }
+        k = x[i] - min;
+        p = ht_tab_next(&set, k);
+        out = as_i64(as_list(set)[0]);
+        if (out[p] == NULL_I64)
+            out[p] = k;
     }
 
-    vec->attrs |= ATTR_DISTINCT;
+    // compact keys
+    out = as_i64(as_list(set)[0]);
+    len = as_list(set)[0]->len;
+    for (i = 0, j = 0; i < len; i++)
+    {
+        if (out[i] != NULL_I64)
+            out[j++] = out[i] + min;
+    }
 
-    resize(&vec, j);
+    resize(&as_list(set)[0], j);
+    vec = clone(as_list(set)[0]);
+    vec->attrs |= ATTR_DISTINCT;
+    drop(set);
+
+    return vec;
+}
+
+i32_t __obj_cmp(i64_t a, i64_t b, nil_t *seed)
+{
+    unused(seed);
+    return objcmp((obj_t)a, (obj_t)b);
+}
+
+u64_t __obj_hash(i64_t a, nil_t *seed)
+{
+    unused(seed);
+    return ops_hash_obj((obj_t)a);
+}
+
+obj_t ops_distinct_obj(obj_t x[], u64_t len)
+{
+    u64_t i, j;
+    i64_t p, *out;
+    obj_t vec, set;
+
+    set = ht_tab(len, -1);
+
+    for (i = 0; i < len; i++)
+    {
+        p = ht_tab_next_with(&set, (i64_t)x[i], &__obj_hash, &__obj_cmp, NULL);
+        out = as_i64(as_list(set)[0]);
+        if (out[p] == NULL_I64)
+            out[p] = (i64_t)clone(x[i]);
+    }
+
+    // compact keys
+    out = as_i64(as_list(set)[0]);
+    len = as_list(set)[0]->len;
+    for (i = 0, j = 0; i < len; i++)
+    {
+        if (out[i] != NULL_I64)
+            out[j++] = out[i];
+    }
+
+    resize(&as_list(set)[0], j);
+    vec = clone(as_list(set)[0]);
+    vec->attrs |= ATTR_DISTINCT;
+    vec->type = TYPE_LIST;
     drop(set);
 
     return vec;
@@ -232,19 +283,6 @@ bool_t ops_eq_idx(obj_t a, i64_t ai, obj_t b, i64_t bi)
     default:
         panic("hash: unsupported type: %d", a->type);
     }
-}
-
-inline __attribute__((always_inline)) u64_t hashu64(u64_t h, u64_t k)
-{
-    u64_t a, b;
-
-    a = (h ^ k) * 0x9ddfea08eb382d69ull;
-    a ^= (a >> 47);
-    b = (roti64(k, 31) ^ a) * 0x9ddfea08eb382d69ull;
-    b ^= (b >> 47);
-    b *= 0x9ddfea08eb382d69ull;
-
-    return b;
 }
 
 u64_t ops_hash_obj(obj_t obj)
@@ -456,18 +494,6 @@ obj_t ops_find(i64_t x[], u64_t xl, i64_t y[], u64_t yl)
     return vec;
 }
 
-u64_t ghash(i64_t a, nil_t *seed)
-{
-    unused(seed);
-    return hashu64((u64_t)a, 0xa5b6c7d8e9f01234ull);
-}
-
-i32_t gcmp(i64_t a, i64_t b, nil_t *seed)
-{
-    unused(seed);
-    return a - b;
-}
-
 obj_t ops_group(i64_t values[], i64_t indices[], i64_t len)
 {
     i64_t i, j, n, m, l, idx, min, max, range, *hk, *hv;
@@ -581,6 +607,7 @@ obj_t ops_group(i64_t values[], i64_t indices[], i64_t len)
     }
 
     hk = as_i64(as_list(ht)[0]);
+    hv = as_i64(as_list(ht)[1]);
     vv = as_list(as_list(ht)[1]);
     m = as_list(ht)[0]->len;
 

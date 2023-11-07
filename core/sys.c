@@ -55,7 +55,7 @@ sys_info_t get_sys_info()
     {
         if (strncmp(line, "model name", 10) == 0)
         {
-            strncpy(info.cpu, strchr(line, ':') + 2, sizeof(info.cpu));
+            strncpy(info.cpu, strchr(line, ':') + 2, sizeof(info.cpu) - 1);
             info.cpu[strcspn(info.cpu, "\n")] = 0; // Remove the newline
             break;
         }

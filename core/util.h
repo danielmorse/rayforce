@@ -97,7 +97,7 @@
 /*
  * Create a new error object and return it
  */
-#define throw(t, ...)                        \
+#define throw(t, ...)                       \
     {                                       \
         str_t _m = str_fmt(0, __VA_ARGS__); \
         obj_t _e = error(t, _m);            \

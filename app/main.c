@@ -38,20 +38,20 @@
 
 nil_t print_logo()
 {
-    sys_info_t nfo = get_sys_info();
-    str_t logo = str_fmt(0, LOGO, RAYFORCE_MAJOR_VERSION, RAYFORCE_MINOR_VERSION, __DATE__, nfo.cpu, nfo.mem);
-    printf("%s%s%s", BOLD, logo, RESET);
-    heap_free(logo);
+  sys_info_t nfo = get_sys_info();
+  str_t logo = str_fmt(0, LOGO, RAYFORCE_MAJOR_VERSION, RAYFORCE_MINOR_VERSION, __DATE__, nfo.cpu, nfo.mem);
+  printf("%s%s%s", BOLD, logo, RESET);
+  heap_free(logo);
 }
 
 i32_t main(i32_t argc, str_t argv[])
 {
-    i32_t code = -1;
+  i32_t code = -1;
 
-    runtime_init(argc, argv);
-    print_logo();
-    code = runtime_run();
-    runtime_cleanup();
+  runtime_init(argc, argv);
+  print_logo();
+  code = runtime_run();
+  runtime_cleanup();
 
-    return code;
+  return code;
 }

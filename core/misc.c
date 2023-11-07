@@ -54,10 +54,13 @@ obj_t ray_distinct(obj_t x)
     switch (x->type)
     {
     case TYPE_I64:
-        return ops_distinct(x);
     case TYPE_SYMBOL:
-        res = ops_distinct(x);
-        res->type = TYPE_SYMBOL;
+    case TYPE_TIMESTAMP:
+        res = ops_distinct_raw(as_i64(x), x->len);
+        res->type = x->type;
+        return res;
+    case TYPE_LIST:
+        res = ops_distinct_obj(as_list(x), x->len);
         return res;
     default:
         throw(ERR_TYPE, "distinct: invalid type: '%s", typename(x->type));
@@ -66,8 +69,8 @@ obj_t ray_distinct(obj_t x)
 
 obj_t ray_group(obj_t x)
 {
-    obj_t g, k, v, res;
-    u64_t i, l;
+    obj_t res;
+    u64_t l;
     i64_t *indices = NULL;
 
 dispatch:
@@ -77,26 +80,14 @@ dispatch:
     case TYPE_SYMBOL:
     case TYPE_TIMESTAMP:
         l = indices == NULL ? x->len : l;
-        g = ops_group(as_i64(x), indices, l);
-        as_list(g)[0]->type = x->type;
-        return g;
+        res = ops_group(as_i64(x), indices, l);
+        as_list(res)[0]->type = x->type;
+        return res;
     case TYPE_ENUM:
         l = indices == NULL ? ops_count(x) : l;
-        k = ray_key(x);
-        v = ray_get(k);
-        drop(k);
-        if (is_error(v))
-            return v;
-
-        g = ops_group(as_i64(enum_val(x)), indices, l);
-        drop(v);
-        l = as_list(g)[0]->len;
-        res = vector(TYPE_SYMBOL, l);
-        for (i = 0; i < l; i++)
-            as_symbol(res)[i] = as_symbol(v)[as_i64(as_list(g)[0])[i]];
-        drop(as_list(g)[0]);
-        as_list(g)[0] = res;
-        break;
+        res = ops_group(as_i64(enum_val(x)), indices, l);
+        as_list(res)[0] = venum(ray_key(x), as_list(res)[0]);
+        return res;
     case TYPE_VECMAP:
         l = as_list(x)[1]->len;
         indices = as_i64(as_list(x)[1]);
