@@ -56,7 +56,7 @@ obj_t call_unary(u8_t attrs, unary_f f, obj_t x)
         vmap = list(2, as_list(x)[0], as_list(as_list(x)[1])[0]);
         vmap->type = TYPE_VECMAP;
 
-        item = call_unary(attrs, f, vmap);
+        item = f(vmap);
 
         if (is_error(item))
         {
@@ -74,7 +74,7 @@ obj_t call_unary(u8_t attrs, unary_f f, obj_t x)
             as_list(vmap)[0] = as_list(x)[0];
             as_list(vmap)[1] = as_list(as_list(x)[1])[i];
 
-            item = call_unary(attrs, f, vmap);
+            item = f(vmap);
 
             if (is_error(item))
             {
