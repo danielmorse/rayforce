@@ -376,7 +376,7 @@ __attribute__((hot)) obj_t eval(obj_t obj)
                 stack_push(x);
             }
 
-            return unwrap(call(car, len), (i64_t)obj);
+            return unwrap(lambda_call(attrs, car, stack_peek(len - 1), len), (i64_t)obj);
 
         case -TYPE_SYMBOL:
             car = get_symbol(car);

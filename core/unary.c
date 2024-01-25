@@ -91,7 +91,7 @@ obj_t unary_call_atomic(u8_t attrs, unary_f f, obj_t x)
         if (is_error(item))
             return item;
 
-        res = item->type < 0 ? vector(item->type, l) : vector(TYPE_LIST, l);
+        res = item->type < 0 ? vector(item->type, l) : list(l);
 
         ins_obj(&res, 0, item);
 

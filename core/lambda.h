@@ -39,6 +39,6 @@ typedef struct lambda_t
 
 obj_t lambda(obj_t args, obj_t body, obj_t nfo);
 
-// obj_t ray_call_lambda(u8_t attrs, vary_f f, obj_t *x, u64_t n);
+obj_t lambda_call(u8_t attrs, obj_t f, obj_t *x, u64_t n);
 
 #endif

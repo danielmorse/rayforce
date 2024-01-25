@@ -24,6 +24,9 @@
 #include "lambda.h"
 #include "string.h"
 #include "heap.h"
+#include "eval.h"
+#include "util.h"
+#include "group.h"
 
 obj_t lambda(obj_t args, obj_t body, obj_t nfo)
 {
@@ -39,4 +42,79 @@ obj_t lambda(obj_t args, obj_t body, obj_t nfo)
     obj->rc = 1;
 
     return obj;
+}
+
+obj_t lambda_map(obj_t f, u64_t l, obj_t *x, u64_t n)
+{
+    u64_t i, j;
+    obj_t v, res;
+
+    if (n == 0 || l == 0)
+        return null(0);
+
+    for (j = 0; j < n; j++)
+        stack_push(at_idx(x[j], 0));
+
+    v = call(f, n);
+
+    if (is_error(v))
+    {
+        res = v;
+        goto cleanup;
+    }
+
+    res = v->type < 0 ? vector(v->type, l) : list(l);
+
+    ins_obj(&res, 0, v);
+
+    for (i = 1; i < l; i++)
+    {
+        for (j = 0; j < n; j++)
+            stack_push(at_idx(x[j], i));
+
+        v = call(f, n);
+
+        if (is_error(v))
+        {
+            res->len = i;
+            drop(res);
+            res = v;
+            goto cleanup;
+        }
+
+        ins_obj(&res, i, v);
+    }
+
+// cleanup stack
+cleanup:
+    for (j = 0; j < n; j++)
+        stack_pop();
+    debug_obj(res);
+    return res;
+}
+
+obj_t lambda_call(u8_t attrs, obj_t f, obj_t *x, u64_t n)
+{
+    u64_t i, l;
+    obj_t v;
+
+    l = ops_count(x[0]);
+
+    // Collect groups and map lambda over each group
+    if (attrs & FN_GROUP_MAP)
+    {
+        for (i = 0; i < n; i++)
+        {
+            v = x[i];
+            if (v->type == TYPE_GROUPMAP)
+            {
+                x[i] = group_collect(v);
+                drop(v);
+            }
+        }
+
+        return lambda_map(f, l, x, n);
+    }
+
+    return call(f, n);
 }
