@@ -88,7 +88,7 @@ obj_t lambda_map(obj_t f, u64_t l, obj_t *x, u64_t n)
 // cleanup stack
 cleanup:
     for (j = 0; j < n; j++)
-        stack_pop();
+        drop(stack_pop());
 
     return res;
 }
