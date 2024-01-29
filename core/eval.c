@@ -545,7 +545,7 @@ obj_t unmount_env(u64_t n)
     if (ops_count(*env) == n)
     {
         drop(*env);
-        *env = NULL;
+        *env = NULL_OBJ;
     }
     else
     {
@@ -568,7 +568,7 @@ obj_t ray_return(obj_t *x, u64_t n)
         throw(ERR_NOT_SUPPORTED, "return outside of function");
 
     if (n == 0)
-        stack_push(NULL);
+        stack_push(NULL_OBJ);
     else
         stack_push(clone(x[0]));
 
@@ -707,7 +707,7 @@ obj_t try_obj(obj_t obj, obj_t catch)
     obj_t res;
     bool_t sig;
 
-    ctx = ctx_clone(NULL);
+    ctx = ctx_clone(NULL_OBJ);
 
     switch (setjmp(ctx->jmp))
     {
