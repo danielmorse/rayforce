@@ -57,7 +57,7 @@ nil_t *queue_pop(queue_t *queue)
     nil_t *v;
 
     if (queue->head == queue->tail)
-        return NULL;
+        return NULL_OBJ;
 
     v = queue->data[queue->head % queue->size];
     queue->head++;

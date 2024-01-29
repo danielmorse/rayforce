@@ -144,7 +144,7 @@ str_t str_vfmt(i64_t limit, str_t fmt, va_list vargs)
     if (!p)
     {
         // Handle allocation failure
-        return NULL;
+        return NULL_OBJ;
     }
 
     while (1)
@@ -157,7 +157,7 @@ str_t str_vfmt(i64_t limit, str_t fmt, va_list vargs)
         {
             // Handle encoding error
             heap_free(p);
-            return NULL;
+            return NULL_OBJ;
         }
 
         if (n < size)
@@ -172,7 +172,7 @@ str_t str_vfmt(i64_t limit, str_t fmt, va_list vargs)
         {
             // Handle reallocation failure
             heap_free(p);
-            return NULL;
+            return NULL_OBJ;
         }
         p = s;
     }
@@ -837,9 +837,6 @@ i64_t lambda_fmt_into(str_t *dst, i64_t *len, i64_t *offset, i64_t indent, i64_t
 
 i64_t obj_fmt_into(str_t *dst, i64_t *len, i64_t *offset, i64_t indent, i64_t limit, bool_t full, obj_t obj)
 {
-    if (obj == NULL)
-        return str_fmt_into(dst, len, offset, limit, "null");
-
     switch (obj->type)
     {
     case -TYPE_BOOL:
@@ -890,6 +887,8 @@ i64_t obj_fmt_into(str_t *dst, i64_t *len, i64_t *offset, i64_t indent, i64_t li
         return internal_fmt_into(dst, len, offset, limit, obj);
     case TYPE_LAMBDA:
         return lambda_fmt_into(dst, len, offset, indent, limit, obj);
+    case TYPE_NULL:
+        return str_fmt_into(dst, len, offset, limit, "null");
     case TYPE_ERROR:
         return error_fmt_into(dst, len, offset, limit, obj);
     default:
@@ -953,13 +952,13 @@ str_t obj_fmt_n(obj_t *x, u64_t n)
     obj_t *b = x;
 
     if (n == 0)
-        return NULL;
+        return NULL_OBJ;
 
     if (n == 1)
         return obj_fmt(*b);
 
     if ((*b)->type != TYPE_CHAR)
-        return NULL;
+        return NULL_OBJ;
 
     p = as_string(*b);
     sz = strlen(p);
@@ -976,7 +975,7 @@ str_t obj_fmt_n(obj_t *x, u64_t n)
             if (s)
                 heap_free(s);
 
-            return NULL;
+            return NULL_OBJ;
         }
 
         if (end > start)
@@ -993,7 +992,7 @@ str_t obj_fmt_n(obj_t *x, u64_t n)
         if (s)
             heap_free(s);
 
-        return NULL;
+        return NULL_OBJ;
     }
 
     str_fmt_into(&s, &l, &o, end - start, "%s", start);

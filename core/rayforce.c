@@ -585,9 +585,6 @@ obj_t at_ids(obj_t obj, i64_t ids[], u64_t len)
     f64_t *finp, *fout;
     obj_t k, v, res;
 
-    if (obj == NULL)
-        return NULL_OBJ;
-
     switch (obj->type)
     {
     case TYPE_I64:
@@ -652,9 +649,6 @@ obj_t at_ids(obj_t obj, i64_t ids[], u64_t len)
 obj_t at_obj(obj_t obj, obj_t idx)
 {
     u64_t i;
-
-    if (obj == NULL)
-        return NULL_OBJ;
 
     switch (mtype2(obj->type, idx->type))
     {
@@ -762,7 +756,7 @@ obj_t set_obj(obj_t *obj, obj_t idx, obj_t val)
 
 obj_t pop_obj(obj_t *obj)
 {
-    if (obj == NULL || (*obj)->len == 0)
+    if ((*obj)->len == 0)
         return NULL_OBJ;
 
     switch ((*obj)->type)
@@ -1059,7 +1053,7 @@ obj_t __attribute__((hot)) clone(obj_t obj)
 {
     debug_assert(is_valid(obj), "invalid object type: %d", obj->type);
 
-    if (obj == NULL)
+    if (obj->type == TYPE_NULL)
         return NULL_OBJ;
 
     if (!__RC_SYNC)
@@ -1074,7 +1068,7 @@ nil_t __attribute__((hot)) drop(obj_t obj)
 {
     debug_assert(is_valid(obj), "invalid object type: %d", obj->type);
 
-    if (obj == NULL)
+    if (obj->type == TYPE_NULL)
         return;
 
     u32_t rc;

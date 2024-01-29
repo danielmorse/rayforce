@@ -27,7 +27,7 @@
 #include "rayforce.h"
 
 // Global null object to be referenced by all null objects.
-static struct obj_t __NULL_OBJECT = {.type = TYPE_NULL};
+extern struct obj_t __NULL_OBJECT;
 // Return reference to the global null object.
 #define NULL_OBJ (&__NULL_OBJECT)
 

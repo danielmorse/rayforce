@@ -146,7 +146,7 @@ interpreter_t interpreter_new()
     __INTERPRETER = interpreter;
 
     // push top-level context
-    f = lambda(vector_symbol(0), NULL, NULL);
+    f = lambda(vector_symbol(0), NULL_OBJ, NULL_OBJ);
     as_lambda(f)->name = symbol("top-level");
     ctx_push(f);
 
@@ -239,7 +239,7 @@ __attribute__((hot)) obj_t eval(obj_t obj)
     {
     case TYPE_LIST:
         if (obj->len == 0)
-            return NULL;
+            return NULL_OBJ;
 
         args = as_list(obj);
         car = args[0];
@@ -528,7 +528,7 @@ obj_t mount_env(obj_t obj)
 
     *env = dict(keys, vals);
 
-    return NULL;
+    return NULL_OBJ;
 }
 
 obj_t unmount_env(u64_t n)
@@ -562,7 +562,7 @@ obj_t unmount_env(u64_t n)
         resize(&as_list(*env)[1], l - n);
     }
 
-    return NULL;
+    return NULL_OBJ;
 }
 
 obj_t ray_return(obj_t *x, u64_t n)
@@ -769,7 +769,7 @@ obj_t try_obj(obj_t obj, obj_t catch)
         else
         {
             drop(res);
-            return NULL;
+            return NULL_OBJ;
         }
     }
 

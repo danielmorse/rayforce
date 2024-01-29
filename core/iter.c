@@ -166,7 +166,7 @@ obj_t ray_fold(obj_t *x, u64_t n)
         l = ops_rank(x, n);
         if (l == -1)
             throw(ERR_LENGTH, "'map': arguments have different lengths");
-        return NULL;
+        return NULL_OBJ;
 
         // vm = &runtime_get()->vm;
 

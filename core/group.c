@@ -142,7 +142,7 @@ nil_t group_fill_counts(obj_t grp)
 
     // TODO: this point must be synchronized in case of parallel execution
     group_counts = as_list(grp)[2];
-    if (group_counts == NULL)
+    if (group_counts == NULL_OBJ)
     {
         n = as_list(grp)[0]->i64;
         l = as_list(grp)[1]->len;
@@ -166,7 +166,7 @@ obj_t group_collect(obj_t x)
     obj = as_list(x)[0];
     grp = as_list(x)[1];
 
-    filters = (as_list(x)[2] != NULL) ? as_i64(as_list(x)[2]) : NULL;
+    filters = (as_list(x)[2] != NULL_OBJ) ? as_i64(as_list(x)[2]) : NULL;
 
     group_fill_counts(grp);
 

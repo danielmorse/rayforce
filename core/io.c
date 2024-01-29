@@ -116,7 +116,7 @@ obj_t io_write(i64_t fd, u8_t msg_type, obj_t obj)
 {
     str_t fmt;
 
-    if (!obj)
+    if (obj == NULL_OBJ)
         return NULL_OBJ;
 
     // don't write to a stdin
