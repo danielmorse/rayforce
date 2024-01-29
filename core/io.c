@@ -272,7 +272,7 @@ obj_t parse_csv_line(type_t types[], i64_t cnt, str_t start, str_t end, i64_t ro
             pos = memchr(prev, '"', len - 1);
 
             if (pos == NULL)
-                throw(ERR_LENGTH, "csv: invalid field: %s", prev);
+                throw(ERR_LENGTH, "csv: line: %lld invalid input: %s", row + 1, prev);
 
             res = parse_csv_field(types[i], prev, pos, row, as_list(cols)[i]);
             pos += 2; // skip quote and comma
@@ -295,7 +295,11 @@ obj_t parse_csv_line(type_t types[], i64_t cnt, str_t start, str_t end, i64_t ro
 
         pos = memchr(pos, sep, len);
         if (pos == NULL)
+        {
+            if (i < cnt - 1)
+                throw(ERR_LENGTH, "csv: line: %lld invalid input: %s", row + 1, prev);
             pos = end;
+        }
 
         res = parse_csv_field(types[i], prev, pos, row, as_list(cols)[i]);
 
@@ -414,6 +418,15 @@ obj_t ray_csv(obj_t *x, i64_t n)
             pos = memchr(pos, sep, len);
             if (pos == NULL)
             {
+                if (i < l - 1)
+                {
+                    drop(types);
+                    drop(names);
+                    fs_fclose(fd);
+                    mmap_free(buf, size);
+                    throw(ERR_LENGTH, "csv: file '%s': invalid header (number of fields is less then csv contains)", as_string(x[1]));
+                }
+
                 pos = prev + len;
                 // truncate \r (if any)
                 if ((len > 0) && (pos[-1] == '\r'))
@@ -454,6 +467,16 @@ obj_t ray_csv(obj_t *x, i64_t n)
             // the last line may not end with \n
             if (line == NULL)
             {
+                if (j < lines - 1)
+                {
+                    drop(types);
+                    drop(names);
+                    drop(cols);
+                    fs_fclose(fd);
+                    mmap_free(buf, size);
+                    throw(ERR_LENGTH, "csv: file '%s': invalid line (number of fields is less then csv contains)", as_string(x[1]));
+                }
+
                 line = prev + size;
                 // truncate \r (if any)
                 if ((size > 0) && (line[-1] == '\r'))
