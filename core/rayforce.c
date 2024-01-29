@@ -494,9 +494,6 @@ obj_t at_idx(obj_t obj, i64_t idx)
     obj_t k, v, res;
     u8_t *buf;
 
-    if (!obj)
-        return NULL_OBJ;
-
     switch (obj->type)
     {
     case TYPE_I64:

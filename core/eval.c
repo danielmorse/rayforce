@@ -49,7 +49,7 @@ nil_t error_add_loc(obj_t err, i64_t id, ctx_t *ctx)
                   clone(as_list(nfo)[1])               // source
     );
 
-    if (!as_error(err)->locs)
+    if (as_error(err)->locs == NULL_OBJ)
         as_error(err)->locs = vn_list(1, loc);
     else
         push_raw(&as_error(err)->locs, &loc);
@@ -231,9 +231,6 @@ __attribute__((hot)) obj_t eval(obj_t obj)
     obj_t car, *args, x, y, z, res;
     lambda_t *lambda;
     u8_t attrs = 0;
-
-    if (!obj)
-        return obj;
 
     switch (obj->type)
     {
@@ -584,7 +581,7 @@ obj_t ray_raise(obj_t obj)
 {
     obj_t e;
 
-    if (!obj || obj->type != TYPE_CHAR)
+    if (obj->type != TYPE_CHAR)
         throw(ERR_TYPE, "raise: expected 'string, got '%s", typename(obj->type));
 
     e = error_obj(ERR_RAISE, clone(obj));

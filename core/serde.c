@@ -51,9 +51,8 @@ u64_t size_of_type(type_t type)
     case TYPE_CHAR:
         return sizeof(char_t);
     case TYPE_LIST:
-        return sizeof(obj_t);
     case TYPE_NULL:
-        return 0;
+        return sizeof(obj_t);
     default:
         panic("sizeof: unknown type: %d", type);
     }
@@ -61,9 +60,6 @@ u64_t size_of_type(type_t type)
 
 u64_t size_of(obj_t obj)
 {
-    if (!obj)
-        return 0;
-
     u64_t size = sizeof(struct obj_t);
 
     if (is_atom(obj))
