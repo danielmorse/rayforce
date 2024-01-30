@@ -32,26 +32,9 @@
 #define MAX_TYPE (TYPE_ERROR + TYPE_OFFSET + 2)
 
 // reserved symbols (keywords)
-#define NULL_SYM 0
-#define KW_TIME -1
-#define KW_QUOTE -2
-#define KW_SET -3
-#define KW_LET -4
-#define KW_FN -5
-#define KW_SELF -6
-#define KW_IF -7
-#define KW_TRY -8
-#define KW_CATCH -9
-#define KW_THROW -10
-#define KW_MAP -11
-#define KW_SELECT -12
-#define KW_FROM -13
-#define KW_WHERE -14
-#define KW_BY -15
-#define KW_TAKE -16
-#define KW_EVAL -17
-#define KW_LOAD -18
-#define KW_RETURN -19
+#define KW_EMPTY_SYMBOL 0
+#define KW_FN 1
+#define KW_SELF 2
 
 /*
  *  Environment

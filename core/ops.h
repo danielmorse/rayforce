@@ -46,6 +46,7 @@ extern struct obj_t __NULL_OBJECT;
 #define ATTR_ASC 2
 #define ATTR_DESC 4
 #define ATTR_QUOTED 8
+#define ATTR_PROTECTED 64
 
 // Memory modes
 #define MMOD_INTERNAL 0xff

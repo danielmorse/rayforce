@@ -47,14 +47,14 @@
 #include "iter.h"
 #include "dynlib.h"
 
-#define regf(r, n, t, f, o)                      \
-    {                                            \
-        i64_t _k = intern_keyword(n, strlen(n)); \
-        push_raw(&as_list(r)[0], &_k);           \
-        obj_t _o = atom(-t);                     \
-        _o->attrs = f;                           \
-        _o->i64 = (i64_t)o;                      \
-        push_raw(&as_list(r)[1], &_o);           \
+#define regf(r, n, t, f, o)                     \
+    {                                           \
+        i64_t _k = intern_symbol(n, strlen(n)); \
+        push_raw(&as_list(r)[0], &_k);          \
+        obj_t _o = atom(-t);                    \
+        _o->attrs = f | ATTR_PROTECTED;         \
+        _o->i64 = (i64_t)o;                     \
+        push_raw(&as_list(r)[1], &_o);          \
     };
 
 #define regt(r, i, s)                  \
@@ -81,7 +81,7 @@ obj_t ray_memstat()
     ins_sym(&keys, 2, "free");
     ins_sym(&keys, 3, "syms");
 
-    vals = vector(TYPE_LIST, 4);
+    vals = list(4);
     as_list(vals)[0] = i64(stat.system + symbols_memsize(symbols));
     as_list(vals)[1] = i64(stat.heap);
     as_list(vals)[2] = i64(stat.free);
@@ -229,33 +229,14 @@ nil_t init_typenames(obj_t typenames)
     regt(typenames,    TYPE_NULL,       "Null");
     regt(typenames,    TYPE_ERROR,      "Error");
 }
-
-
-nil_t init_kw_symbols()
-{
-    assert(intern_symbol("",         0)  == NULL_SYM);
-    assert(intern_keyword("time",    4)  == KW_TIME);
-    assert(intern_keyword("`",       1)  == KW_QUOTE);
-    assert(intern_keyword("set",     3)  == KW_SET);
-    assert(intern_keyword("let",     3)  == KW_LET);
-    assert(intern_keyword("fn",      2)  == KW_FN);
-    assert(intern_keyword("self",    4)  == KW_SELF);
-    assert(intern_keyword("if",      2)  == KW_IF);
-    assert(intern_keyword("try",     3)  == KW_TRY);
-    assert(intern_keyword("catch",   5)  == KW_CATCH);
-    assert(intern_keyword("panic",   5)  == KW_THROW);
-    assert(intern_keyword("map",     3)  == KW_MAP);
-    assert(intern_keyword("select",  6)  == KW_SELECT);
-    assert(intern_keyword("from",    4)  == KW_FROM);
-    assert(intern_keyword("where",   5)  == KW_WHERE);
-    assert(intern_keyword("by",      2)  == KW_BY);
-    assert(intern_keyword("take",    4)  == KW_TAKE);
-    assert(intern_keyword("eval",    4)  == KW_EVAL);
-    assert(intern_keyword("load",    4)  == KW_LOAD);
-    assert(intern_keyword("return",  6)  == KW_RETURN);
-
-}
 // clang-format on
+
+nil_t init_kw()
+{
+    assert(intern_symbol("", 0) == KW_EMPTY_SYMBOL);
+    assert(intern_symbol("fn", 2) == KW_FN);
+    assert(intern_symbol("self", 4) == KW_SELF);
+}
 
 env_t create_env()
 {
@@ -263,10 +244,8 @@ env_t create_env()
     obj_t variables = dict(vector_symbol(0), vn_list(0));
     obj_t typenames = dict(vector_i64(0), vector_symbol(0));
 
-    init_kw_symbols();
-
+    init_kw();
     init_functions(functions);
-
     init_typenames(typenames);
 
     env_t env = {
