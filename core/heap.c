@@ -53,7 +53,7 @@ nil_t heap_free(nil_t *block) { free(block); }
 nil_t *heap_realloc(nil_t *ptr, u64_t new_size) { return realloc(ptr, new_size); }
 i64_t heap_gc() { return 0; }
 nil_t heap_cleanup() {}
-heap_t heap_init() { return NULL_OBJ; }
+heap_t heap_init() { return NULL; }
 memstat_t heap_memstat() { return (memstat_t){0}; }
 
 #else

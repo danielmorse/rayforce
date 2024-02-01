@@ -27,6 +27,53 @@
 #include "runtime.h"
 #include "error.h"
 
+obj_t __fetch(obj_t x, obj_t **out)
+{
+    u64_t i;
+    obj_t *env;
+
+    switch (x->type)
+    {
+    case -TYPE_SYMBOL:
+        env = as_list(runtime_get()->env.variables);
+        i = find_obj(env[0], x);
+        if (i == env[0]->len)
+            throw(ERR_NOT_FOUND, "amend: object not found");
+        *out = &as_list(env[1])[i];
+        return cow(as_list(env[1])[i]);
+    default:
+        return cow(x);
+    }
+}
+
+obj_t __update(obj_t *obj, obj_t idx, obj_t fun, obj_t val)
+{
+    // switch (x[2]->type)
+    // {
+    //     case TYPE_DYAD:
+    //         obj = call(x[2], obj, x[3]);
+    //         break;
+    // }
+
+    return set_obj(obj, idx, val);
+}
+
+obj_t __commit(obj_t src, obj_t *out, obj_t obj)
+{
+    if (src->type == -TYPE_SYMBOL)
+    {
+        if (out && (*out != obj))
+        {
+            drop(*out);
+            *out = obj;
+        }
+
+        return clone(src);
+    }
+
+    return obj;
+}
+
 /*
  * amend is a function that modifies an object in place.
  * It is a dyad that takes 4 arguments:
@@ -37,50 +84,25 @@
  */
 obj_t ray_amend(obj_t *x, u64_t n)
 {
-    u64_t i;
-    obj_t obj, *env;
+    obj_t *out = NULL, obj, res;
 
     if (n != 4)
         throw(ERR_LENGTH, "amend: expected 4 arguments");
 
-    switch (x[0]->type)
-    {
-    case -TYPE_SYMBOL:
-        env = as_list(runtime_get()->env.variables);
-        i = find_obj(env[0], x[0]);
-        if (i == env[0]->len)
-            throw(ERR_NOT_FOUND, "amend: object not found");
-
-        obj = cow(as_list(env[1])[i]);
-
-        if (is_error(obj))
-        {
-            drop(as_list(env[1])[i]);
-            return obj;
-        }
-
-        // switch (x[2]->type)
-        // {
-        //     case TYPE_DYAD:
-        //         obj = call(x[2], obj, x[3]);
-        //         break;
-        // }
-
-        obj = set_obj(&obj, x[1], clone(x[3]));
-        if (is_error(obj))
-        {
-            drop(as_list(env[1])[i]);
-            return obj;
-        }
-
-        drop(as_list(env[1])[i]);
-        as_list(env[1])[i] = obj;
-
-        return clone(x[0]);
-    default:
-        obj = cow(x[0]);
+    obj = __fetch(x[0], &out);
+    if (is_error(obj))
         return obj;
+
+    res = __update(&obj, x[1], x[2], clone(x[3]));
+    if (is_error(res))
+    {
+        if (!out || (*out != obj))
+            drop(obj);
+
+        return res;
     }
+
+    return __commit(x[0], out, res);
 }
 
 obj_t ray_dmend(obj_t *x, u64_t n)
