@@ -656,8 +656,6 @@ obj_t at_obj(obj_t obj, obj_t idx)
     case mtype2(TYPE_LIST, TYPE_I64):
     case mtype2(TYPE_ENUM, TYPE_I64):
         return at_ids(obj, as_i64(idx), idx->len);
-    case mtype2(TYPE_TABLE, TYPE_I64):
-        return filter_map(obj, idx);
     default:
         if (obj->type == TYPE_DICT || obj->type == TYPE_TABLE)
         {

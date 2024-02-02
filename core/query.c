@@ -60,6 +60,19 @@ obj_t get_symbols(obj_t obj)
     return symbols;
 }
 
+obj_t remap_filter(obj_t x, obj_t y)
+{
+    u64_t i, l;
+    obj_t res, prm, val;
+
+    l = as_list(x)[1]->len;
+    res = list(l);
+    for (i = 0; i < l; i++)
+        as_list(res)[i] = filter_map(as_list(as_list(x)[1])[i], y);
+
+    return table(clone(as_list(x)[0]), res);
+}
+
 obj_t ray_select(obj_t obj)
 {
     u64_t i, l, tablen;
@@ -164,7 +177,7 @@ obj_t ray_select(obj_t obj)
         // Unmount table columns from a local env
         unmount_env(tablen);
         // Create filtermaps over table
-        val = filter_map(tab, filters);
+        val = remap_filter(tab, filters);
         drop(filters);
         mount_env(val);
         drop(val);

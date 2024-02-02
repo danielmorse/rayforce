@@ -34,24 +34,11 @@
 
 obj_t filter_map(obj_t x, obj_t y)
 {
-    u64_t i, l;
     obj_t res;
 
-    switch (x->type)
-    {
-    case TYPE_TABLE:
-        l = as_list(x)[1]->len;
-        res = list(l);
-        for (i = 0; i < l; i++)
-            as_list(res)[i] = filter_map(as_list(as_list(x)[1])[i], y);
-
-        return table(clone(as_list(x)[0]), res);
-
-    default:
-        res = vn_list(2, clone(x), clone(y));
-        res->type = TYPE_FILTERMAP;
-        return res;
-    }
+    res = vn_list(2, clone(x), clone(y));
+    res->type = TYPE_FILTERMAP;
+    return res;
 }
 
 obj_t filter_collect(obj_t x)
