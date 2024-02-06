@@ -827,10 +827,56 @@ obj_t set_ids(obj_t *obj, i64_t ids[], u64_t len, obj_t vals)
     }
 }
 
+obj_t __expand(obj_t obj, u64_t len)
+{
+    u64_t i;
+    obj_t res;
+
+    switch (obj->type)
+    {
+    case -TYPE_BOOL:
+    case -TYPE_BYTE:
+    case -TYPE_CHAR:
+        res = vector(obj->type, len);
+        for (i = 0; i < len; i++)
+            as_u8(res)[i] = obj->u8;
+
+        drop(obj);
+
+        return res;
+    case -TYPE_I64:
+    case -TYPE_SYMBOL:
+    case -TYPE_TIMESTAMP:
+        res = vector(obj->type, len);
+        for (i = 0; i < len; i++)
+            as_i64(res)[i] = obj->i64;
+
+        drop(obj);
+
+        return res;
+    case -TYPE_GUID:
+        res = vector(TYPE_GUID, len);
+        for (i = 0; i < len; i++)
+            memcpy(&as_guid(res)[i], as_guid(obj)->buf, sizeof(struct guid_t));
+
+        drop(obj);
+
+        return res;
+    default:
+        if (ops_count(obj) != len)
+        {
+            drop(obj);
+            throw(ERR_LENGTH, "set: invalid length: '%lld' != '%lld'", ops_count(obj), len);
+        }
+
+        return obj;
+    }
+}
+
 obj_t set_obj(obj_t *obj, obj_t idx, obj_t val)
 {
-    obj_t res;
-    u64_t i, n, l;
+    obj_t k, v, res;
+    u64_t i, j, n, l;
     i64_t id = NULL_I64, *ids = NULL;
 
     // dispatch:
@@ -873,6 +919,75 @@ obj_t set_obj(obj_t *obj, obj_t idx, obj_t val)
             }
         }
         return set_ids(obj, ids, n, val);
+    case mtype2(TYPE_TABLE, -TYPE_SYMBOL):
+        val = __expand(val, ops_count(*obj));
+        if (is_error(val))
+            return val;
+        i = find_obj(as_list(*obj)[0], idx);
+        if (i == as_list(*obj)[0]->len)
+        {
+            res = push_obj(&as_list(*obj)[0], clone(idx));
+            if (is_error(res))
+                return res;
+
+            res = push_obj(&as_list(*obj)[1], val);
+            if (is_error(res))
+                panic("set_obj: inconsistent update");
+
+            return *obj;
+        }
+
+        set_idx(&as_list(*obj)[1], i, val);
+
+        return *obj;
+    case mtype2(TYPE_TABLE, TYPE_SYMBOL):
+        if (val->type != TYPE_LIST)
+            throw(ERR_TYPE, "set_obj: invalid types: '%s, '%s", typename((*obj)->type), typename(val->type));
+
+        l = ops_count(idx);
+        if (l != ops_count(val))
+        {
+            drop(val);
+            throw(ERR_LENGTH, "set_obj: idx and vals length mismatch: '%lld' != '%lld'", ops_count(*obj), ops_count(val));
+        }
+
+        n = ops_count(*obj);
+        v = list(l);
+        for (i = 0; i < l; i++)
+        {
+            k = __expand(clone(as_list(val)[i]), n);
+
+            if (is_error(k))
+            {
+                v->len = i;
+                drop(v);
+                drop(val);
+                return k;
+            }
+
+            as_list(v)[i] = k;
+        }
+
+        drop(val);
+        val = v;
+
+        for (i = 0; i < l; i++)
+        {
+            id = find_raw(as_list(*obj)[0], &as_symbol(idx)[i]);
+            if (id == (i64_t)as_list(*obj)[0]->len)
+            {
+                push_raw(&as_list(*obj)[0], &as_symbol(idx)[i]);
+                push_obj(&as_list(*obj)[1], clone(as_list(val)[i]));
+            }
+            else
+            {
+                set_idx(&as_list(*obj)[1], id, clone(as_list(val)[i]));
+            }
+        }
+
+        drop(val);
+
+        return *obj;
     default:
         if ((*obj)->type == TYPE_DICT)
         {
@@ -1040,7 +1155,7 @@ i64_t find_raw(obj_t obj, raw_t val)
     i64_t i, l;
 
     if (!is_vector(obj))
-        return NULL_I64;
+        return 1;
 
     switch (obj->type)
     {
