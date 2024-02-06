@@ -1444,6 +1444,29 @@ obj_t copy(obj_t obj)
     u64_t i, l, size;
     obj_t id, fd, res;
 
+    if (!is_internal(obj))
+    {
+        id = i64((i64_t)obj);
+        fd = at_obj(runtime_get()->fds, id);
+        if (is_null(fd))
+        {
+            printf("cow: invalid fd");
+            exit(1);
+        }
+
+        res = mmap_file(fd->i64, size_of(obj));
+        res->rc = 2;
+        drop(id);
+        id = i64((i64_t)res);
+
+        // insert fd into runtime fds
+        set_obj(&runtime_get()->fds, id, fd);
+
+        drop(id);
+
+        return res;
+    }
+
     switch (obj->type)
     {
     case TYPE_I64:
@@ -1476,31 +1499,9 @@ obj_t copy(obj_t obj)
 obj_t cow(obj_t obj)
 {
     u32_t rc;
-    u64_t i, l, size;
-    obj_t id, fd, res;
 
     if (!is_internal(obj))
-    {
-        id = i64((i64_t)obj);
-        fd = at_obj(runtime_get()->fds, id);
-        if (is_null(fd))
-        {
-            printf("cow: invalid fd");
-            exit(1);
-        }
-
-        res = mmap_file(fd->i64, size_of(obj));
-        res->rc = 2;
-        drop(id);
-        id = i64((i64_t)res);
-
-        // insert fd into runtime fds
-        set_obj(&runtime_get()->fds, id, fd);
-
-        drop(id);
-
-        return res;
-    }
+        return copy(obj);
 
     /*
     Since it is forbidden to modify globals from several threads simultenously,
