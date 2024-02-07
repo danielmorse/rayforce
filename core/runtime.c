@@ -32,7 +32,7 @@
 // Global runtime reference
 __thread runtime_t __RUNTIME = NULL;
 
-nil_t usage()
+nil_t usage(nil_t)
 {
     printf("%s%s%s", BOLD, YELLOW, "Usage: rayforce [-f file...] [-p port] [file]\n");
     exit(EXIT_FAILURE);
@@ -144,12 +144,12 @@ nil_t runtime_init(i32_t argc, str_t argv[])
         __RUNTIME->poll = NULL;
 }
 
-i32_t runtime_run()
+i32_t runtime_run(nil_t)
 {
     return poll_run(__RUNTIME->poll);
 }
 
-nil_t runtime_cleanup()
+nil_t runtime_cleanup(nil_t)
 {
     drop(__RUNTIME->args);
     if (__RUNTIME->poll)
@@ -164,7 +164,7 @@ nil_t runtime_cleanup()
     __RUNTIME = NULL;
 }
 
-inline __attribute__((always_inline)) runtime_t runtime_get()
+inline __attribute__((always_inline)) runtime_t runtime_get(nil_t)
 {
     return __RUNTIME;
 }

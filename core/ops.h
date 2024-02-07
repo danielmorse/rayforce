@@ -103,7 +103,7 @@ typedef enum
 
 bool_t ops_as_bool(obj_t x);
 bool_t ops_is_nan(f64_t x);
-u64_t ops_rand_u64();
+u64_t ops_rand_u64(nil_t);
 u64_t ops_count(obj_t x);
 u64_t ops_rank(obj_t *x, u64_t n);
 bool_t ops_eq_idx(obj_t a, i64_t ai, obj_t b, i64_t bi);

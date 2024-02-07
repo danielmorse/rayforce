@@ -394,7 +394,6 @@ i64_t poll_run(poll_t poll)
     i32_t n;
     selector_t selector;
     obj_t str, res;
-    str_t fmt;
     struct kevent ev, events[MAX_EVENTS];
 
     prompt();

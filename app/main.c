@@ -37,7 +37,7 @@
   Documentation: https://rayforcedb.com/\n\
   Github: https://github.com/singaraiona/rayforce\n"
 
-nil_t print_logo()
+nil_t print_logo(nil_t)
 {
   sys_info_t nfo = get_sys_info();
   str_t logo = str_fmt(0, LOGO, RAYFORCE_MAJOR_VERSION, RAYFORCE_MINOR_VERSION, __DATE__, nfo.cpu, nfo.mem);

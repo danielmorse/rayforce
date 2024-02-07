@@ -45,10 +45,10 @@ typedef struct runtime_t
     sock_addr_t addr;   // Socket address that a process listen.
 } *runtime_t;
 
-extern nil_t runtime_init(i32_t argc, str_t argv[]);
-extern i32_t runtime_run();
-extern nil_t runtime_cleanup();
-extern runtime_t runtime_get();
-extern obj_t runtime_get_arg(str_t key);
+nil_t runtime_init(i32_t argc, str_t argv[]);
+i32_t runtime_run(nil_t);
+nil_t runtime_cleanup(nil_t);
+runtime_t runtime_get(nil_t);
+obj_t runtime_get_arg(str_t key);
 
 #endif // RUNTIME_H

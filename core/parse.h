@@ -43,7 +43,6 @@ typedef struct parser_t
 
 obj_t advance(parser_t *parser);
 
-parser_t parser_new();
 nil_t parser_free(parser_t *parser);
 obj_t parse_do(parser_t *parser);
 obj_t parse(str_t input, obj_t nfo);

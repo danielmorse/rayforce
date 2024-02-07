@@ -145,7 +145,7 @@ typedef struct obj_t
 #endif
 
 // Version
-u8_t version(); // get version as u8_t (major - 5 bits, minor - 3 bits)
+u8_t version(nil_t); // get version as u8_t (major - 5 bits, minor - 3 bits)
 
 // Constructors
 obj_t null(type_t type);                             // create null of type

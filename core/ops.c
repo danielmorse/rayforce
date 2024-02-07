@@ -83,7 +83,7 @@ bool_t ops_is_nan(f64_t x)
     return (bits & 0x7ff0000000000000ull) == 0x7ff0000000000000ull && (bits & 0x000fffffffffffffull) != 0;
 }
 
-u64_t ops_rand_u64()
+u64_t ops_rand_u64(nil_t)
 {
     if (__RND_SEED__ == 0)
     {

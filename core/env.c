@@ -64,12 +64,12 @@
         push_sym(&as_list(r)[1], s);   \
     };
 
-obj_t ray_env()
+obj_t ray_env(nil_t)
 {
     return clone(runtime_get()->env.variables);
 }
 
-obj_t ray_memstat()
+obj_t ray_memstat(nil_t)
 {
     obj_t keys, vals;
     memstat_t stat = heap_memstat();
@@ -237,7 +237,7 @@ nil_t init_typenames(obj_t typenames)
 }
 // clang-format on
 
-nil_t init_kw()
+nil_t init_kw(nil_t)
 {
     assert(intern_symbol("", 0) == KW_EMPTY_SYMBOL);
     assert(intern_symbol("fn", 2) == KW_FN);
@@ -245,7 +245,7 @@ nil_t init_kw()
     assert(intern_symbol("do", 2) == KW_DO);
 }
 
-env_t create_env()
+env_t create_env(nil_t)
 {
     obj_t functions = dict(vector_symbol(0), vn_list(0));
     obj_t variables = dict(vector_symbol(0), vn_list(0));

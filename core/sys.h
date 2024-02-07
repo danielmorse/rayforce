@@ -32,6 +32,6 @@ typedef struct sys_info_t
     i32_t mem;
 } sys_info_t;
 
-sys_info_t get_sys_info();
+sys_info_t get_sys_info(nil_t);
 
 #endif // SYS_H

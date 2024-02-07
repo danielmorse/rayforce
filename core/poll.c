@@ -39,7 +39,7 @@
 
 #include "eval.h"
 
-nil_t prompt()
+nil_t prompt(nil_t)
 {
     printf("%s> %s", GREEN, RESET);
     fflush(stdout);

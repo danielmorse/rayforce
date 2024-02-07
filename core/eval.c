@@ -60,7 +60,7 @@ inline __attribute__((always_inline)) nil_t stack_push(obj_t val)
     __INTERPRETER->stack[__INTERPRETER->sp++] = val;
 }
 
-inline __attribute__((always_inline)) obj_t stack_pop()
+inline __attribute__((always_inline)) obj_t stack_pop(nil_t)
 {
     return __INTERPRETER->stack[--__INTERPRETER->sp];
 }
@@ -82,12 +82,12 @@ inline __attribute__((always_inline)) ctx_t *ctx_push(obj_t lambda)
     return ctx;
 }
 
-inline __attribute__((always_inline)) ctx_t *ctx_pop()
+inline __attribute__((always_inline)) ctx_t *ctx_pop(nil_t)
 {
     return &__INTERPRETER->ctxstack[--__INTERPRETER->cp];
 }
 
-inline __attribute__((always_inline)) ctx_t *ctx_get()
+inline __attribute__((always_inline)) ctx_t *ctx_get(nil_t)
 {
     return &__INTERPRETER->ctxstack[__INTERPRETER->cp - 1];
 }
@@ -122,7 +122,7 @@ inline __attribute__((always_inline)) bool_t stack_enough(u64_t n)
     return __INTERPRETER->sp + n < EVAL_STACK_SIZE;
 }
 
-interpreter_t interpreter_new()
+interpreter_t interpreter_new(nil_t)
 {
     interpreter_t interpreter;
     obj_t f;
@@ -143,7 +143,7 @@ interpreter_t interpreter_new()
     return interpreter;
 }
 
-nil_t interpreter_free()
+nil_t interpreter_free(nil_t)
 {
     // cleanup stack (if any)
     while (__INTERPRETER->sp)

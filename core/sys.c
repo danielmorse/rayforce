@@ -33,7 +33,7 @@
 #elif defined(__linux__)
 #endif
 
-sys_info_t get_sys_info()
+sys_info_t get_sys_info(nil_t)
 {
     sys_info_t info;
 

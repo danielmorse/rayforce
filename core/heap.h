@@ -59,13 +59,13 @@ typedef struct heap_t
     memstat_t memstat;
 } __attribute__((aligned(PAGE_SIZE))) * heap_t;
 
-extern nil_t *heap_alloc(u64_t size);
-extern nil_t *heap_realloc(nil_t *block, u64_t size);
-extern nil_t heap_free(nil_t *block);
-extern heap_t heap_init();
-extern heap_t heap_get();
-extern i64_t heap_gc();
-extern nil_t heap_cleanup();
-extern memstat_t heap_memstat();
+nil_t *heap_alloc(u64_t size);
+nil_t *heap_realloc(nil_t *block, u64_t size);
+nil_t heap_free(nil_t *block);
+heap_t heap_init(nil_t);
+heap_t heap_get(nil_t);
+i64_t heap_gc(nil_t);
+nil_t heap_cleanup(nil_t);
+memstat_t heap_memstat(nil_t);
 
 #endif // HEAP_H

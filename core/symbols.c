@@ -95,7 +95,7 @@ i64_t string_str_cmp(i64_t a, i64_t b, nil_t *seed)
 /*
  * Allocate a new pool node for the strings pool.
  */
-pool_node_t *pool_node_new()
+pool_node_t *pool_node_new(nil_t)
 {
     pool_node_t *node = (pool_node_t *)mmap_malloc(STRINGS_POOL_SIZE);
     memset(node, 0, STRINGS_POOL_SIZE);
@@ -127,7 +127,7 @@ str_t str_intern(symbols_t *symbols, str_t str, i64_t len)
     return p;
 }
 
-symbols_t *symbols_new()
+symbols_t *symbols_new(nil_t)
 {
     symbols_t *symbols = (symbols_t *)mmap_malloc(sizeof(struct symbols_t));
 

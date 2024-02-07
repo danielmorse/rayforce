@@ -51,14 +51,14 @@ __thread nil_t *__HEAP_16_BLOCKS_END = NULL;
 nil_t *heap_alloc(u64_t size) { return malloc(size); }
 nil_t heap_free(nil_t *block) { free(block); }
 nil_t *heap_realloc(nil_t *ptr, u64_t new_size) { return realloc(ptr, new_size); }
-i64_t heap_gc() { return 0; }
-nil_t heap_cleanup() {}
-heap_t heap_init() { return NULL; }
-memstat_t heap_memstat() { return (memstat_t){0}; }
+i64_t heap_gc(nil_t) { return 0; }
+nil_t heap_cleanup(nil_t) {}
+heap_t heap_init(nil_t) { return NULL; }
+memstat_t heap_memstat(nil_t) { return (memstat_t){0}; }
 
 #else
 
-nil_t heap_print_blocks()
+nil_t heap_print_blocks(nil_t)
 {
     u64_t i = 0;
     node_t *node;
@@ -94,7 +94,7 @@ nil_t *heap_add_pool(u64_t order)
     return (nil_t *)node;
 }
 
-heap_t heap_init()
+heap_t heap_init(nil_t)
 {
     i32_t i;
     nil_t *block16;
@@ -120,7 +120,7 @@ heap_t heap_init()
     return __HEAP;
 }
 
-nil_t heap_cleanup()
+nil_t heap_cleanup(nil_t)
 {
     u64_t i, order;
     node_t *node, *next;
@@ -160,7 +160,7 @@ nil_t heap_cleanup()
     mmap_free(__HEAP, sizeof(struct heap_t));
 }
 
-heap_t heap_get()
+heap_t heap_get(nil_t)
 {
     return __HEAP;
 }
@@ -391,7 +391,7 @@ nil_t *__attribute__((hot)) heap_realloc(nil_t *block, u64_t new_size)
     return block;
 }
 
-i64_t heap_gc()
+i64_t heap_gc(nil_t)
 {
     i64_t i, order, total = 0;
     node_t *node, *prev, *next;
@@ -433,7 +433,7 @@ i64_t heap_gc()
     return total;
 }
 
-memstat_t heap_memstat()
+memstat_t heap_memstat(nil_t)
 {
     u64_t i = 0;
     node_t *node;

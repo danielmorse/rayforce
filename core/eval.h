@@ -48,8 +48,8 @@ typedef struct interpreter_t
     ctx_t *ctxstack; // Stack of contexts.
 } *interpreter_t;
 
-interpreter_t interpreter_new();
-nil_t interpreter_free();
+interpreter_t interpreter_new(nil_t);
+nil_t interpreter_free(nil_t);
 obj_t call(obj_t obj, u64_t arity);
 obj_t *deref(obj_t sym);
 obj_t amend(obj_t sym, obj_t val);
@@ -60,12 +60,12 @@ obj_t ray_raise(obj_t obj);
 obj_t try(obj_t obj, obj_t catch);
 obj_t ray_return(obj_t *x, u64_t n);
 nil_t stack_push(obj_t val);
-obj_t stack_pop();
+obj_t stack_pop(nil_t);
 obj_t *stack_peek(i64_t n);
 obj_t stack_at(i64_t n);
 bool_t stack_enough(u64_t n);
 obj_t unwrap(obj_t obj, i64_t id);
 ctx_t *ctx_push(obj_t lambda);
-ctx_t *ctx_pop();
+ctx_t *ctx_pop(nil_t);
 
 #endif // EVAL_H

@@ -47,7 +47,7 @@ typedef struct env_t
     obj_t typenames; // dict, containing mappings type ids to their names
 } env_t;
 
-env_t create_env();
+env_t create_env(nil_t);
 nil_t free_env(env_t *env);
 
 i64_t env_get_typename_by_type(env_t *env, type_t type);
@@ -58,7 +58,7 @@ obj_t env_get_internal_function(str_t name);
 obj_t env_get_internal_function_by_id(i64_t id);
 obj_t env_set(env_t *env, obj_t key, obj_t val);
 obj_t env_get(env_t *env, obj_t key);
-obj_t ray_env();
-obj_t ray_memstat();
+obj_t ray_env(nil_t);
+obj_t ray_memstat(nil_t);
 
 #endif // ENV_H
