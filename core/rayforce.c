@@ -377,6 +377,10 @@ obj_t push_obj(obj_t *obj, obj_t val)
         res = push_raw(obj, &val->vchar);
         drop(val);
         return res;
+    case mtype2(TYPE_GUID, -TYPE_GUID):
+        res = push_raw(obj, as_guid(val));
+        drop(val);
+        return res;
     default:
         if ((*obj)->type == TYPE_LIST)
         {
@@ -408,6 +412,18 @@ obj_t append(obj_t *obj, obj_t vals)
         size2 = size_of(vals) - sizeof(struct obj_t);
         res = resize(obj, (*obj)->len + vals->len);
         memcpy((*obj)->arr + size1, as_f64(vals), size2);
+        return res;
+    case mtype2(TYPE_CHAR, TYPE_CHAR):
+        size1 = size_of(*obj) - sizeof(struct obj_t);
+        size2 = size_of(vals) - sizeof(struct obj_t);
+        res = resize(obj, (*obj)->len + vals->len);
+        memcpy((*obj)->arr + size1, as_string(vals), size2);
+        return res;
+    case mtype2(TYPE_GUID, TYPE_GUID):
+        size1 = size_of(*obj) - sizeof(struct obj_t);
+        size2 = size_of(vals) - sizeof(struct obj_t);
+        res = resize(obj, (*obj)->len + vals->len);
+        memcpy((*obj)->arr + size1, as_guid(vals), size2);
         return res;
     default:
         if ((*obj)->type == TYPE_LIST)
@@ -518,37 +534,38 @@ obj_t at_idx(obj_t obj, i64_t idx)
     {
     case TYPE_I64:
         if (idx < 0)
-            idx = obj->len + idx + 1;
+            idx = obj->len + idx;
         if (idx >= 0 && idx < (i64_t)obj->len)
             return i64(as_i64(obj)[idx]);
         return i64(NULL_I64);
     case TYPE_SYMBOL:
         if (idx < 0)
-            idx = obj->len + idx + 1;
+            idx = obj->len + idx;
         if (idx >= 0 && idx < (i64_t)obj->len)
             return symboli64(as_symbol(obj)[idx]);
         return symboli64(NULL_I64);
     case TYPE_TIMESTAMP:
         if (idx < 0)
-            idx = obj->len + idx + 1;
+            idx = obj->len + idx;
         if (idx >= 0 && idx < (i64_t)obj->len)
             return timestamp(as_timestamp(obj)[idx]);
         return timestamp(NULL_I64);
     case TYPE_F64:
         if (idx < 0)
-            idx = obj->len + idx + 1;
+            idx = obj->len + idx;
         if (idx >= 0 && idx < (i64_t)obj->len)
             return f64(as_f64(obj)[idx]);
         return f64(NULL_F64);
     case TYPE_CHAR:
+        l = ops_count(obj);
         if (idx < 0)
-            idx = obj->len + idx + 1;
-        if (idx >= 0 && idx < (i64_t)obj->len)
+            idx = l + idx;
+        if (idx >= 0 && idx < (i64_t)l)
             return vchar(as_string(obj)[idx]);
         return vchar('\0');
     case TYPE_LIST:
         if (idx < 0)
-            idx = obj->len + idx + 1;
+            idx = obj->len + idx;
         if (idx >= 0 && idx < (i64_t)obj->len)
             return clone(as_list(obj)[idx]);
         return NULL_OBJ;
@@ -560,7 +577,7 @@ obj_t at_idx(obj_t obj, i64_t idx)
         return NULL_OBJ;
     case TYPE_ENUM:
         if (idx < 0)
-            idx = obj->len + idx + 1;
+            idx = obj->len + idx;
         if (idx >= 0 && idx < (i64_t)enum_val(obj)->len)
         {
             k = ray_key(obj);
@@ -581,7 +598,7 @@ obj_t at_idx(obj_t obj, i64_t idx)
         k = anymap_key(obj);
         v = anymap_val(obj);
         if (idx < 0)
-            idx = obj->len + idx + 1;
+            idx = obj->len + idx;
         if (idx >= 0 && idx < (i64_t)v->len)
         {
             buf = as_u8(k) + as_i64(v)[idx];
@@ -595,7 +612,7 @@ obj_t at_idx(obj_t obj, i64_t idx)
         v = list(n);
         l = ops_count(obj);
         if (idx < 0)
-            idx = obj->len + idx + 1;
+            idx = l + idx;
         if (idx >= 0 && idx < (i64_t)l)
         {
             for (i = 0; i < n; i++)
