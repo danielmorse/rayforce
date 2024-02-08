@@ -814,6 +814,10 @@ obj_t set_idx(obj_t *obj, i64_t idx, obj_t val)
         as_string(*obj)[idx] = val->vchar;
         drop(val);
         return *obj;
+    case mtype2(TYPE_GUID, -TYPE_GUID):
+        as_guid(*obj)[idx] = as_guid(val)[0];
+        drop(val);
+        return *obj;
     default:
         if ((*obj)->type == TYPE_LIST)
         {

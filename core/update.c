@@ -359,107 +359,183 @@ obj_t ray_upsert(obj_t *x, u64_t n)
     }
 
     lst = x[2];
-    l = ops_count(lst);
 
-    single_rec = is_atom(as_list(lst)[0]);
-
-    // if (l == 0)
-    //     return clone(x[0]);
-
-    if (keys == 1)
+upsert:
+    switch (lst->type)
     {
-        k1 = at_idx(as_list(obj)[1], 0);
-        k2 = at_idx(lst, 0);
-        m = ops_count(k2);
-    }
-    else
-    {
-        k1 = ray_take(x[1], as_list(obj)[1]);
-        k2 = ray_take(x[1], lst);
-        m = ops_count(as_list(k2)[0]);
-    }
+    case TYPE_LIST:
+        l = ops_count(lst);
 
-    idx = index_join_obj(k2, k1, x[1]->i64);
+        single_rec = is_atom(as_list(lst)[0]);
 
-    drop(k1);
-    drop(k2);
-
-    if (is_error(idx))
-    {
-        drop(obj);
-        return idx;
-    }
-
-    rows = as_i64(idx);
-
-    // Insert/Update all the records now
-    for (j = 0; j < m; j++)
-    {
-        row = rows[j];
-
-        // Insert record
-        if (row == NULL_I64)
+        if (l != as_list(obj)[0]->len)
         {
-            for (i = 0; i < l; i++)
-            {
-                col = cow(as_list(as_list(obj)[1])[i]);
-                need_drop = (col != as_list(as_list(obj)[1])[i]);
-                // single record
-                if (single_rec)
-                {
-                    res = push_obj(&col, at_idx(lst, i));
-                }
-                else
-                {
-                    v = at_idx(lst, i);
-                    res = push_obj(&col, at_idx(v, j));
-                    drop(v);
-                }
-                if (is_error(res))
-                {
-                    drop(col);
-                    drop(idx);
-                    drop(obj);
-                    return res;
-                }
-                if (need_drop)
-                    drop(as_list(as_list(obj)[1])[i]);
-                as_list(as_list(obj)[1])[i] = col;
-            }
+            drop(obj);
+            return error(ERR_LENGTH, "upsert: expected list of length %lld, got %lld", as_list(obj)[0]->len, l);
         }
-        // Update record
+
+        if (keys == 1)
+        {
+            k1 = at_idx(as_list(obj)[1], 0);
+            k2 = at_idx(lst, 0);
+            m = ops_count(k2);
+        }
         else
         {
+            k1 = ray_take(x[1], as_list(obj)[1]);
+            k2 = ray_take(x[1], lst);
+            m = ops_count(as_list(k2)[0]);
+        }
+
+        idx = index_join_obj(k2, k1, x[1]->i64);
+
+        drop(k1);
+        drop(k2);
+
+        if (is_error(idx))
+        {
+            drop(obj);
+            return idx;
+        }
+
+        // Check integrity of the table with the new object
+        if (single_rec)
+        {
+            // Check all the elements of the list
             for (i = 0; i < l; i++)
             {
-                col = cow(as_list(as_list(obj)[1])[i]);
-                need_drop = (col != as_list(as_list(obj)[1])[i]);
-                // single record
-                if (single_rec)
+                if ((as_list(as_list(obj)[1])[i]->type != TYPE_LIST) &&
+                    (as_list(as_list(obj)[1])[i]->type != -as_list(lst)[i]->type))
                 {
-                    res = set_idx(&col, row, at_idx(lst, i));
-                }
-                else
-                {
-                    v = at_idx(lst, i);
-                    res = set_idx(&col, row, at_idx(v, j));
-                    drop(v);
-                }
-                if (is_error(res))
-                {
-                    drop(col);
                     drop(idx);
                     drop(obj);
-                    return res;
+                    return error(ERR_TYPE, "upsert: expected '%s' as %lldth element, got '%s'", typename(-as_list(as_list(obj)[1])[i]->type), i, typename(as_list(lst)[i]->type));
                 }
-                if (need_drop)
-                    drop(as_list(as_list(obj)[1])[i]);
-                as_list(as_list(obj)[1])[i] = col;
             }
         }
+        else
+        {
+            // Check all the elements of the list
+            for (i = 0; i < l; i++)
+            {
+                if ((as_list(as_list(obj)[1])[i]->type != TYPE_LIST) &&
+                    (as_list(as_list(obj)[1])[i]->type != as_list(lst)[i]->type))
+                {
+                    drop(idx);
+                    drop(obj);
+                    return error(ERR_TYPE, "upsert: expected '%s' as %lldth element, got '%s'", typename(as_list(as_list(obj)[1])[i]->type), i, typename(as_list(lst)[i]->type));
+                }
+
+                if (as_list(lst)[i]->len != m)
+                {
+                    drop(idx);
+                    drop(obj);
+                    return error(ERR_LENGTH, "upsert: expected list of length %lld, as %lldth element in a values, got %lld", as_list(as_list(obj)[1])[i]->len, i, n);
+                }
+            }
+        }
+
+        rows = as_i64(idx);
+
+        // Insert/Update all the records now
+        for (j = 0; j < m; j++)
+        {
+            row = rows[j];
+
+            // Insert record
+            if (row == NULL_I64)
+            {
+                for (i = 0; i < l; i++)
+                {
+                    col = cow(as_list(as_list(obj)[1])[i]);
+                    need_drop = (col != as_list(as_list(obj)[1])[i]);
+                    // single record
+                    if (single_rec)
+                    {
+                        res = push_obj(&col, at_idx(lst, i));
+                    }
+                    else
+                    {
+                        v = at_idx(lst, i);
+                        res = push_obj(&col, at_idx(v, j));
+                        drop(v);
+                    }
+                    if (is_error(res))
+                    {
+                        drop(col);
+                        drop(idx);
+                        drop(obj);
+                        return res;
+                    }
+                    if (need_drop)
+                        drop(as_list(as_list(obj)[1])[i]);
+                    as_list(as_list(obj)[1])[i] = col;
+                }
+            }
+            // Update record
+            else
+            {
+                for (i = 0; i < l; i++)
+                {
+                    col = cow(as_list(as_list(obj)[1])[i]);
+                    need_drop = (col != as_list(as_list(obj)[1])[i]);
+                    // single record
+                    if (single_rec)
+                    {
+                        res = set_idx(&col, row, at_idx(lst, i));
+                    }
+                    else
+                    {
+                        v = at_idx(lst, i);
+                        res = set_idx(&col, row, at_idx(v, j));
+                        drop(v);
+                    }
+                    if (is_error(res))
+                    {
+                        drop(col);
+                        drop(idx);
+                        drop(obj);
+                        return res;
+                    }
+                    if (need_drop)
+                        drop(as_list(as_list(obj)[1])[i]);
+                    as_list(as_list(obj)[1])[i] = col;
+                }
+            }
+        }
+
+        drop(idx);
+
+        return __commit(x[0], obj, val);
+    case TYPE_DICT:
+        if (as_list(lst)[0]->type != TYPE_SYMBOL)
+        {
+            drop(obj);
+            return error(ERR_TYPE, "upsert: expected 'Symbol as 1st element in a dictionary, got '%s'", typename(as_list(lst)[0]->type));
+        }
+    case TYPE_TABLE:
+        // Check columns
+        l = as_list(lst)[0]->len;
+        if (l != as_list(obj)[0]->len)
+        {
+            drop(obj);
+            return error(ERR_LENGTH, "upsert: expected 'Table with the same number of columns");
+        }
+
+        for (i = 0; i < l; i++)
+        {
+            if (as_symbol(as_list(lst)[0])[i] != as_symbol(as_list(obj)[0])[i])
+            {
+                drop(obj);
+                return error(ERR_TYPE, "upsert: expected 'Table with the same columns");
+            }
+        }
+
+        lst = as_list(lst)[1];
+        goto upsert;
+
+    default:
+        drop(obj);
+        return error(ERR_TYPE, "upsert: unsupported type '%s' as 2nd argument", typename(lst->type));
     }
-
-    drop(idx);
-
-    return __commit(x[0], obj, val);
 }
