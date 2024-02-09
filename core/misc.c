@@ -56,6 +56,13 @@ obj_t ray_distinct(obj_t x)
 
     switch (x->type)
     {
+    case TYPE_BOOL:
+    case TYPE_BYTE:
+    case TYPE_CHAR:
+        l = ops_count(x);
+        res = index_distinct_i8((i8_t *)as_u8(x), l, x->type == TYPE_CHAR);
+        res->type = x->type;
+        return res;
     case TYPE_I64:
     case TYPE_SYMBOL:
     case TYPE_TIMESTAMP:

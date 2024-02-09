@@ -27,7 +27,7 @@
 #include "rayforce.h"
 
 i64_t index_range(i64_t *pmin, i64_t *pmax, i64_t values[], i64_t filter[], u64_t len);
-obj_t index_distinct_i8(i8_t values[], u64_t len);
+obj_t index_distinct_i8(i8_t values[], u64_t len, bool_t term);
 obj_t index_distinct_i64(i64_t values[], u64_t len);
 obj_t index_distinct_guid(guid_t values[], u64_t len);
 obj_t index_distinct_obj(obj_t values[], u64_t len);

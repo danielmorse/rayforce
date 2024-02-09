@@ -59,11 +59,39 @@ i64_t index_range(i64_t *pmin, i64_t *pmax, i64_t values[], i64_t indices[], u64
     return max - min + 1;
 }
 
-obj_t index_distinct_i8(i8_t values[], u64_t len)
+obj_t index_distinct_i8(i8_t values[], u64_t len, bool_t term)
 {
-    unused(values);
-    unused(len);
-    throw(ERR_NOT_IMPLEMENTED, "index_distinct_i8 not implemented");
+    u64_t i, j, range;
+    i8_t min, *out;
+    obj_t vec;
+
+    min = -128;
+    range = 256;
+
+    vec = vector_u8(range);
+    out = (i8_t *)as_u8(vec);
+    memset(out, 0, range);
+
+    for (i = 0; i < len; i++)
+    {
+        if (out[values[i] - min] == 0)
+            out[values[i] - min] = 1;
+    }
+
+    // compact keys
+    for (i = 0, j = 0; i < range; i++)
+    {
+        if (out[i])
+            out[j++] = i + min;
+    }
+
+    if (term)
+        out[j++] = 0;
+
+    resize(&vec, j);
+    vec->attrs |= ATTR_DISTINCT;
+
+    return vec;
 }
 
 obj_t index_distinct_i64(i64_t values[], u64_t len)
@@ -199,11 +227,38 @@ obj_t index_distinct_obj(obj_t values[], u64_t len)
 
 obj_t index_find_i8(i8_t x[], u64_t xl, i8_t y[], u64_t yl)
 {
-    unused(x);
-    unused(xl);
-    unused(y);
-    unused(yl);
-    throw(ERR_NOT_IMPLEMENTED, "index_find_i8 not implemented");
+    u64_t i, range;
+    i64_t min, n, *r, *f;
+    obj_t vec;
+
+    min = -128;
+    range = 256;
+
+    if (xl == 0)
+        return vector_i64(0);
+
+    vec = vector_i64(yl + range);
+    r = as_i64(vec);
+    f = r + yl;
+
+    for (i = 0; i < range; i++)
+        f[i] = NULL_I64;
+
+    for (i = 0; i < xl; i++)
+    {
+        n = x[i] - min;
+        f[n] = (f[n] == NULL_I64) ? (i64_t)i : NULL_I64;
+    }
+
+    for (i = 0; i < yl; i++)
+    {
+        n = y[i] - min;
+        r[i] = f[n];
+    }
+
+    resize(&vec, yl);
+
+    return vec;
 }
 
 obj_t index_find_i64(i64_t x[], u64_t xl, i64_t y[], u64_t yl)

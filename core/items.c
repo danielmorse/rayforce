@@ -329,7 +329,10 @@ obj_t ray_find(obj_t x, obj_t y)
             return i64(NULL_I64);
         else
             return i64(i);
-
+    case mtype2(TYPE_BOOL, TYPE_BOOL):
+    case mtype2(TYPE_BYTE, TYPE_BYTE):
+    case mtype2(TYPE_CHAR, TYPE_CHAR):
+        return index_find_i8((i8_t *)as_u8(x), x->len, (i8_t *)as_u8(y), y->len);
     case mtype2(TYPE_I64, TYPE_I64):
     case mtype2(TYPE_SYMBOL, TYPE_SYMBOL):
     case mtype2(TYPE_TIMESTAMP, TYPE_TIMESTAMP):
