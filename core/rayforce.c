@@ -1543,6 +1543,9 @@ obj_t copy(obj_t obj)
         for (i = 0; i < l; i++)
             as_list(res)[i] = clone(as_list(obj)[i]);
         return res;
+    case TYPE_ENUM:
+    case TYPE_ANYMAP:
+        return ray_value(obj);
     case TYPE_TABLE:
         return table(copy(as_list(obj)[0]), copy(as_list(obj)[1]));
     case TYPE_DICT:
@@ -1555,6 +1558,10 @@ obj_t copy(obj_t obj)
 obj_t cow(obj_t obj)
 {
     u32_t rc;
+
+    // Complex types like enumerations or anymap may not be modified inplace
+    if (obj->type == TYPE_ENUM || obj->type == TYPE_ANYMAP)
+        return copy(obj);
 
     /*
     Since it is forbidden to modify globals from several threads simultenously,

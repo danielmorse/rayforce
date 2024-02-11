@@ -236,9 +236,11 @@ insert:
             for (i = 0; i < l; i++)
             {
                 if ((as_list(as_list(obj)[1])[i]->type != TYPE_LIST) &&
-                    (as_list(as_list(obj)[1])[i]->type != -as_list(lst)[i]->type))
+                    (as_list(as_list(obj)[1])[i]->type != TYPE_ANYMAP) &&
+                    (as_list(as_list(obj)[1])[i]->type != -as_list(lst)[i]->type) &&
+                    (as_list(as_list(obj)[1])[i]->type != TYPE_ENUM && as_list(lst)[i]->type != -TYPE_SYMBOL))
                 {
-                    res = error(ERR_TYPE, "insert: expected '%s' as %lldth element, got '%s'", typename(-as_list(as_list(obj)[1])[i]->type), i, typename(as_list(lst)[i]->type));
+                    res = error(ERR_TYPE, "insert: expected '%s' as %lldth element in a values list, got '%s'", typename(-as_list(as_list(obj)[1])[i]->type), i, typename(as_list(lst)[i]->type));
                     uncow(obj, val, res);
                 }
             }
