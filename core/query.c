@@ -73,7 +73,7 @@ obj_t remap_filter(obj_t x, obj_t y)
     return table(clone(as_list(x)[0]), res);
 }
 
-obj_t find_symbol(obj_t obj)
+obj_t find_symbol_column(obj_t cols, obj_t obj)
 {
     u64_t i, l;
     obj_t x;
@@ -81,12 +81,16 @@ obj_t find_symbol(obj_t obj)
     switch (obj->type)
     {
     case -TYPE_SYMBOL:
-        return clone(obj);
+        l = cols->len;
+        for (i = 0; i < l; i++)
+            if (as_i64(cols)[i] == obj->i64)
+                return symboli64(obj->i64);
+        return NULL_OBJ;
     case TYPE_LIST:
         l = obj->len;
         for (i = 0; i < l; i++)
         {
-            x = find_symbol(as_list(obj)[i]);
+            x = find_symbol_column(cols, as_list(obj)[i]);
             if (x != NULL_OBJ)
                 return x;
         }
@@ -155,12 +159,12 @@ obj_t ray_select(obj_t obj)
     prm = get_param(obj, "by");
     if (prm != NULL_OBJ)
     {
-        bysym = find_symbol(prm);
+        bysym = find_symbol_column(as_list(tab)[0], prm);
         groupby = eval(prm);
         drop(prm);
 
         if (bysym == NULL_OBJ)
-            bysym = symbol("x");
+            bysym = symbol("By");
         else
             byval = eval(bysym);
 
@@ -428,7 +432,7 @@ obj_t ray_update(obj_t obj)
     prm = get_param(obj, "by");
     if (prm != NULL_OBJ)
     {
-        bysym = find_symbol(prm);
+        bysym = find_symbol_column(as_list(tab)[0], prm);
         groupby = eval(prm);
         drop(prm);
 
