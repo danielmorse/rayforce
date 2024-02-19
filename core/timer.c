@@ -29,7 +29,7 @@
 #include "error.h"
 #include "io.h"
 
-u64_t get_time_millis()
+u64_t get_time_millis(nil_t)
 {
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);

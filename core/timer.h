@@ -27,6 +27,7 @@
 #include "rayforce.h"
 
 #define TIMEOUT_INFINITY -1
+
 typedef struct ray_timer_t
 {
     i64_t id;  // Timer ID
