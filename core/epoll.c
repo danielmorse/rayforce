@@ -121,6 +121,7 @@ poll_t poll_init(i64_t port)
     poll->replfile = string_from_str("repl", 4);
     poll->ipcfile = string_from_str("ipc", 3);
     poll->selectors = freelist_new(128);
+    poll->timers = timers_new(16);
 
     return poll;
 }
@@ -144,6 +145,7 @@ nil_t poll_cleanup(poll_t poll)
     drop(poll->ipcfile);
 
     freelist_free(poll->selectors);
+    timers_free(poll->timers);
 
     close(__EVENT_FD);
     close(poll->poll_fd);
@@ -395,7 +397,7 @@ nil_t process_request(poll_t poll, selector_t selector)
 i64_t poll_run(poll_t poll)
 {
     i64_t epoll_fd = poll->poll_fd, listen_fd = poll->ipc_fd,
-          n, nfds, len, sock;
+          n, nfds, len, sock, timeout = TIMEOUT_INFINITY;
     obj_t str, res;
     poll_result_t poll_result;
     selector_t selector;
@@ -405,7 +407,7 @@ i64_t poll_run(poll_t poll)
 
     while (poll->code == NULL_I64)
     {
-        nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
+        nfds = epoll_wait(epoll_fd, events, MAX_EVENTS, timeout);
         if (nfds == -1)
             return 1;
 
@@ -474,6 +476,8 @@ i64_t poll_run(poll_t poll)
                 }
             }
         }
+
+        timeout = timer_next_timeout(poll->timers);
     }
 
     return poll->code;

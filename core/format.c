@@ -382,7 +382,7 @@ i64_t error_fmt_into(str_t *dst, i64_t *len, i64_t *offset, i64_t limit, obj_t o
     switch (error->code)
     {
     case ERR_INIT:
-        error_desc = "unable to initialize";
+        error_desc = "initialize error";
         break;
     case ERR_PARSE:
         error_desc = "unable to parse input";
@@ -436,7 +436,7 @@ i64_t error_fmt_into(str_t *dst, i64_t *len, i64_t *offset, i64_t limit, obj_t o
     msg = as_string(error->msg);
 
     // there is a locations
-    if (error->locs)
+    if (error->locs != NULL_OBJ)
     {
         n += str_fmt_into(dst, len, offset, MAX_ERROR_LEN, "%s** [E%.3lld] error%s: %s\n", TOMATO, error->code, RESET, error_desc);
 
@@ -457,7 +457,8 @@ i64_t error_fmt_into(str_t *dst, i64_t *len, i64_t *offset, i64_t limit, obj_t o
         return n;
     }
 
-    return str_fmt_into(dst, len, offset, MAX_ERROR_LEN, "** [E%.3lld] error: %s: %s", error->code, error_desc, msg);
+    return str_fmt_into(dst, len, offset, MAX_ERROR_LEN, "%s** [E%.3lld] error%s: %s: %s", TOMATO, error->code, RESET,
+                        error_desc, msg);
 }
 
 i64_t raw_fmt_into(str_t *dst, i64_t *len, i64_t *offset, i64_t indent, i64_t limit, obj_t obj, i64_t i)

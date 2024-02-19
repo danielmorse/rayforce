@@ -259,8 +259,7 @@ obj_t sys_error(os_error_type_t type, str_t msg)
 
 obj_t sys_error(os_error_type_t type, str_t msg)
 {
-    unused(type);
-    return error(ERR_IO, "%s: %s", msg, strerror(errno));
+    return error(type, "'%s': %s", msg, strerror(errno));
 }
 
 #endif

@@ -46,6 +46,7 @@
 #include "cond.h"
 #include "iter.h"
 #include "dynlib.h"
+#include "timer.h"
 
 #define regf(r, n, t, f, o)                     \
     {                                           \
@@ -200,6 +201,7 @@ nil_t init_functions(obj_t functions)
     regf(functions,  "return",    TYPE_VARY,     FN_NONE,                   ray_return);
     regf(functions,  "exit",      TYPE_VARY,     FN_NONE,                   ray_exit);
     regf(functions,  "loadfn",    TYPE_VARY,     FN_NONE,                   ray_loadfn);
+    regf(functions,  "timer",     TYPE_VARY,     FN_NONE,                   ray_timer);
 }    
     
 nil_t init_typenames(obj_t typenames)    
