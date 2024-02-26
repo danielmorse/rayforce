@@ -113,11 +113,15 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@v4
   
+      - name: Set tag name
+        id: set_tag
+        run: echo "TAG_NAME=$(echo ${{ github.ref }} | sed 's@refs/tags/@@')" >> $GITHUB_ENV
+  
       - name: Create Release and Upload Assets
         run: |
-          gh release create ${{ github.ref }} \
+          gh release create ${{ env.TAG_NAME }} \
             --repo ${{ github.repository }} \
-            --title ${{ github.ref }} \
+            --title ${{ env.TAG_NAME }} \
             --notes-file ${{ github.workspace }}/release-notes/RELEASE.md \
             --draft=false \
             --prerelease=false \
