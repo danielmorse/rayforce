@@ -20,5 +20,11 @@
 
 (insert a (list 67 77 8 9))
 
-;; (set t (table [sym price volume tape] (list [aapl vod goog aapl aapl vod mod] 
-;;    [102 99 203 102 103 10 3] [500 400 900 10 30 40 78] (list "A" "B" "C" "D" "E" "F" "G"))))
+(set tab (table [sym price volume tape] (list [aapl vod goog aapl aapl vod mod] 
+   [102 99 203 102 103 10 3] [500 400 900 10 30 40 78] (list "A" "B" "C" "D" "E" "F" "G"))))
+
+;; (load "examples/update.rfl") (update {price: (+ 1 price) from: tab})
+;; (load "examples/update.rfl") (update {price: ((fn [x] (+ x 11)) price) from: tab where: (== volume 78)})
+;; (load "examples/update.rfl") (update {price: 0 from: tab where: (== volume 78)})
+;; (load "examples/update.rfl") (update {price: 0 from: 'tab where: (== volume 78)})
+;; (load "examples/update.rfl") (update {price: 0 from: tab by: sym where: (> volume 400)})

@@ -30,5 +30,6 @@ obj_t ray_alter(obj_t *x, u64_t n);
 obj_t ray_modify(obj_t *x, u64_t n);
 obj_t ray_insert(obj_t *x, u64_t n);
 obj_t ray_upsert(obj_t *x, u64_t n);
+obj_t ray_update(obj_t obj);
 
 #endif // UPDATE_H

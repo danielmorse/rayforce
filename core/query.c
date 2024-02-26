@@ -37,19 +37,9 @@
 #include "index.h"
 #include "group.h"
 #include "filter.h"
+#include "update.h"
 
-obj_t get_param(obj_t obj, str_t name)
-{
-    obj_t key, val;
-
-    key = symbol(name);
-    val = at_obj(obj, key);
-    drop(key);
-
-    return val;
-}
-
-obj_t get_symbols(obj_t obj)
+obj_t get_fields(obj_t obj)
 {
     obj_t keywords, symbols;
 
@@ -71,6 +61,28 @@ obj_t remap_filter(obj_t x, obj_t y)
         as_list(res)[i] = filter_map(clone(as_list(as_list(x)[1])[i]), clone(y));
 
     return table(clone(as_list(x)[0]), res);
+}
+
+obj_t remap_group(obj_t *aggr, obj_t x, obj_t y, obj_t z, obj_t k)
+{
+    obj_t bins, v, res;
+
+    bins = group_bins(x, y, z);
+    res = group_map(y, bins, z);
+    drop(bins);
+
+    v = (k == NULL_OBJ) ? aggr_first(x, bins, z) : aggr_first(k, bins, z);
+    if (is_error(v))
+    {
+        drop(res);
+        drop(bins);
+        return v;
+    }
+
+    *aggr = v;
+    drop(bins);
+
+    return res;
 }
 
 obj_t find_symbol_column(obj_t cols, obj_t obj)
@@ -113,7 +125,7 @@ obj_t ray_select(obj_t obj)
         throw(ERR_LENGTH, "'select' takes dict with symbol keys");
 
     // Retrive a table
-    prm = get_param(obj, "from");
+    prm = at_sym(obj, "from");
 
     if (is_null(prm))
         throw(ERR_LENGTH, "'select' expects 'from' param");
@@ -135,7 +147,7 @@ obj_t ray_select(obj_t obj)
     mount_env(tab);
 
     // Apply filters
-    prm = get_param(obj, "where");
+    prm = at_sym(obj, "where");
     if (prm != NULL_OBJ)
     {
         val = eval(prm);
@@ -156,7 +168,7 @@ obj_t ray_select(obj_t obj)
     }
 
     // Apply groupping
-    prm = get_param(obj, "by");
+    prm = at_sym(obj, "by");
     if (prm != NULL_OBJ)
     {
         bysym = find_symbol_column(as_list(tab)[0], prm);
@@ -179,7 +191,7 @@ obj_t ray_select(obj_t obj)
             return groupby;
         }
 
-        prm = group_map(&bycol, groupby, tab, filters, byval);
+        prm = remap_group(&bycol, groupby, tab, filters, byval);
         drop(byval);
 
         if (is_error(prm))
@@ -216,7 +228,7 @@ obj_t ray_select(obj_t obj)
     }
 
     // Find all mappings (non-keyword fields)
-    keys = get_symbols(obj);
+    keys = get_fields(obj);
     l = keys->len;
 
     // Apply mappings
@@ -298,6 +310,7 @@ obj_t ray_select(obj_t obj)
                     vals->len = i;
                     drop(vals);
                     drop(tab);
+                    drop(keys);
                     drop(bysym);
                     drop(bycol);
                     return prm;
@@ -340,6 +353,9 @@ obj_t ray_select(obj_t obj)
                     vals->len = i;
                     drop(vals);
                     drop(tab);
+                    drop(keys);
+                    drop(bysym);
+                    drop(bycol);
                     return val;
                 }
 
@@ -371,117 +387,4 @@ obj_t ray_select(obj_t obj)
     drop(vals);
 
     return val;
-}
-
-obj_t ray_update(obj_t obj)
-{
-    u64_t i, l, tablen;
-    obj_t keys = NULL_OBJ, vals = NULL_OBJ, filters = NULL_OBJ, groupby = NULL_OBJ,
-          bycol = NULL_OBJ, bysym = NULL_OBJ, tab, sym, prm, val;
-
-    if (obj->type != TYPE_DICT)
-        throw(ERR_LENGTH, "'select' takes dict of params");
-
-    if (as_list(obj)[0]->type != TYPE_SYMBOL)
-        throw(ERR_LENGTH, "'select' takes dict with symbol keys");
-
-    // Retrive a table
-    prm = get_param(obj, "from");
-
-    if (is_null(prm))
-        throw(ERR_LENGTH, "'select' expects 'from' param");
-
-    tab = eval(prm);
-    drop(prm);
-
-    if (is_error(tab))
-        return tab;
-
-    if (tab->type != TYPE_TABLE)
-    {
-        drop(tab);
-        throw(ERR_TYPE, "'select' from: expects table");
-    }
-
-    // Mount table columns to a local env
-    tablen = as_list(tab)[0]->len;
-    mount_env(tab);
-
-    // Apply filters
-    prm = get_param(obj, "where");
-    if (prm != NULL_OBJ)
-    {
-        val = eval(prm);
-        drop(prm);
-        if (is_error(val))
-        {
-            drop(tab);
-            return val;
-        }
-
-        filters = ray_where(val);
-        drop(val);
-        if (is_error(filters))
-        {
-            drop(tab);
-            return filters;
-        }
-    }
-
-    // Apply groupping
-    prm = get_param(obj, "by");
-    if (prm != NULL_OBJ)
-    {
-        bysym = find_symbol_column(as_list(tab)[0], prm);
-        groupby = eval(prm);
-        drop(prm);
-
-        unmount_env(tablen);
-
-        if (is_error(groupby))
-        {
-            drop(tab);
-            return groupby;
-        }
-
-        if (bysym == NULL_OBJ)
-            bysym = symbol("x");
-        else
-            bycol = eval(bysym);
-
-        //     prm = group_map(&bycol, groupby, tab, filters);
-
-        //     if (is_error(prm))
-        //     {
-        //         drop(tab);
-        //         drop(filters);
-        //         drop(groupby);
-        //         drop(bysym);
-        //         return prm;
-        //     }
-        //     return prm;
-        //     mount_env(prm);
-
-        //     drop(prm);
-        //     drop(filters);
-        //     drop(groupby);
-
-        //     if (is_error(bycol))
-        //     {
-        //         drop(tab);
-        //         return bycol;
-        //     }
-        // }
-        // else if (filters != NULL_OBJ)
-        // {
-        //     // Unmount table columns from a local env
-        //     unmount_env(tablen);
-        //     // Create filtermaps over table
-        //     val = remap_filter(tab, filters);
-        //     drop(filters);
-        //     mount_env(val);
-        //     drop(val);
-    }
-
-    return NULL;
 }

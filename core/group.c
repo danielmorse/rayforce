@@ -30,47 +30,11 @@
 #include "items.h"
 #include "unary.h"
 
-/*
- * group index is a list:
- * [0] - groups number
- * [1] - bins
- * [2] - count of each group
- * --
- * result is a list
- * [0] - indexed object
- * [1] - group index (see above)
- * [2] - filters
- */
-obj_t __group(obj_t x, obj_t y, obj_t z)
-{
-    u64_t i, l;
-    obj_t v, res;
-
-    switch (x->type)
-    {
-    case TYPE_TABLE:
-        l = as_list(x)[1]->len;
-        res = vector(TYPE_LIST, l);
-        for (i = 0; i < l; i++)
-        {
-            v = as_list(as_list(x)[1])[i];
-            as_list(res)[i] = __group(v, y, z);
-        }
-
-        return table(clone(as_list(x)[0]), res);
-
-    default:
-        res = vn_list(3, clone(x), clone(y), clone(z));
-        res->type = TYPE_GROUPMAP;
-        return res;
-    }
-}
-
-obj_t group_map(obj_t *aggr, obj_t x, obj_t y, obj_t z, obj_t k)
+obj_t group_bins(obj_t x, obj_t y, obj_t z)
 {
     u64_t l;
     i64_t *ids;
-    obj_t bins, v, res;
+    obj_t bins, v;
 
     if (z != NULL_OBJ)
     {
@@ -84,55 +48,70 @@ obj_t group_map(obj_t *aggr, obj_t x, obj_t y, obj_t z, obj_t k)
     }
 
     if (l > ops_count(y))
-        throw(ERR_LENGTH, "'by': groups count: %lld can't be greater than source length: %lld", l, ops_count(y));
+        throw(ERR_LENGTH, "'group index': groups count: %lld can't be greater than source length: %lld", l, ops_count(y));
 
     switch (x->type)
     {
     case TYPE_BOOL:
     case TYPE_BYTE:
     case TYPE_CHAR:
-        bins = index_group_i8((i8_t *)as_u8(x), ids, l);
-        break;
+        return index_group_i8((i8_t *)as_u8(x), ids, l);
     case TYPE_I64:
     case TYPE_SYMBOL:
     case TYPE_TIMESTAMP:
-        bins = index_group_i64(as_i64(x), ids, l);
-        break;
+        return index_group_i64(as_i64(x), ids, l);
     case TYPE_F64:
-        bins = index_group_i64((i64_t *)as_f64(x), ids, l);
-        break;
+        return index_group_i64((i64_t *)as_f64(x), ids, l);
     case TYPE_GUID:
-        bins = index_group_guid(as_guid(x), ids, l);
-        break;
+        return index_group_guid(as_guid(x), ids, l);
     case TYPE_ENUM:
-        bins = index_group_i64(as_i64(enum_val(x)), ids, l);
-        break;
+        return index_group_i64(as_i64(enum_val(x)), ids, l);
     case TYPE_LIST:
-        bins = index_group_obj(as_list(x), ids, l);
-        break;
+        return index_group_obj(as_list(x), ids, l);
     case TYPE_ANYMAP:
         v = ray_value(x);
         bins = index_group_obj(as_list(v), ids, l);
         drop(v);
-        break;
+        return bins;
     default:
-        throw(ERR_TYPE, "'by' unable to group by: %s", typename(x->type));
+        throw(ERR_TYPE, "'group index' unable to group by: %s", typename(x->type));
     }
+}
 
-    res = __group(y, bins, z);
+/*
+ * group index is a list:
+ * [0] - groups number
+ * [1] - bins
+ * [2] - count of each group
+ * --
+ * result is a list
+ * [0] - indexed object
+ * [1] - group index (see above)
+ * [2] - filters
+ */
+obj_t group_map(obj_t x, obj_t y, obj_t z)
+{
+    u64_t i, l;
+    obj_t v, res;
 
-    v = (k == NULL_OBJ) ? aggr_first(x, bins, z) : aggr_first(k, bins, z);
-    if (is_error(v))
+    switch (x->type)
     {
-        drop(res);
-        drop(bins);
-        return v;
+    case TYPE_TABLE:
+        l = as_list(x)[1]->len;
+        res = vector(TYPE_LIST, l);
+        for (i = 0; i < l; i++)
+        {
+            v = as_list(as_list(x)[1])[i];
+            as_list(res)[i] = group_map(v, y, z);
+        }
+
+        return table(clone(as_list(x)[0]), res);
+
+    default:
+        res = vn_list(3, clone(x), clone(y), clone(z));
+        res->type = TYPE_GROUPMAP;
+        return res;
     }
-
-    *aggr = v;
-    drop(bins);
-
-    return res;
 }
 
 nil_t group_fill_counts(obj_t grp)
@@ -335,4 +314,46 @@ obj_t group_collect(obj_t x)
     default:
         throw(ERR_TYPE, "group collect: unsupported type: '%s", typename(obj->type));
     }
+}
+
+obj_t group_ids(obj_t grp, i64_t ids[])
+{
+    u64_t i, l, n;
+    obj_t c, res;
+
+    l = as_list(grp)[0]->i64;
+    res = list(l);
+
+    c = index_group_cnts(grp);
+
+    // Allocate vectors for each group indices
+    for (i = 0; i < l; i++)
+    {
+        as_list(res)[i] = vector_i64(as_i64(c)[i]);
+        as_list(res)[i]->len = 0;
+    }
+
+    l = as_list(grp)[1]->len;
+
+    // Fill vectors with indices
+    if (ids)
+    {
+        for (i = 0; i < l; i++)
+        {
+            n = as_i64(as_list(grp)[1])[i];
+            as_i64(as_list(res)[n])[as_list(res)[n]->len++] = ids[i];
+        }
+    }
+    else
+    {
+        for (i = 0; i < l; i++)
+        {
+            n = as_i64(as_list(grp)[1])[i];
+            as_i64(as_list(res)[n])[as_list(res)[n]->len++] = i;
+        }
+    }
+
+    drop(c);
+
+    return res;
 }

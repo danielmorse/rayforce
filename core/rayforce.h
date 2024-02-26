@@ -148,7 +148,8 @@ typedef struct obj_t
 u8_t version(nil_t); // get version as u8_t (major - 5 bits, minor - 3 bits)
 
 // Constructors
-obj_t null(type_t type);                             // create null of type
+obj_t null(type_t type);                             // create null atom of type
+obj_t nullv(type_t type, u64_t len);                 // create null list of type and length
 obj_t atom(type_t type);                             // create atom of type
 obj_t list(u64_t len);                               // create list
 obj_t vn_list(u64_t len, ...);                       // create list from values
@@ -229,6 +230,7 @@ obj_t ins_sym(obj_t *obj, i64_t idx, str_t str); // write interned string to a s
 obj_t at_idx(obj_t obj, i64_t idx);              // read value from an obj at index
 obj_t at_ids(obj_t obj, i64_t ids[], u64_t len); // read values from an obj at indexes
 obj_t at_obj(obj_t obj, obj_t idx);              // read from obj indexed by obj
+obj_t at_sym(obj_t obj, str_t str);              // read value indexed by symbol created from str
 str_t symtostr(i64_t id);                        // return interned string by interned id
 
 // Initialize obj with zeroed memory

@@ -95,6 +95,54 @@ obj_t null(type_t type)
     }
 }
 
+obj_t nullv(type_t type, u64_t len)
+{
+    u64_t i;
+    obj_t vec;
+    type_t t;
+
+    if (type == TYPE_CHAR)
+        t = TYPE_LIST;
+    else if (type < 0)
+        t = -type;
+    else
+        t = type;
+
+    vec = vector(t, len);
+
+    switch (t)
+    {
+    case TYPE_BOOL:
+    case TYPE_BYTE:
+    case TYPE_CHAR:
+        memset(vec->arr, 0, len);
+        break;
+    case TYPE_I64:
+    case TYPE_SYMBOL:
+    case TYPE_TIMESTAMP:
+        for (i = 0; i < len; i++)
+            as_i64(vec)[i] = NULL_I64;
+        break;
+    case TYPE_F64:
+        for (i = 0; i < len; i++)
+            as_f64(vec)[i] = NULL_F64;
+        break;
+    case TYPE_GUID:
+        for (i = 0; i < len; i++)
+            memset(as_guid(vec)[i].buf, 0, 16);
+        break;
+    case TYPE_LIST:
+        for (i = 0; i < len; i++)
+            as_list(vec)[i] = NULL_OBJ;
+        break;
+    default:
+        memset(vec->arr, 0, len * size_of_type(t));
+        break;
+    }
+
+    return vec;
+}
+
 obj_t bool(bool_t val)
 {
     obj_t b = atom(TYPE_BOOL);
@@ -827,6 +875,17 @@ obj_t at_obj(obj_t obj, obj_t idx)
     }
 }
 
+obj_t at_sym(obj_t obj, str_t str)
+{
+    obj_t sym, res;
+
+    sym = symbol(str);
+    res = at_obj(obj, sym);
+    drop(sym);
+
+    return res;
+}
+
 obj_t set_idx(obj_t *obj, i64_t idx, obj_t val)
 {
     switch (mtype2((*obj)->type, val->type))
@@ -911,15 +970,36 @@ obj_t set_ids(obj_t *obj, i64_t ids[], u64_t len, obj_t vals)
             as_guid(*obj)[ids[i]] = as_guid(vals)[i];
         drop(vals);
         return *obj;
+    case mtype2(TYPE_LIST, TYPE_CHAR):
+        for (i = 0; i < len; i++)
+        {
+            drop(as_list(*obj)[ids[i]]);
+            as_list(*obj)[ids[i]] = clone(vals);
+        }
+        drop(vals);
+        return *obj;
     default:
         if ((*obj)->type == TYPE_LIST)
         {
-            for (i = 0; i < len; i++)
+            if (is_vector(vals) && len != (*obj)->len)
             {
-                drop(as_list(*obj)[ids[i]]);
-                as_list(*obj)[ids[i]] = at_idx(vals, i);
+                for (i = 0; i < len; i++)
+                {
+                    drop(as_list(*obj)[ids[i]]);
+                    as_list(*obj)[ids[i]] = clone(vals);
+                }
             }
+            else
+            {
+                for (i = 0; i < len; i++)
+                {
+                    drop(as_list(*obj)[ids[i]]);
+                    as_list(*obj)[ids[i]] = at_idx(vals, i);
+                }
+            }
+
             drop(vals);
+
             return *obj;
         }
 

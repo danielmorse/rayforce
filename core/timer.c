@@ -173,7 +173,7 @@ nil_t timer_del(timers_t *timers, i64_t id)
 
 i64_t timer_next_timeout(timers_t *timers)
 {
-    u64_t now = get_time_millis();
+    i64_t now = get_time_millis();
     ray_timer_t *timer;
     obj_t res;
 

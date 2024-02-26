@@ -36,6 +36,8 @@
 #define KW_FN 1
 #define KW_SELF 2
 #define KW_DO 3
+#define KW_SET 4
+#define KW_LET 5
 
 /*
  *  Environment
