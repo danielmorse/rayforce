@@ -40,7 +40,7 @@ sys_info_t get_sys_info(nil_t)
 #if defined(_WIN32) || defined(__CYGWIN__)
     SYSTEM_INFO si;
     GetSystemInfo(&si);
-    snprintf(info.cpu, sizeof(info.cpu), "%u", si.dwProcessorType);
+    snprintf(info.cpu, sizeof(info.cpu), "%lu", si.dwProcessorType);
 
     MEMORYSTATUSEX memInfo;
     memInfo.dwLength = sizeof(MEMORYSTATUSEX);

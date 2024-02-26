@@ -51,7 +51,7 @@ nil_t *mmap_file(i64_t fd, u64_t size)
     HANDLE hMapping = CreateFileMapping((HANDLE)fd, NULL, PAGE_READWRITE, 0, size, NULL);
 
     if (hMapping == NULL)
-        return NULL_OBJ;
+        return NULL;
 
     return MapViewOfFile(hMapping, FILE_MAP_ALL_ACCESS, 0, 0, size);
 }

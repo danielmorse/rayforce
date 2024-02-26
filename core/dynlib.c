@@ -22,9 +22,26 @@
  */
 
 #include <stdio.h>
-#include "dynlib.h"
-#include "error.h"
+
+#if defined(_WIN32) || defined(__CYGWIN__)
+#else
 #include <dlfcn.h>
+#include "dynlib.h"
+#endif
+
+#include "error.h"
+
+#if defined(_WIN32) || defined(__CYGWIN__)
+
+obj_t dynlib_loadfn(str_t path, str_t func, i64_t nargs)
+{
+    unused(path);
+    unused(func);
+    unused(nargs);
+    throw(ERR_SYS, "Loading functions from shared libraries is not supported on this platform");
+}
+
+#else
 
 obj_t dynlib_loadfn(str_t path, str_t func, i64_t nargs)
 {
@@ -58,6 +75,8 @@ obj_t dynlib_loadfn(str_t path, str_t func, i64_t nargs)
 
     return fn;
 }
+
+#endif
 
 obj_t ray_loadfn(obj_t *args, u64_t n)
 {

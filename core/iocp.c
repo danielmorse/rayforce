@@ -41,6 +41,8 @@
 #include "format.h"
 #include "util.h"
 #include "heap.h"
+#include "io.h"
+#include "error.h"
 
 // Definitions and globals
 #define STDIN_WAKER_ID ~0ull
@@ -215,7 +217,11 @@ poll_t poll_init(i64_t port)
         }
     }
 
+    poll->code = NULL_I64;
+    poll->replfile = string_from_str("repl", 4);
+    poll->ipcfile = string_from_str("ipc", 3);
     poll->selectors = freelist_new(128);
+    poll->timers = timers_new(16);
 
     return poll;
 }
@@ -235,7 +241,11 @@ nil_t poll_cleanup(poll_t poll)
             poll_deregister(poll, i + SELECTOR_ID_OFFSET);
     }
 
+    drop(poll->replfile);
+    drop(poll->ipcfile);
+
     freelist_free(poll->selectors);
+    timers_free(poll->timers);
 
     CloseHandle((HANDLE)poll->poll_fd);
     heap_free(poll);
@@ -500,11 +510,11 @@ nil_t process_request(poll_t poll, selector_t selector)
         v = res;
     if (res->type == TYPE_CHAR)
     {
-        v = eval_str(0, "ipc", as_string(res));
+        v = eval_str(0, poll->ipcfile, res);
         drop(res);
     }
     else
-        v = eval_obj(0, "ipc", res);
+        v = eval_obj(0, res);
 
     // sync request
     if (selector->rx.msgtype == MSG_TYPE_SYNC)
@@ -528,7 +538,7 @@ i64_t poll_run(poll_t poll)
     OVERLAPPED_ENTRY events[MAX_EVENTS];
     BOOL success;
     i64_t key, poll_result, idx;
-    obj_t res;
+    obj_t str, res;
     str_t fmt;
     selector_t selector;
 
@@ -561,15 +571,11 @@ i64_t poll_run(poll_t poll)
                         poll->code = 0;
                         break;
                     }
-                    res = eval_str(0, "stdin", __STDIN_BUF);
-                    if (res)
-                    {
-                        fmt = obj_fmt(res);
-                        printf("%s\n", fmt);
-                        heap_free(fmt);
-                        drop(res);
-                    }
-
+                    str = string_from_str(__STDIN_BUF, size);
+                    res = eval_str(0, str, poll->replfile);
+                    drop(str);
+                    io_write(STDOUT_FILENO, MSG_TYPE_RESP, res);
+                    drop(res);
                     prompt();
                     break;
 
