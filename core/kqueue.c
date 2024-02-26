@@ -320,7 +320,7 @@ send:
 
     v = queue_pop(&selector->tx.queue);
 
-    if (v)
+    if (v != NULL_OBJ)
     {
         obj = (obj_t)((i64_t)v & ~(3ll << 61));
         msg_type = (((i64_t)v & (3ll << 61)) >> 61);
