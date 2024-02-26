@@ -25,8 +25,8 @@
 
 #if defined(_WIN32) || defined(__CYGWIN__)
 #else
-#include <dlfcn.h>
 #include "dynlib.h"
+#include <dlfcn.h>
 #endif
 
 #include "error.h"
