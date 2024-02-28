@@ -40,19 +40,25 @@ EM_JS(nil_t, js_appendOutput, (str_t text), {
     Module.appendOutput(UTF8ToString(text));
 });
 
-// volatile int hasInput = 0;
-// volatile char inputBuffer[256];
+poll_t poll_init(i64_t port)
+{
+    poll_t poll = (poll_t)heap_alloc(sizeof(struct poll_t));
+    poll->code = NULL_I64;
 
-poll_t poll_init(i64_t port) { return (poll_t){0}; };
+    return poll;
+}
 
-nil_t poll_cleanup(poll_t poll) { unused(poll); };
+nil_t poll_cleanup(poll_t poll)
+{
+    heap_free(poll);
+}
 
 i64_t poll_run(poll_t poll)
 {
     unused(poll);
     // emscripten_set_main_loop(wasm_repl, -1, 1);
     return 0;
-};
+}
 
 i64_t poll_register(poll_t poll, i64_t fd, u8_t version)
 {
@@ -60,13 +66,13 @@ i64_t poll_register(poll_t poll, i64_t fd, u8_t version)
     unused(fd);
     unused(version);
     return 0;
-};
+}
 
 nil_t poll_deregister(poll_t poll, i64_t id)
 {
     unused(poll);
     unused(id);
-};
+}
 
 obj_t ipc_send_sync(poll_t poll, i64_t id, obj_t msg)
 {
@@ -74,7 +80,7 @@ obj_t ipc_send_sync(poll_t poll, i64_t id, obj_t msg)
     unused(id);
     unused(msg);
     return NULL_OBJ;
-};
+}
 
 obj_t ipc_send_async(poll_t poll, i64_t id, obj_t msg)
 {
@@ -82,7 +88,7 @@ obj_t ipc_send_async(poll_t poll, i64_t id, obj_t msg)
     unused(id);
     unused(msg);
     return NULL_OBJ;
-};
+}
 
 nil_t printjs(str_t str)
 {
@@ -94,9 +100,15 @@ EMSCRIPTEN_KEEPALIVE nil_t wasm_repl(str_t input)
 {
     obj_t src, file, res;
     str_t fmt;
+    u64_t n;
 
-    src = string_from_str(input, strlen(input));
-    file = string_from_str("webrepl", 4);
+    n = strlen(input);
+
+    if (n == 0)
+        return;
+
+    src = string_from_str(input, n);
+    file = string_from_str("webrepl", 7);
     res = eval_str(0, src, file);
     drop(src);
     drop(file);
@@ -105,4 +117,4 @@ EMSCRIPTEN_KEEPALIVE nil_t wasm_repl(str_t input)
     js_appendOutput(fmt);
     heap_free(fmt);
     drop(res);
-};
+}

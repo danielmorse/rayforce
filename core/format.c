@@ -55,9 +55,6 @@
         n = n > k ? n : k; \
     }
 
-const str_t PADDING = "                                                                                                   ";
-const str_t TABLE_HEADER_SEPARATOR = "------------------------------------------------------------------------------------";
-
 /*
  * return n:
  * n > limit - truncated
@@ -132,6 +129,16 @@ i64_t str_fmt_into(str_t *dst, i64_t *len, i64_t *offset, i64_t limit, str_t fmt
     va_start(args, fmt);
     n = str_vfmt_into(dst, len, offset, limit, fmt, args);
     va_end(args);
+
+    return n;
+}
+
+i64_t str_fmt_into_n(str_t *dst, i64_t *len, i64_t *offset, i64_t limit, i64_t repeat, str_t fmt, ...)
+{
+    i64_t i, n;
+
+    for (i = 0, n = 0; i < repeat; i++)
+        n += str_fmt_into(dst, len, offset, limit, fmt);
 
     return n;
 }
@@ -572,16 +579,23 @@ i64_t list_fmt_into(str_t *dst, i64_t *len, i64_t *offset, i64_t indent, i64_t l
 
     for (i = 0; i < list_height; i++)
     {
-        maxn(n, str_fmt_into(dst, len, offset, 0, "\n%*.*s", indent, indent, PADDING));
+        maxn(n, str_fmt_into(dst, len, offset, 0, "\n"));
+        maxn(n, str_fmt_into_n(dst, len, offset, 0, indent, " "));
         maxn(n, obj_fmt_into(dst, len, offset, indent, limit, false, as_list(obj)[i]));
     }
 
     if (list_height < (i64_t)obj->len)
-        maxn(n, str_fmt_into(dst, len, offset, 0, "\n%*.*s..", indent, indent, PADDING));
+    {
+        maxn(n, str_fmt_into(dst, len, offset, 0, "\n"));
+        maxn(n, str_fmt_into_n(dst, len, offset, 0, indent, ""));
+        maxn(n, str_fmt_into(dst, len, offset, 0, ".."));
+    }
 
     indent -= 2;
 
-    maxn(n, str_fmt_into(dst, len, offset, 0, "\n%*.*s)", indent, indent, PADDING));
+    maxn(n, str_fmt_into(dst, len, offset, 0, "\n"));
+    maxn(n, str_fmt_into_n(dst, len, offset, 0, indent, " "));
+    maxn(n, str_fmt_into(dst, len, offset, 0, ")"));
 
     return n;
 }
@@ -687,7 +701,7 @@ i64_t dict_fmt_into(str_t *dst, i64_t *len, i64_t *offset, i64_t indent, i64_t l
         maxn(n, raw_fmt_into(dst, len, offset, indent, MAX_ROW_WIDTH, vals, i));
 
         if (dict_height < ops_count(keys))
-            maxn(n, str_fmt_into(dst, len, offset, 0, "..", indent, indent, PADDING));
+            maxn(n, str_fmt_into(dst, len, offset, 0, ".."));
 
         maxn(n, str_fmt_into(dst, len, offset, limit, "}"));
 
@@ -698,18 +712,25 @@ i64_t dict_fmt_into(str_t *dst, i64_t *len, i64_t *offset, i64_t indent, i64_t l
 
     for (i = 0; i < dict_height; i++)
     {
-        maxn(n, str_fmt_into(dst, len, offset, 0, "\n%*.*s", indent, indent, PADDING));
+        maxn(n, str_fmt_into(dst, len, offset, 0, "\n"));
+        maxn(n, str_fmt_into_n(dst, len, offset, 0, indent, " "));
         maxn(n, raw_fmt_into(dst, len, offset, indent, MAX_ROW_WIDTH, keys, i));
         n += str_fmt_into(dst, len, offset, MAX_ROW_WIDTH, ": ");
         maxn(n, raw_fmt_into(dst, len, offset, indent, MAX_ROW_WIDTH, vals, i));
     }
 
     if (dict_height < ops_count(keys))
-        maxn(n, str_fmt_into(dst, len, offset, 0, "\n%*.*s..", indent, indent, PADDING));
+    {
+        maxn(n, str_fmt_into(dst, len, offset, 0, "\n"));
+        maxn(n, str_fmt_into_n(dst, len, offset, 0, indent, " "));
+        maxn(n, str_fmt_into(dst, len, offset, 0, ".."));
+    }
 
     indent -= 2;
 
-    maxn(n, str_fmt_into(dst, len, offset, limit, "\n%*.*s}", indent, indent, PADDING));
+    maxn(n, str_fmt_into(dst, len, offset, limit, "\n"));
+    maxn(n, str_fmt_into_n(dst, len, offset, limit, indent, " "));
+    maxn(n, str_fmt_into(dst, len, offset, limit, "}"));
 
     return n;
 }
@@ -761,7 +782,7 @@ i64_t table_fmt_into(str_t *dst, i64_t *len, i64_t *offset, i64_t indent, bool_t
             maxn(n, o);
         }
 
-        as_i64(column_widths)[i] = n;
+        as_i64(column_widths)[i] = n + 2; // Add 2 for padding
     }
 
     n = str_fmt_into(dst, len, offset, 0, "|");
@@ -771,32 +792,44 @@ i64_t table_fmt_into(str_t *dst, i64_t *len, i64_t *offset, i64_t indent, bool_t
     {
         n = as_i64(column_widths)[i];
         s = symtostr(header[i]);
-        n = n - strlen(s);
-        n += str_fmt_into(dst, len, offset, 0, " %s%*.*s |", s, n, n, PADDING);
+        n = n - strlen(s) - 1;
+        str_fmt_into(dst, len, offset, 0, " %s", s);
+        str_fmt_into_n(dst, len, offset, 0, n, " ");
+        str_fmt_into(dst, len, offset, 0, "|");
     }
 
     if (as_list(obj)[0]->len > TABLE_MAX_WIDTH)
         str_fmt_into(dst, len, offset, 0, " ..");
 
     // Print table header separator
-    str_fmt_into(dst, len, offset, 0, "\n%*.*s+", indent, indent, PADDING);
+    str_fmt_into(dst, len, offset, 0, "\n");
+    str_fmt_into_n(dst, len, offset, 0, indent, " ");
+    str_fmt_into(dst, len, offset, 0, "+");
+
     for (i = 0; i < table_width; i++)
     {
-        n = as_i64(column_widths)[i] + 2;
-        str_fmt_into(dst, len, offset, 0, "%*.*s+", n, n, TABLE_HEADER_SEPARATOR);
+        n = as_i64(column_widths)[i];
+        for (j = 0; j < n; j++)
+            str_fmt_into(dst, len, offset, 0, "-");
+
+        str_fmt_into(dst, len, offset, 0, "+");
     }
 
     // Print table content
     for (j = 0; j < table_height; j++)
     {
-        str_fmt_into(dst, len, offset, 0, "\n%*.*s|", indent, indent, PADDING);
+        str_fmt_into(dst, len, offset, 0, "\n");
+        str_fmt_into_n(dst, len, offset, 0, indent, " ");
+        str_fmt_into(dst, len, offset, 0, "|");
 
         for (i = 0; i < table_width; i++)
         {
-            n = as_i64(column_widths)[i] + 1;
+            n = as_i64(column_widths)[i] - 1;
             s = formatted_columns[i][j];
             n = n - strlen(s);
-            str_fmt_into(dst, len, offset, 0, " %s%*.*s|", s, n, n, PADDING);
+            str_fmt_into(dst, len, offset, 0, " %s", s);
+            str_fmt_into_n(dst, len, offset, 0, n, " ");
+            str_fmt_into(dst, len, offset, 0, "|");
             // Free formatted column
             heap_free(s);
         }
