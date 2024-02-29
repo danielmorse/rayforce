@@ -34,29 +34,31 @@
 #include "string.h"
 #include "poll.h"
 #include "heap.h"
+#include "runtime.h"
 
 // Use EM_JS to define JavaScript functions to be called from C
-EM_JS(nil_t, js_appendOutput, (str_t text), {
-    Module.appendOutput(UTF8ToString(text));
+EM_JS(nil_t, js_printf, (str_t text), {
+    Module.printf(UTF8ToString(text));
 });
 
 poll_t poll_init(i64_t port)
 {
     poll_t poll = (poll_t)heap_alloc(sizeof(struct poll_t));
     poll->code = NULL_I64;
+    poll->replfile = string_from_str("wasm", 4);
 
     return poll;
 }
 
 nil_t poll_cleanup(poll_t poll)
 {
+    drop(poll->replfile);
     heap_free(poll);
 }
 
 i64_t poll_run(poll_t poll)
 {
     unused(poll);
-    // emscripten_set_main_loop(wasm_repl, -1, 1);
     return 0;
 }
 
@@ -92,15 +94,16 @@ obj_t ipc_send_async(poll_t poll, i64_t id, obj_t msg)
 
 nil_t printjs(str_t str)
 {
-    js_appendOutput(str);
+    js_printf(str);
 }
 
 // Define the wasm_repl function to be called from JavaScript
 EMSCRIPTEN_KEEPALIVE nil_t wasm_repl(str_t input)
 {
-    obj_t src, file, res;
+    obj_t src, res;
     str_t fmt;
     u64_t n;
+    poll_t poll = runtime_get()->poll;
 
     n = strlen(input);
 
@@ -108,13 +111,11 @@ EMSCRIPTEN_KEEPALIVE nil_t wasm_repl(str_t input)
         return;
 
     src = string_from_str(input, n);
-    file = string_from_str("webrepl", 7);
-    res = eval_str(0, src, file);
+    res = eval_str(0, src, poll->replfile);
     drop(src);
-    drop(file);
 
     fmt = obj_fmt(res);
-    js_appendOutput(fmt);
+    js_printf(fmt);
     heap_free(fmt);
     drop(res);
 }
