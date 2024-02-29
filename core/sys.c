@@ -39,17 +39,17 @@
 str_t sys_about_info(nil_t)
 {
 #if defined(__EMSCRIPTEN__)
-    return str_fmt(0, "RayforceDB: %d.%d %s\n"
-                      "WASM target\n"
-                      "Documentation: https://rayforcedb.com/\n"
-                      "Github: https://github.com/singaraiona/rayforce\n",
+    return str_fmt(0, "  RayforceDB: %d.%d %s\n"
+                      "  WASM target\n"
+                      "  Documentation: https://rayforcedb.com/\n"
+                      "  Github: https://github.com/singaraiona/rayforce\n",
                    RAYFORCE_MAJOR_VERSION, RAYFORCE_MINOR_VERSION, __DATE__);
 #else
     sys_info_t nfo = sys_hw_info();
-    return str_fmt(0, "RayforceDB: %d.%d %s\n"
-                      "%s %d(MB)\n"
-                      "Documentation: https://rayforcedb.com/\n"
-                      "Github: https://github.com/singaraiona/rayforce\n",
+    return str_fmt(0, "  RayforceDB: %d.%d %s\n"
+                      "  %s %d(MB)\n"
+                      "  Documentation: https://rayforcedb.com/\n"
+                      "  Github: https://github.com/singaraiona/rayforce\n",
                    RAYFORCE_MAJOR_VERSION, RAYFORCE_MINOR_VERSION,
                    __DATE__, nfo.cpu, nfo.mem);
 #endif
