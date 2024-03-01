@@ -60,7 +60,7 @@ obj_p env_get_internal_function(str_p name);
 obj_p env_get_internal_function_by_id(i64_t id);
 obj_p env_set(env_t *env, obj_p key, obj_p val);
 obj_p env_get(env_t *env, obj_p key);
-obj_p ray_env(nil_t);
-obj_p ray_memstat(nil_t);
+obj_p ray_env(obj_p *x, u64_t n);
+obj_p ray_memstat(obj_p *x, u64_t n);
 
 #endif // ENV_H

@@ -65,13 +65,17 @@
         push_sym(&as_list(r)[1], s);   \
     };
 
-obj_p ray_env(nil_t)
+obj_p ray_env(obj_p *x, u64_t n)
 {
+    unused(x);
+    unused(n);
     return clone_obj(runtime_get()->env.variables);
 }
 
-obj_p ray_memstat(nil_t)
+obj_p ray_memstat(obj_p *x, u64_t n)
 {
+    unused(x);
+    unused(n);
     obj_p keys, vals;
     memstat_t stat = heap_memstat();
     symbols_t *symbols = runtime_get()->symbols;
