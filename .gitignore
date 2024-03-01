@@ -1,5 +1,6 @@
 rayforce
 *.o
+*.so
 .vscode/
 *.a
 *.gch
