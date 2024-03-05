@@ -49,18 +49,6 @@ i64_t hash_cmp_i64(i64_t a, i64_t b, nil_t *seed);
 
 // Special hashes
 u64_t hash_index_obj(obj_p obj);
-nil_t hash_index_list(obj_p obj, u64_t *out, u64_t len, u64_t seed);
-inline __attribute__((always_inline)) u64_t hash_index_u64(u64_t h, u64_t k)
-{
-    u64_t a, b;
-
-    a = (h ^ k) * 0x9ddfea08eb382d69ull;
-    a ^= (a >> 47);
-    b = (roti64(k, 31) ^ a) * 0x9ddfea08eb382d69ull;
-    b ^= (b >> 47);
-    b *= 0x9ddfea08eb382d69ull;
-
-    return b;
-}
+u64_t hash_index_u64(u64_t h, u64_t k);
 
 #endif // HASH_H

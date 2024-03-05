@@ -456,7 +456,7 @@ obj_p ray_csv(obj_p *x, i64_t n)
         for (i = 0; i < l; i++)
         {
             if (as_string(types)[i] == TYPE_C8)
-                as_list(cols)[i] = vector(TYPE_LIST, lines);
+                as_list(cols)[i] = list(lines);
             else
                 as_list(cols)[i] = vector(as_string(types)[i], lines);
         }

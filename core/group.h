@@ -26,7 +26,8 @@
 
 #include "rayforce.h"
 
-obj_p group_bins(obj_p x, obj_p y, obj_p z);
+obj_p group_bins(obj_p obj, obj_p tab, obj_p filter);
+obj_p group_bins_list(obj_p obj, obj_p tab, obj_p filter);
 obj_p group_map(obj_p x, obj_p y, obj_p z);
 obj_p group_collect(obj_p x);
 nil_t group_fill_counts(obj_p grp);

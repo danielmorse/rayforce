@@ -29,6 +29,73 @@
 #include "items.h"
 #include "unary.h"
 
+typedef struct __index_list_ctx_t
+{
+    obj_p lcols;
+    obj_p rcols;
+    u64_t *hashes;
+} __index_list_ctx_t;
+
+typedef struct __find_ctx_t
+{
+    raw_p lobj;
+    raw_p robj;
+    u64_t *hashes;
+} __find_ctx_t;
+
+u64_t __hash_get(i64_t row, nil_t *seed)
+{
+    __find_ctx_t *ctx = (__find_ctx_t *)seed;
+    return ctx->hashes[row];
+}
+
+i64_t __cmp_obj(i64_t row1, i64_t row2, nil_t *seed)
+{
+    __find_ctx_t *ctx = (__find_ctx_t *)seed;
+    return cmp_obj(((obj_p *)ctx->lobj)[row1], ((obj_p *)ctx->robj)[row2]);
+}
+
+i64_t __hash_cmp_guid(i64_t row1, i64_t row2, nil_t *seed)
+{
+    __find_ctx_t *ctx = (__find_ctx_t *)seed;
+    return memcmp((guid_t *)ctx->lobj + row1, (guid_t *)ctx->robj + row2, sizeof(guid_t));
+}
+
+u64_t __index_list_hash_get(i64_t row, nil_t *seed)
+{
+    __index_list_ctx_t *ctx = (__index_list_ctx_t *)seed;
+    return ctx->hashes[row];
+}
+
+i64_t __index_list_cmp_row(i64_t row1, i64_t row2, nil_t *seed)
+{
+    u64_t i, l;
+    __index_list_ctx_t *ctx = (__index_list_ctx_t *)seed;
+    obj_p *lcols = as_list(ctx->lcols);
+    obj_p *rcols = as_list(ctx->rcols);
+
+    l = ctx->lcols->len;
+
+    for (i = 0; i < l; i++)
+        if (ops_eq_idx(lcols[i], row1, rcols[i], row2) == 0)
+            return 1;
+
+    return 0;
+}
+
+nil_t __index_list_precalc_hash(obj_p cols, u64_t *out, u64_t ncols, u64_t nrows)
+{
+    u64_t i;
+
+    for (i = 0; i < nrows; i++)
+        out[i] = 0xa5b6c7d8e9f01234ull;
+
+    for (i = 0; i < ncols; i++)
+        index_hash_obj(as_list(cols)[i], out, nrows);
+
+    return;
+}
+
 i64_t index_range(i64_t *pmin, i64_t *pmax, i64_t values[], i64_t indices[], u64_t len)
 {
     u64_t i;
@@ -323,31 +390,6 @@ obj_p index_find_i64(i64_t x[], u64_t xl, i64_t y[], u64_t yl)
     drop_obj(ht);
 
     return vec;
-}
-
-typedef struct __find_ctx_t
-{
-    raw_p lobj;
-    raw_p robj;
-    u64_t *hashes;
-} __find_ctx_t;
-
-u64_t __hash_get(i64_t row, nil_t *seed)
-{
-    __find_ctx_t *ctx = (__find_ctx_t *)seed;
-    return ctx->hashes[row];
-}
-
-i64_t __cmp_obj(i64_t row1, i64_t row2, nil_t *seed)
-{
-    __find_ctx_t *ctx = (__find_ctx_t *)seed;
-    return cmp_obj(((obj_p *)ctx->lobj)[row1], ((obj_p *)ctx->robj)[row2]);
-}
-
-i64_t __hash_cmp_guid(i64_t row1, i64_t row2, nil_t *seed)
-{
-    __find_ctx_t *ctx = (__find_ctx_t *)seed;
-    return memcmp((guid_t *)ctx->lobj + row1, (guid_t *)ctx->robj + row2, sizeof(guid_t));
 }
 
 obj_p index_find_guid(guid_t x[], u64_t xl, guid_t y[], u64_t yl)
@@ -727,7 +769,42 @@ obj_p index_group_obj(obj_p values[], i64_t indices[], u64_t len)
     return vn_list(3, i64(j), vals, NULL_OBJ);
 }
 
-nil_t hash_index_list(obj_p obj, u64_t out[], u64_t len, u64_t seed)
+obj_p index_group_list(obj_p lst, i64_t filter[], u64_t len)
+{
+    u64_t i;
+    i64_t g, idx, *hk, *hv, *xo;
+    obj_p ht, res;
+    __index_list_ctx_t ctx;
+
+    ht = ht_tab(len, TYPE_I64);
+    res = vector_i64(len);
+    ctx = (__index_list_ctx_t){lst, lst, (u64_t *)as_i64(res)};
+    xo = as_i64(res);
+
+    // distribute bins
+    __index_list_precalc_hash(lst, (u64_t *)as_i64(res), lst->len, len);
+
+    for (i = 0, g = 0; i < len; i++)
+    {
+        idx = ht_tab_next_with(&ht, i, &__index_list_hash_get, &__index_list_cmp_row, &ctx);
+        hk = as_i64(as_list(ht)[0]);
+        hv = as_i64(as_list(ht)[1]);
+
+        if (hk[idx] == NULL_I64)
+        {
+            hk[idx] = i;
+            hv[idx] = g++;
+        }
+
+        xo[i] = hv[idx];
+    }
+
+    drop_obj(ht);
+
+    return vn_list(3, i64(g), res, NULL_OBJ);
+}
+
+nil_t index_hash_obj(obj_p obj, u64_t out[], u64_t len)
 {
     u8_t *u8v;
     f64_t *f64v;
@@ -741,86 +818,49 @@ nil_t hash_index_list(obj_p obj, u64_t out[], u64_t len, u64_t seed)
     case -TYPE_B8:
     case -TYPE_U8:
     case -TYPE_C8:
-        if (seed != 0)
-            out[0] = hash_index_u64((u64_t)obj->u8, seed);
-        else
-            out[0] = hash_index_u64((u64_t)obj->u8, out[0]);
+        out[0] = hash_index_u64((u64_t)obj->u8, out[0]);
         break;
     case -TYPE_I64:
     case -TYPE_SYMBOL:
     case -TYPE_TIMESTAMP:
-        if (seed != 0)
-            out[0] = hash_index_u64((u64_t)obj->i64, seed);
-        else
-            out[0] = hash_index_u64((u64_t)obj->i64, out[0]);
+        out[0] = hash_index_u64((u64_t)obj->i64, out[0]);
         break;
     case -TYPE_F64:
-        if (seed != 0)
-            out[0] = hash_index_u64((u64_t)obj->f64, seed);
-        else
-            out[0] = hash_index_u64((u64_t)obj->f64, out[0]);
+        out[0] = hash_index_u64((u64_t)obj->f64, out[0]);
         break;
     case -TYPE_GUID:
-        out[0] = hash_index_u64(*(u64_t *)as_guid(obj), seed);
-        out[0] = hash_index_u64(*((u64_t *)as_guid(obj) + 1), out[0]);
+        out[0] = hash_index_u64(*(u64_t *)as_guid(obj), *((u64_t *)as_guid(obj) + 1));
         break;
     case TYPE_B8:
     case TYPE_U8:
     case TYPE_C8:
         u8v = as_u8(obj);
-        if (seed != 0)
-            for (i = 0; i < len; i++)
-                out[i] = hash_index_u64((u64_t)u8v[i], seed);
-        else
-            for (i = 0; i < len; i++)
-                out[i] = hash_index_u64((u64_t)u8v[i], out[i]);
+        for (i = 0; i < len; i++)
+            out[i] = hash_index_u64((u64_t)u8v[i], out[i]);
         break;
     case TYPE_I64:
     case TYPE_SYMBOL:
     case TYPE_TIMESTAMP:
         u64v = (u64_t *)as_i64(obj);
-        if (seed != 0)
-            for (i = 0; i < len; i++)
-                out[i] = hash_index_u64(u64v[i], seed);
-        else
-            for (i = 0; i < len; i++)
-                out[i] = hash_index_u64(u64v[i], out[i]);
+        for (i = 0; i < len; i++)
+            out[i] = hash_index_u64(u64v[i], out[i]);
         break;
     case TYPE_F64:
         f64v = as_f64(obj);
-        if (seed != 0)
-            for (i = 0; i < len; i++)
-                out[i] = hash_index_u64((u64_t)f64v[i], seed);
-        else
-            for (i = 0; i < len; i++)
-                out[i] = hash_index_u64((u64_t)f64v[i], out[i]);
+        for (i = 0; i < len; i++)
+            out[i] = hash_index_u64((u64_t)f64v[i], out[i]);
         break;
     case TYPE_GUID:
         g64v = as_guid(obj);
-        if (seed != 0)
+        for (i = 0; i < len; i++)
         {
-            for (i = 0; i < len; i++)
-            {
-                out[i] = hash_index_u64(*(u64_t *)&g64v[i], seed);
-                out[i] = hash_index_u64(*((u64_t *)&g64v[i] + 1), out[i]);
-            }
-        }
-        else
-        {
-            for (i = 0; i < len; i++)
-            {
-                out[i] = hash_index_u64(*(u64_t *)&g64v[i], out[i]);
-                out[i] = hash_index_u64(*((u64_t *)&g64v[i] + 1), out[i]);
-            }
+            out[i] = hash_index_u64(*(u64_t *)&g64v[i], out[i]);
+            out[i] = hash_index_u64(*((u64_t *)&g64v[i] + 1), out[i]);
         }
         break;
     case TYPE_LIST:
-        if (seed != 0)
-            for (i = 0; i < len; i++)
-                out[i] = hash_index_u64(hash_index_obj(as_list(obj)[i]), seed);
-        else
-            for (i = 0; i < len; i++)
-                out[i] = hash_index_u64(hash_index_obj(as_list(obj)[i]), out[i]);
+        for (i = 0; i < len; i++)
+            out[i] = hash_index_u64(hash_index_obj(as_list(obj)[i]), out[i]);
         break;
     case TYPE_ENUM:
         k = ray_key(obj);
@@ -828,32 +868,16 @@ nil_t hash_index_list(obj_p obj, u64_t out[], u64_t len, u64_t seed)
         drop_obj(k);
         u64v = (u64_t *)as_symbol(v);
         ids = as_i64(enum_val(obj));
-        if (seed != 0)
-            for (i = 0; i < len; i++)
-                out[i] = hash_index_u64(u64v[ids[i]], seed);
-        else
-            for (i = 0; i < len; i++)
-                out[i] = hash_index_u64(u64v[ids[i]], out[i]);
+        for (i = 0; i < len; i++)
+            out[i] = hash_index_u64(u64v[ids[i]], out[i]);
         drop_obj(v);
         break;
     case TYPE_ANYMAP:
-        if (seed != 0)
+        for (i = 0; i < len; i++)
         {
-            for (i = 0; i < len; i++)
-            {
-                v = at_idx(obj, i);
-                out[i] = hash_index_u64(hash_index_obj(v), seed);
-                drop_obj(v);
-            }
-        }
-        else
-        {
-            for (i = 0; i < len; i++)
-            {
-                v = at_idx(obj, i);
-                out[i] = hash_index_u64(hash_index_obj(v), out[i]);
-                drop_obj(v);
-            }
+            v = at_idx(obj, i);
+            out[i] = hash_index_u64(hash_index_obj(v), out[i]);
+            drop_obj(v);
         }
         break;
     default:
@@ -880,53 +904,13 @@ obj_p index_group_cnts(obj_p grp)
     return res;
 }
 
-typedef struct __join_ctx_t
-{
-    obj_p lcols;
-    obj_p rcols;
-    u64_t *hashes;
-} __join_ctx_t;
-
-nil_t precalc_hash(obj_p cols, u64_t *out, u64_t ncols, u64_t nrows)
-{
-    u64_t i;
-
-    hash_index_list(as_list(cols)[0], out, nrows, 0xa5b6c7d8e9f01234ull);
-
-    for (i = 1; i < ncols; i++)
-        hash_index_list(as_list(cols)[i], out, nrows, 0);
-
-    return;
-}
-
-u64_t __join_hash_get(i64_t row, nil_t *seed)
-{
-    __join_ctx_t *ctx = (__join_ctx_t *)seed;
-    return ctx->hashes[row];
-}
-
-i64_t __join_cmp_row(i64_t row1, i64_t row2, nil_t *seed)
-{
-    u64_t i, l;
-    __join_ctx_t *ctx = (__join_ctx_t *)seed;
-    obj_p *lcols = as_list(ctx->lcols);
-    obj_p *rcols = as_list(ctx->rcols);
-
-    l = ctx->lcols->len;
-
-    for (i = 0; i < l; i++)
-        if (!ops_eq_idx(lcols[i], row1, rcols[i], row2))
-            return 1;
-
-    return 0;
-}
-
 obj_p index_join_obj(obj_p lcols, obj_p rcols, u64_t len)
 {
     u64_t i, ll, rl;
     obj_p ht, res;
     i64_t idx;
-    __join_ctx_t ctx;
+    __index_list_ctx_t ctx;
+
     if (len == 1)
     {
         res = ray_find(rcols, lcols);
@@ -943,25 +927,25 @@ obj_p index_join_obj(obj_p lcols, obj_p rcols, u64_t len)
 
     ll = ops_count(as_list(lcols)[0]);
     rl = ops_count(as_list(rcols)[0]);
-    ht = ht_tab(maxi64(ll, rl) * 2, -1);
+    ht = ht_tab(maxi64(ll, rl), -1);
     res = vector_i64(maxi64(ll, rl));
 
     // Right hashes
-    precalc_hash(rcols, (u64_t *)as_i64(res), len, rl);
-    ctx = (__join_ctx_t){rcols, rcols, (u64_t *)as_i64(res)};
+    __index_list_precalc_hash(rcols, (u64_t *)as_i64(res), len, rl);
+    ctx = (__index_list_ctx_t){rcols, rcols, (u64_t *)as_i64(res)};
     for (i = 0; i < rl; i++)
     {
-        idx = ht_tab_next_with(&ht, i, &__join_hash_get, &__join_cmp_row, &ctx);
+        idx = ht_tab_next_with(&ht, i, &__index_list_hash_get, &__index_list_cmp_row, &ctx);
         if (as_i64(as_list(ht)[0])[idx] == NULL_I64)
             as_i64(as_list(ht)[0])[idx] = i;
     }
 
     // Left hashes
-    precalc_hash(lcols, (u64_t *)as_i64(res), len, ll);
-    ctx = (__join_ctx_t){rcols, lcols, (u64_t *)as_i64(res)};
+    __index_list_precalc_hash(lcols, (u64_t *)as_i64(res), len, ll);
+    ctx = (__index_list_ctx_t){rcols, lcols, (u64_t *)as_i64(res)};
     for (i = 0; i < ll; i++)
     {
-        idx = ht_tab_get_with(ht, i, &__join_hash_get, &__join_cmp_row, &ctx);
+        idx = ht_tab_get_with(ht, i, &__index_list_hash_get, &__index_list_cmp_row, &ctx);
         as_i64(res)[i] = (idx == NULL_I64) ? NULL_I64 : as_i64(as_list(ht)[0])[idx];
     }
 

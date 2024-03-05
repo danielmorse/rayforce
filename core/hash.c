@@ -241,6 +241,19 @@ u64_t hash_fnv1a(i64_t key, nil_t *seed)
     return hash;
 }
 
+u64_t hash_index_u64(u64_t h, u64_t k)
+{
+    u64_t a, b;
+
+    a = (h ^ k) * 0x9ddfea08eb382d69ull;
+    a ^= (a >> 47);
+    b = (roti64(k, 31) ^ a) * 0x9ddfea08eb382d69ull;
+    b ^= (b >> 47);
+    b *= 0x9ddfea08eb382d69ull;
+
+    return b;
+}
+
 u64_t hash_guid(i64_t a, nil_t *seed)
 {
     unused(seed);

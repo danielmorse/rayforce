@@ -63,29 +63,59 @@ obj_p remap_filter(obj_p x, obj_p y)
     return table(clone_obj(as_list(x)[0]), res);
 }
 
-obj_p remap_group(obj_p *aggr, obj_p x, obj_p y, obj_p z, obj_p k)
+obj_p remap_group(obj_p *gvals, obj_p cols, obj_p tab, obj_p filter, obj_p gkeys, obj_p gcols)
 {
-    obj_p bins, v, res;
+    u64_t i, l;
+    obj_p bins, v, lst, res;
 
-    bins = group_bins(x, y, z);
-    res = group_map(y, bins, z);
-    drop_obj(bins);
-
-    v = (k == NULL_OBJ) ? aggr_first(x, bins, z) : aggr_first(k, bins, z);
-    if (is_error(v))
+    switch (gkeys->type)
     {
-        drop_obj(res);
+    case -TYPE_SYMBOL:
+        bins = group_bins(cols, tab, filter);
+        res = group_map(tab, bins, filter);
+        v = (gcols == NULL_OBJ) ? aggr_first(cols, bins, filter) : aggr_first(gcols, bins, filter);
+        if (is_error(v))
+        {
+            drop_obj(res);
+            return v;
+        }
+
+        *gvals = v;
         drop_obj(bins);
-        return v;
+
+        return res;
+    case TYPE_SYMBOL:
+        bins = group_bins_list(cols, tab, filter);
+        res = group_map(tab, bins, filter);
+
+        l = cols->len;
+        lst = list(l);
+
+        for (i = 0; i < l; i++)
+        {
+            v = aggr_first(as_list(cols)[i], bins, filter);
+
+            if (is_error(v))
+            {
+                lst->len = i;
+                drop_obj(res);
+                drop_obj(bins);
+                return v;
+            }
+
+            as_list(lst)[i] = v;
+        }
+
+        *gvals = lst;
+        drop_obj(bins);
+
+        return res;
+    default:
+        return error(ERR_TYPE, "grouping key mapping(s) must be a symbol(s)");
     }
-
-    *aggr = v;
-    drop_obj(bins);
-
-    return res;
 }
 
-obj_p find_symbol_column(obj_p cols, obj_p obj)
+obj_p get_gkeys(obj_p cols, obj_p obj)
 {
     u64_t i, l;
     obj_p x;
@@ -102,13 +132,68 @@ obj_p find_symbol_column(obj_p cols, obj_p obj)
         l = obj->len;
         for (i = 0; i < l; i++)
         {
-            x = find_symbol_column(cols, as_list(obj)[i]);
+            x = get_gkeys(cols, as_list(obj)[i]);
             if (x != NULL_OBJ)
                 return x;
         }
         return NULL_OBJ;
+    case TYPE_DICT:
+        x = as_list(obj)[0];
+        if (x->type != TYPE_SYMBOL)
+            return error(ERR_TYPE, "grouping key(s) must be a symbol(s)");
+
+        if (x->len == 1)
+            return at_idx(as_list(obj)[0], 0);
+
+        return clone_obj(as_list(obj)[0]);
+
     default:
         return NULL_OBJ;
+    }
+}
+
+obj_p get_gvals(obj_p obj)
+{
+    u64_t i, l;
+    obj_p vals, v, r, res;
+
+    switch (obj->type)
+    {
+    case TYPE_DICT:
+        vals = as_list(obj)[1];
+        l = vals->len;
+
+        if (l == 0)
+            return NULL_OBJ;
+
+        if (l == 1)
+        {
+            v = at_idx(vals, 0);
+            res = eval(v);
+            drop_obj(v);
+            return res;
+        }
+
+        res = list(l);
+        for (i = 0; i < l; i++)
+        {
+            v = at_idx(vals, i);
+            r = eval(v);
+            drop_obj(v);
+
+            if (is_error(r))
+            {
+                res->len = i;
+                drop_obj(res);
+                return r;
+            }
+
+            as_list(res)[i] = r;
+        }
+
+        return res;
+    default:
+        return eval(obj);
     }
 }
 
@@ -116,7 +201,7 @@ obj_p ray_select(obj_p obj)
 {
     u64_t i, l, tablen;
     obj_p keys = NULL_OBJ, vals = NULL_OBJ, filters = NULL_OBJ, groupby = NULL_OBJ,
-          bycol = NULL_OBJ, bysym = NULL_OBJ, byval = NULL_OBJ, tab, sym, prm, val;
+          gcol = NULL_OBJ, gkeys = NULL_OBJ, gvals = NULL_OBJ, tab, sym, prm, val;
 
     if (obj->type != TYPE_DICT)
         throw(ERR_LENGTH, "'select' takes dict of params");
@@ -171,35 +256,36 @@ obj_p ray_select(obj_p obj)
     prm = at_sym(obj, "by");
     if (prm != NULL_OBJ)
     {
-        bysym = find_symbol_column(as_list(tab)[0], prm);
-        groupby = eval(prm);
-        drop_obj(prm);
+        gkeys = get_gkeys(as_list(tab)[0], prm);
+        groupby = get_gvals(prm);
 
-        if (bysym == NULL_OBJ)
-            bysym = symbol("By");
-        else
-            byval = eval(bysym);
+        if (gkeys == NULL_OBJ)
+            gkeys = symbol("By");
+        else if (prm->type != TYPE_DICT)
+            gvals = eval(gkeys);
+
+        drop_obj(prm);
 
         unmount_env(tablen);
 
         if (is_error(groupby))
         {
-            drop_obj(bysym);
-            drop_obj(byval);
+            drop_obj(gkeys);
+            drop_obj(gvals);
             drop_obj(filters);
             drop_obj(tab);
             return groupby;
         }
 
-        prm = remap_group(&bycol, groupby, tab, filters, byval);
-        drop_obj(byval);
+        prm = remap_group(&gcol, groupby, tab, filters, gkeys, gvals);
+        drop_obj(gvals);
 
         if (is_error(prm))
         {
             drop_obj(filters);
             drop_obj(groupby);
-            drop_obj(bysym);
-            drop_obj(bycol);
+            drop_obj(gkeys);
+            drop_obj(gcol);
             drop_obj(tab);
             return prm;
         }
@@ -210,10 +296,10 @@ obj_p ray_select(obj_p obj)
         drop_obj(filters);
         drop_obj(groupby);
 
-        if (is_error(bycol))
+        if (is_error(gcol))
         {
             drop_obj(tab);
-            return bycol;
+            return gcol;
         }
     }
     else if (filters != NULL_OBJ)
@@ -249,8 +335,8 @@ obj_p ray_select(obj_p obj)
                 drop_obj(vals);
                 drop_obj(tab);
                 drop_obj(keys);
-                drop_obj(bysym);
-                drop_obj(bycol);
+                drop_obj(gkeys);
+                drop_obj(gcol);
                 return val;
             }
 
@@ -280,8 +366,8 @@ obj_p ray_select(obj_p obj)
                 drop_obj(vals);
                 drop_obj(tab);
                 drop_obj(keys);
-                drop_obj(bysym);
-                drop_obj(bycol);
+                drop_obj(gkeys);
+                drop_obj(gcol);
                 return val;
             }
 
@@ -293,9 +379,9 @@ obj_p ray_select(obj_p obj)
         drop_obj(keys);
 
         // Groupings
-        if (bysym != NULL_OBJ)
+        if (gkeys != NULL_OBJ)
         {
-            keys = ray_except(as_list(tab)[0], bysym);
+            keys = ray_except(as_list(tab)[0], gkeys);
             l = keys->len;
             vals = list(l);
 
@@ -311,8 +397,8 @@ obj_p ray_select(obj_p obj)
                     drop_obj(vals);
                     drop_obj(tab);
                     drop_obj(keys);
-                    drop_obj(bysym);
-                    drop_obj(bycol);
+                    drop_obj(gkeys);
+                    drop_obj(gcol);
                     return prm;
                 }
 
@@ -354,8 +440,8 @@ obj_p ray_select(obj_p obj)
                     drop_obj(vals);
                     drop_obj(tab);
                     drop_obj(keys);
-                    drop_obj(bysym);
-                    drop_obj(bycol);
+                    drop_obj(gkeys);
+                    drop_obj(gcol);
                     return val;
                 }
 
@@ -365,17 +451,38 @@ obj_p ray_select(obj_p obj)
     }
 
     // Prepare result table
-    if (bysym != NULL_OBJ)
+    if (gkeys->type == -TYPE_SYMBOL) // Grouped by one column
     {
-        val = ray_concat(bysym, keys);
+        val = ray_concat(gkeys, keys);
         drop_obj(keys);
-        drop_obj(bysym);
+        drop_obj(gkeys);
         keys = val;
         val = list(vals->len + 1);
-        as_list(val)[0] = bycol;
+        as_list(val)[0] = gcol;
         for (i = 0; i < vals->len; i++)
             as_list(val)[i + 1] = clone_obj(as_list(vals)[i]);
         drop_obj(vals);
+        vals = val;
+    }
+    else if (gkeys->type == TYPE_SYMBOL) // Grouped by multiple columns
+    {
+        val = ray_concat(gkeys, keys);
+        drop_obj(keys);
+        drop_obj(gkeys);
+        keys = val;
+
+        val = list(vals->len + gcol->len);
+
+        l = gcol->len;
+        for (i = 0; i < l; i++)
+            as_list(val)[i] = clone_obj(as_list(gcol)[i]);
+
+        for (i = 0; i < vals->len; i++)
+            as_list(val)[i + l] = clone_obj(as_list(vals)[i]);
+
+        drop_obj(vals);
+        drop_obj(gcol);
+
         vals = val;
     }
 

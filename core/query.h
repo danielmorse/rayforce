@@ -28,7 +28,7 @@
 
 obj_p get_fields(obj_p obj);
 obj_p remap_filter(obj_p x, obj_p y);
-obj_p remap_group(obj_p *aggr, obj_p x, obj_p y, obj_p z, obj_p k);
+obj_p remap_group(obj_p *gvals, obj_p cols, obj_p tab, obj_p filter, obj_p gkeys, obj_p gcols);
 obj_p ray_select(obj_p obj);
 
 #endif // QUERY_H

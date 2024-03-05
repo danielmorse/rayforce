@@ -39,7 +39,9 @@ obj_p index_group_i8(i8_t values[], i64_t filter[], u64_t len);
 obj_p index_group_i64(i64_t values[], i64_t filter[], u64_t len);
 obj_p index_group_guid(guid_t values[], i64_t filter[], u64_t len);
 obj_p index_group_obj(obj_p values[], i64_t filter[], u64_t len);
+obj_p index_group_list(obj_p lst, i64_t filter[], u64_t len);
 obj_p index_group_cnts(obj_p grp);
 obj_p index_join_obj(obj_p lcols, obj_p rcols, u64_t len);
+nil_t index_hash_obj(obj_p obj, u64_t *out, u64_t len);
 
 #endif // INDEX_H
