@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include "string.h"
 #include "format.h"
+#include "runtime.h"
 
 #if defined(_WIN32) || defined(__CYGWIN__)
 #include <windows.h>
@@ -38,20 +39,24 @@
 
 str_p sys_about_info(nil_t)
 {
+    u64_t threads = 1;
+    if (runtime_get()->pool && runtime_get()->pool->executors_count)
+        threads += runtime_get()->pool->executors_count;
+
 #if defined(__EMSCRIPTEN__)
     return str_fmt(0, "  RayforceDB: %d.%d %s\n"
-                      "  WASM target\n"
+                      "  WASM target %lld thread(s)\n"
                       "  Documentation: https://rayforcedb.com/\n"
                       "  Github: https://github.com/singaraiona/rayforce\n",
-                   RAYFORCE_MAJOR_VERSION, RAYFORCE_MINOR_VERSION, __DATE__);
+                   RAYFORCE_MAJOR_VERSION, RAYFORCE_MINOR_VERSION, __DATE__, threads);
 #else
     sys_info_t nfo = sys_hw_info();
     return str_fmt(0, "  RayforceDB: %d.%d %s\n"
-                      "  %s %d(MB)\n"
+                      "  %s %d(MB) %lld thread(s)\n"
                       "  Documentation: https://rayforcedb.com/\n"
                       "  Github: https://github.com/singaraiona/rayforce\n",
                    RAYFORCE_MAJOR_VERSION, RAYFORCE_MINOR_VERSION,
-                   __DATE__, nfo.cpu, nfo.mem);
+                   __DATE__, nfo.cpu, nfo.mem, threads);
 #endif
 }
 

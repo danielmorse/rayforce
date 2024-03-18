@@ -132,6 +132,17 @@ i32_t runtime_init(i32_t argc, str_p argv[])
     {
         __RUNTIME->args = parse_cmdline(argc, argv);
 
+        // thread count
+        arg = runtime_get_arg("threads");
+        if (!is_null(arg))
+        {
+            n = atoi(as_string(arg));
+            if (n > 1)
+                __RUNTIME->pool = pool_new(n - 1); // -1 for the main thread
+
+            drop_obj(arg);
+        }
+
         arg = runtime_get_arg("port");
         if (!is_null(arg))
         {
@@ -155,17 +166,6 @@ i32_t runtime_init(i32_t argc, str_p argv[])
                 heap_free(fmt);
                 drop_obj(res);
             }
-        }
-
-        // thread count
-        arg = runtime_get_arg("threads");
-        if (!is_null(arg))
-        {
-            n = atoi(as_string(arg));
-            if (n > 1)
-                __RUNTIME->pool = pool_new(n);
-
-            drop_obj(arg);
         }
     }
     else

@@ -24,53 +24,100 @@
 #include "pool.h"
 #include "heap.h"
 #include "util.h"
+#include "runtime.h"
+
+raw_p executor_run(raw_p arg)
+{
+    shared_p shared = (shared_p)arg;
+    b8_t stop = B8_FALSE;
+
+    while (!stop)
+    {
+        pthread_mutex_lock(&shared->lock);
+
+        pthread_cond_wait(&shared->run, &shared->lock);
+
+        stop = shared->stop;
+        shared->tasks_remaining--;
+
+        pthread_cond_signal(&shared->done);
+
+        pthread_mutex_unlock(&shared->lock);
+    }
+
+    return NULL;
+}
 
 pool_p pool_new(u64_t executors_count)
 {
-    pool_p pool = (pool_p)heap_alloc(sizeof(struct pool_t));
-    pool->executors = (executor_p)heap_alloc(executors_count * sizeof(struct executor_t));
+    u64_t i;
+    shared_p shared;
+    pool_p pool;
+    executor_p executors;
+
+    shared = (shared_p)heap_alloc(sizeof(struct shared_t));
+    shared->tasks = NULL;
+    shared->results = NULL;
+    shared->tasks_remaining = 0;
+    pthread_mutex_init(&shared->lock, NULL);
+    pthread_cond_init(&shared->run, NULL);
+    pthread_cond_init(&shared->done, NULL);
+    shared->stop = B8_FALSE;
+
+    executors = (executor_p)heap_alloc(sizeof(struct executor_t) * executors_count);
+    memset(executors, 0, sizeof(struct executor_t) * executors_count);
+    for (i = 0; i < executors_count; i++)
+    {
+        executors[i].id = i;
+        pthread_create(&executors[i].handle, NULL, executor_run, shared);
+    }
+
+    pool = (pool_p)heap_alloc(sizeof(struct pool_t));
+    pool->executors = executors;
+    pool->executors_count = executors_count;
+    pool->shared = shared;
 
     return pool;
 }
 
+nil_t pool_run(pool_p pool)
+{
+    shared_p shared = pool->shared;
+
+    pthread_mutex_lock(&shared->lock);
+    shared->tasks_remaining = pool->executors_count;
+    pthread_cond_broadcast(&shared->run);
+}
+
+result_p pool_wait(pool_p pool)
+{
+    shared_p shared = pool->shared;
+
+    while (shared->tasks_remaining)
+        pthread_cond_wait(&shared->done, &shared->lock);
+
+    pthread_mutex_unlock(&shared->lock);
+
+    return shared->results;
+}
+
+nil_t pool_stop(pool_p pool)
+{
+    u64_t i;
+
+    pthread_mutex_lock(&pool->shared->lock);
+    pool->shared->stop = B8_TRUE;
+    pthread_cond_broadcast(&pool->shared->run);
+    pthread_mutex_unlock(&pool->shared->lock);
+
+    for (i = 0; i < pool->executors_count; i++)
+        pthread_join(pool->executors[i].handle, NULL);
+}
+
 nil_t pool_free(pool_p pool)
 {
+    pool_stop(pool);
+    heap_free(pool->shared);
     heap_free(pool->executors);
     heap_free(pool);
 }
-
-// void *thread_function(void *arg)
-// {
-//     thread_pool_t *pool = (thread_pool_t *)arg;
-
-//     while (1)
-//     {
-//         pthread_mutex_lock(&pool->lock);
-
-//         while (pool->task_list == NULL && !pool->stop)
-//             pthread_cond_wait(&pool->cond, &pool->lock);
-
-//         if (pool->stop)
-//         {
-//             pthread_mutex_unlock(&pool->lock);
-//             break;
-//         }
-
-//         task_t *task = pool->task_list;
-//         pool->task_list = task->next;
-//         pool->tasks_remaining--;
-//         int all_tasks_done = pool->tasks_remaining == 0;
-//         pthread_mutex_unlock(&pool->lock);
-
-//         (*(task->function))(task->arg);
-//         free(task);
-
-//         if (all_tasks_done)
-//         {
-//             pthread_cond_signal(&pool->complete_cond); // Signal completion of all tasks
-//         }
-//     }
-
-//     pthread_exit(NULL);
-//     return NULL;
-// }

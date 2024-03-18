@@ -24,12 +24,12 @@
 #ifndef POOL_H
 #define POOL_H
 
-#include "rayforce.h"
 #include <pthread.h>
+#include "rayforce.h"
 
 typedef struct task_t
 {
-    nil_t (*function)(raw_p);
+    nil_t (*fn)(raw_p);
     raw_p arg;
     u64_t len;
 } *task_p;
@@ -40,6 +40,17 @@ typedef struct result_t
     u64_t len;
 } *result_p;
 
+typedef struct shared_t
+{
+    pthread_mutex_t lock;  // Mutex for condition variable
+    pthread_cond_t run;    // Condition variable to signal executors
+    pthread_cond_t done;   // Condition variable to signal main thread
+    task_p tasks;          // Array of input tasks for executors
+    result_p results;      // Array of results from executors
+    u64_t tasks_remaining; // Counter to track remaining tasks
+    b8_t stop;             // Flag to indicate if the pool is stopped
+} *shared_p;
+
 typedef struct executor_t
 {
     u64_t id;
@@ -48,15 +59,15 @@ typedef struct executor_t
 
 typedef struct pool_t
 {
-    pthread_cond_t complete; // Condition variable to signal task completion
-    executor_p executors;    // Array of executors
-    u64_t executors_count;   // Number of executors
-    task_p tasks;            // Array of input tasks for executors
-    result_p results;        // Array of results from executors
-    u64_t tasks_remaining;   // Counter to track remaining tasks
+    executor_p executors;  // Array of executors
+    u64_t executors_count; // Number of executors
+    shared_p shared;       // Shared data
 } *pool_p;
 
 pool_p pool_new(u64_t executors_count);
 nil_t pool_free(pool_p pool);
+nil_t pool_run(pool_p pool);
+result_p pool_wait(pool_p pool);
+nil_t pool_stop(pool_p pool);
 
 #endif // POOL_H

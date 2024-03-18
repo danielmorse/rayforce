@@ -47,6 +47,7 @@
 #include "iter.h"
 #include "dynlib.h"
 #include "timer.h"
+#include "pool.h"
 
 #define regf(r, n, t, f, o)                     \
     {                                           \
@@ -93,6 +94,21 @@ obj_p ray_memstat(obj_p *x, u64_t n)
     as_list(vals)[3] = i64(symbols_count(symbols));
 
     return dict(keys, vals);
+}
+
+obj_p ray_turn(obj_p obj)
+{
+    pool_p pool = runtime_get()->pool;
+    result_p res;
+
+    pool_run(pool);
+
+    res = pool_wait(pool);
+
+    printf("All threads finished\n");
+    fflush(stdout);
+
+    return clone_obj(obj);
 }
 
 // clang-format off
@@ -142,6 +158,7 @@ nil_t init_functions(obj_p functions)
     regf(functions,  "time",      TYPE_UNARY,    FN_NONE | FN_SPECIAL_FORM, ray_time);
     regf(functions,  "bins",      TYPE_UNARY,    FN_NONE,                   ray_bins);
     regf(functions,  "update",    TYPE_UNARY,    FN_NONE,                   ray_update);
+    regf(functions,  "turn",    TYPE_UNARY,    FN_NONE,                   ray_turn);
     
     // Binary           
     regf(functions,  "try",       TYPE_BINARY,   FN_NONE | FN_SPECIAL_FORM, try_obj);
