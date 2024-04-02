@@ -29,6 +29,7 @@
 #include "error.h"
 #include "items.h"
 #include "unary.h"
+#include "string.h"
 
 u64_t __hash_get(i64_t row, nil_t *seed)
 {

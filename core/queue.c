@@ -24,6 +24,7 @@
 #include "queue.h"
 #include "heap.h"
 #include "util.h"
+#include "ops.h"
 
 queue_t queue_new(i64_t size)
 {

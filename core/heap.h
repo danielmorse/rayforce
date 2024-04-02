@@ -25,7 +25,6 @@
 #define HEAP_H
 
 #include "rayforce.h"
-#include "symbols.h"
 
 #define AVAIL_MASK ((u64_t)0xffffffffffffffff)
 #define BLOCK_HEADER_SIZE 16
@@ -57,7 +56,7 @@ typedef struct heap_t
     block_p freelist[MAX_POOL_ORDER + 2]; // free list of blocks by order
     u64_t avail;                          // mask of available blocks by order
     memstat_t memstat;
-} __attribute__((aligned(PAGE_SIZE))) * heap_p;
+} *heap_p;
 
 heap_p heap_init(u64_t id);
 raw_p heap_alloc(u64_t size);

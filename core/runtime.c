@@ -23,12 +23,9 @@
 
 #include "runtime.h"
 #include "mmap.h"
-#include "heap.h"
 #include "util.h"
-#include "poll.h"
 #include "unary.h"
 #include "io.h"
-#include "pool.h"
 
 // Global runtime reference
 runtime_p __RUNTIME = NULL;

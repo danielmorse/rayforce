@@ -31,6 +31,7 @@
 #include "items.h"
 #include "unary.h"
 #include "group.h"
+#include "string.h"
 
 obj_p aggr_sum(obj_p val, obj_p bins, obj_p filter)
 {

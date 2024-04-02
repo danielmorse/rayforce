@@ -30,6 +30,7 @@
 #include "items.h"
 #include "unary.h"
 #include "eval.h"
+#include "string.h"
 
 obj_p group_bins(obj_p obj, obj_p tab, obj_p filter)
 {

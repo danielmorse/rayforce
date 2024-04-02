@@ -26,6 +26,7 @@
 #include "heap.h"
 #include "ops.h"
 #include "error.h"
+#include "string.h"
 
 obj_p ray_and(obj_p x, obj_p y)
 {

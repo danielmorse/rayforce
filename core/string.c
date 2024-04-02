@@ -25,6 +25,7 @@
 #include "rayforce.h"
 #include "heap.h"
 #include "util.h"
+#include "ops.h"
 
 /*
  * Creates new obj_p string from a C string.

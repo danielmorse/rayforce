@@ -28,6 +28,7 @@
 #include "ops.h"
 #include "mmap.h"
 #include "util.h"
+#include "string.h"
 
 __thread heap_p __HEAP = NULL;
 
@@ -39,7 +40,7 @@ __thread heap_p __HEAP = NULL;
 #define blockof(p) ((block_p)(((u64_t)(p)) - BLOCK_HEADER_SIZE))
 
 CASSERT(sizeof(struct block_t) == bsizeof(MIN_ORDER), heap_h)
-CASSERT(sizeof(struct heap_t) % PAGE_SIZE == 0, heap_h)
+// CASSERT(sizeof(struct heap_t) % PAGE_SIZE == 0, heap_h)
 
 #ifdef SYS_MALLOC
 

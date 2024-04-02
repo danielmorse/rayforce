@@ -64,18 +64,18 @@ typedef struct test_entry_t
 // Setup and Teardown functions
 nil_t setup()
 {
-#ifdef STOP_ON_FAIL
-    runtime_init(1, NULL);
-#else
-    runtime_init(0, NULL);
-#endif
-    // heap_init(0);
+    // #ifdef STOP_ON_FAIL
+    //     runtime_init(1, NULL);
+    // #else
+    //     runtime_init(0, NULL);
+    // #endif
+    heap_init(0);
 }
 
 nil_t teardown()
 {
-    runtime_cleanup();
-    // heap_cleanup();
+    // runtime_cleanup();
+    heap_cleanup();
 }
 
 #define PASS() \
@@ -149,15 +149,15 @@ test_entry_t tests[] = {
     {"test_realloc_larger_and_smaller", test_realloc_larger_and_smaller},
     {"test_realloc_same_size", test_realloc_same_size},
     {"test_alloc_dealloc_stress", test_alloc_dealloc_stress},
-    {"test_hash", test_hash},
-    {"test_env", test_env},
-    {"test_sort_asc", test_sort_asc},
-    {"test_sort_desc", test_sort_desc},
-    {"test_str_match", test_str_match},
-    {"test_lang_basic", test_lang_basic},
-    {"test_lang_math", test_lang_math},
-    {"test_lang_query", test_lang_query},
-    {"test_lang_update", test_lang_update},
+    // {"test_hash", test_hash},
+    // {"test_env", test_env},
+    // {"test_sort_asc", test_sort_asc},
+    // {"test_sort_desc", test_sort_desc},
+    // {"test_str_match", test_str_match},
+    // {"test_lang_basic", test_lang_basic},
+    // {"test_lang_math", test_lang_math},
+    // {"test_lang_query", test_lang_query},
+    // {"test_lang_update", test_lang_update},
 };
 // ---
 

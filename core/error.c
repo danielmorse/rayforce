@@ -25,6 +25,7 @@
 #include "error.h"
 #include "heap.h"
 #include "util.h"
+#include "string.h"
 
 obj_p error_obj(i8_t code, obj_p msg)
 {
