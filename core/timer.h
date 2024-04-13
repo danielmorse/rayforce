@@ -35,19 +35,19 @@ typedef struct ray_timer_t
     i64_t exp; // Expiration time of the timer
     i64_t num; // Number of times the timer has to be called
     obj_p clb; // Callback function to be called when timer expires
-} ray_timer_t;
+} *ray_timer_p;
 
 typedef struct timers_t
 {
-    ray_timer_t **timers; // Array of timer pointers
-    u64_t capacity;       // Maximum size of the heap
-    u64_t size;           // Current number of timers in the heap
-    i64_t counter;        // Counter to assign unique IDs to timers
-} timers_t;
+    obj_p timers;   // Array of timer pointers
+    u64_t capacity; // Maximum size of the heap
+    u64_t size;     // Current number of timers in the heap
+    i64_t counter;  // Counter to assign unique IDs to timers
+} *timers_p;
 
-timers_t *timers_new(u64_t capacity);
-nil_t timers_free(timers_t *timers);
-i64_t timer_next_timeout(timers_t *timers);
+timers_p timers_new(u64_t capacity);
+nil_t timers_free(timers_p timers);
+i64_t timer_next_timeout(timers_p timers);
 
 obj_p ray_timer(obj_p *x, u64_t n);
 

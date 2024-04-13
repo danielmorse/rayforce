@@ -36,9 +36,8 @@
  */
 #define throw(t, ...)                       \
     {                                       \
-        str_p _m = str_fmt(0, __VA_ARGS__); \
-        obj_p _e = error_str(t, _m);        \
-        heap_free(_m);                      \
+        obj_p _m = str_fmt(0, __VA_ARGS__); \
+        obj_p _e = error_obj(t, _m);        \
         return _e;                          \
     }
 

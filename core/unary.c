@@ -235,7 +235,7 @@ obj_p ray_get(obj_p x)
 
             if (is_external_serialized(res))
             {
-                v = de_raw((u8_t *)res, size);
+                v = de_obj(res);
                 mmap_free(res, size);
                 fs_fclose(fd);
                 return v;

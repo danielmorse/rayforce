@@ -32,7 +32,7 @@ queue_t queue_new(i64_t size)
         .size = size,
         .head = 0,
         .tail = 0,
-        .data = (nil_t **)heap_alloc(size * sizeof(nil_t *)),
+        .data = vector_i64(size),
     };
 }
 
@@ -41,26 +41,26 @@ nil_t queue_free(queue_t *queue)
     heap_free(queue->data);
 }
 
-nil_t queue_push(queue_t *queue, nil_t *val)
+nil_t queue_push(queue_t *queue, raw_p val)
 {
     if (queue->tail - queue->head == queue->size)
     {
         queue->size *= 2;
-        queue->data = (nil_t **)heap_realloc(queue->data, queue->size * sizeof(nil_t *));
+        queue->data = heap_realloc(queue->data, sizeof(struct obj_t) + queue->size * sizeof(raw_p));
     }
 
-    queue->data[queue->tail % queue->size] = val;
+    as_i64(queue->data)[queue->tail % queue->size] = val;
     queue->tail++;
 }
 
-nil_t *queue_pop(queue_t *queue)
+raw_p queue_pop(queue_t *queue)
 {
-    nil_t *v;
+    raw_p v;
 
     if (queue->head == queue->tail)
         return NULL_OBJ;
 
-    v = queue->data[queue->head % queue->size];
+    v = as_i64(queue->data)[queue->head % queue->size];
     queue->head++;
 
     return v;

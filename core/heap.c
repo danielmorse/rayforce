@@ -363,7 +363,7 @@ nil_t heap_merge(heap_p heap)
         {
             next = block;
             block = block->next;
-            heap_free(next);
+            heap_free((obj_p)next);
         }
 
         heap->freelist[i] = NULL;

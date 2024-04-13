@@ -63,10 +63,10 @@ nil_t span_extend(parser_t *parser, span_t *span)
     return;
 }
 
-obj_p parse_error(parser_t *parser, i64_t id, str_p msg)
+obj_p parse_error(parser_t *parser, i64_t id, obj_p msg)
 {
     span_t span;
-    obj_p obj = error_str(ERR_PARSE, msg);
+    obj_p obj = error_obj(ERR_PARSE, msg);
 
     if (parser->nfo)
     {
@@ -79,8 +79,6 @@ obj_p parse_error(parser_t *parser, i64_t id, str_p msg)
                                               clone_obj(as_list(parser->nfo)[1])  // source
                                               ));
     }
-
-    heap_free(msg);
 
     return obj;
 }

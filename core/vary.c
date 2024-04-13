@@ -118,16 +118,7 @@ obj_p ray_gc(obj_p *x, u64_t n)
 
 obj_p ray_format(obj_p *x, u64_t n)
 {
-    str_p s = obj_fmt_n(x, n);
-    obj_p ret;
-
-    if (!s)
-        return error_str(ERR_TYPE, "malformed format string");
-
-    ret = string_from_str(s, strlen(s));
-    heap_free(s);
-
-    return ret;
+    return obj_fmt_n(x, n);
 }
 
 obj_p ray_print(obj_p *x, u64_t n)

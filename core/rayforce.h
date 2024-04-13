@@ -215,7 +215,6 @@ extern obj_p at_sym(obj_p obj, str_p str);              // read value indexed by
 
 // Format
 extern str_p strof_sym(i64_t id);                       // return interned string by interned id
-extern str_p strof_obj(obj_p obj);                      // return string representation of an object
 
 // Initialize obj with zeroed memory
 extern nil_t zero_obj(obj_p obj);

@@ -100,7 +100,7 @@ typedef struct selector_t
         u8_t msgtype;
         i64_t bytes_transfered;
         i64_t size;
-        u8_t *buf;
+        obj_p buf; // vector bytes
     } rx;
 
     struct
@@ -108,7 +108,7 @@ typedef struct selector_t
         b8_t isset;
         i64_t bytes_transfered;
         i64_t size;
-        u8_t *buf;
+        obj_p buf;
         queue_t queue; // queue for async messages waiting to be sent
     } tx;
 

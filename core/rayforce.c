@@ -239,11 +239,6 @@ obj_p vector(i8_t type, u64_t len)
 
     if (type < 0)
         t = -type;
-    else if (type == TYPE_C8)
-    {
-        len = (len > 0) ? len + 1 : len;
-        t = TYPE_C8;
-    }
     else if (type > 0 && type < TYPE_ENUM)
         t = type;
     else if (type == TYPE_ENUM)
@@ -261,9 +256,6 @@ obj_p vector(i8_t type, u64_t len)
     vec->rc = 1;
     vec->len = len;
     vec->attrs = 0;
-
-    if ((type == TYPE_C8) && (len > 0))
-        as_string(vec)[len - 1] = '\0';
 
     return vec;
 }
@@ -1422,16 +1414,15 @@ i64_t find_sym(obj_p obj, str_p str)
 
 obj_p cast_obj(i8_t type, obj_p obj)
 {
-    obj_p res, err;
+    obj_p res, err, msg;
     u64_t i, l;
-    str_p msg;
 
     // Do nothing if the type is the same
     if (type == obj->type)
         return clone_obj(obj);
 
     if (type == TYPE_C8)
-        return obj_stringify(obj);
+        return obj_fmt(obj);
 
     switch (mtype2(type, obj->type))
     {
@@ -1504,8 +1495,7 @@ obj_p cast_obj(i8_t type, obj_p obj)
         return res;
     default:
         msg = str_fmt(0, "invalid conversion from '%s to '%s", type_name(obj->type), type_name(type));
-        err = error_str(ERR_TYPE, msg);
-        heap_free(msg);
+        err = error_obj(ERR_TYPE, msg);
         return err;
     }
 
@@ -1709,11 +1699,6 @@ obj_p eval_str(str_p str)
 obj_p parse_str(str_p str)
 {
     return parse(str, NULL_OBJ);
-}
-
-str_p strof_obj(obj_p obj)
-{
-    return obj_fmt(obj);
 }
 
 nil_t rc_sync(b8_t on)

@@ -114,9 +114,12 @@ i64_t fs_dclose(i64_t fd)
 
 i64_t fs_fopen(str_p path, i64_t attrs)
 {
-    str_p tmp_path = str_dup(path);
-    str_p p = tmp_path;
-    str_p slash;
+    obj_p s;
+    str_p tmp_path, p, slash;
+
+    s = string_from_str(path, strlen(path));
+    tmp_path = as_string(s);
+    p = tmp_path;
 
     while ((slash = strchr(p + 1, '/')) != NULL)
     {
@@ -126,7 +129,7 @@ i64_t fs_fopen(str_p path, i64_t attrs)
         p = slash;
     }
 
-    heap_free(tmp_path);
+    heap_free(s);
 
     return open(path, attrs, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 }

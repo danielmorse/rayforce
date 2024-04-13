@@ -110,8 +110,7 @@ obj_p parse_cmdline(i32_t argc, str_p argv[])
 i32_t runtime_init(i32_t argc, str_p argv[])
 {
     u64_t n;
-    obj_p arg, res;
-    str_p fmt;
+    obj_p arg, fmt, res;
 
     heap_init(0);
 
@@ -166,8 +165,8 @@ i32_t runtime_init(i32_t argc, str_p argv[])
             if (res)
             {
                 fmt = obj_fmt(res);
-                printf("%s\n", fmt);
-                heap_free(fmt);
+                strprintf(fmt);
+                drop_obj(fmt);
                 drop_obj(res);
             }
         }

@@ -157,19 +157,21 @@ nil_t poll_cleanup(poll_p poll)
 i64_t poll_register(poll_p poll, i64_t fd, u8_t version)
 {
     i64_t id;
+    obj_p obj;
     selector_p selector;
     struct epoll_event ev;
 
-    selector = (selector_p)heap_alloc(sizeof(struct selector_t));
+    obj = heap_alloc(sizeof(struct obj_t) + sizeof(struct selector_t));
+    selector = (selector_p)obj2raw(obj);
     id = freelist_push(poll->selectors, (i64_t)selector) + SELECTOR_ID_OFFSET;
     selector->id = id;
     selector->version = version;
     selector->fd = fd;
     selector->tx.isset = B8_FALSE;
-    selector->rx.buf = NULL;
+    selector->rx.buf = NULL_OBJ;
     selector->rx.size = 0;
     selector->rx.bytes_transfered = 0;
-    selector->tx.buf = NULL;
+    selector->tx.buf = NULL_OBJ;
     selector->tx.size = 0;
     selector->tx.bytes_transfered = 0;
     selector->tx.queue = queue_new(TX_QUEUE_SIZE);
@@ -200,7 +202,7 @@ nil_t poll_deregister(poll_p poll, i64_t id)
     heap_free(selector->rx.buf);
     heap_free(selector->tx.buf);
     queue_free(&selector->tx.queue);
-    heap_free(selector);
+    heap_free(raw2obj(selector));
 }
 
 poll_result_t _recv(poll_p poll, selector_p selector)
@@ -209,17 +211,19 @@ poll_result_t _recv(poll_p poll, selector_p selector)
 
     i64_t sz, size;
     header_t *header;
-    u8_t handshake[2] = {RAYFORCE_VERSION, 0x00};
+    u8_t handshake[2] = {RAYFORCE_VERSION, 0x00}, *buf;
 
-    if (selector->rx.buf == NULL)
-        selector->rx.buf = (u8_t *)heap_alloc(sizeof(struct header_t));
+    if (selector->rx.buf == NULL_OBJ)
+        selector->rx.buf = vector_u8(sizeof(struct header_t));
+
+    buf = as_u8(selector->rx.buf);
 
     // wait for handshake
     if (selector->version == 0)
     {
-        while (selector->rx.bytes_transfered == 0 || selector->rx.buf[selector->rx.bytes_transfered - 1] != '\0')
+        while (selector->rx.bytes_transfered == 0 || buf[selector->rx.bytes_transfered - 1] != '\0')
         {
-            size = sock_recv(selector->fd, &selector->rx.buf[selector->rx.bytes_transfered], sizeof(struct header_t));
+            size = sock_recv(selector->fd, &buf[selector->rx.bytes_transfered], sizeof(struct header_t));
             if (size == -1)
                 return POLL_ERROR;
             else if (size == 0)
@@ -228,7 +232,7 @@ poll_result_t _recv(poll_p poll, selector_p selector)
             selector->rx.bytes_transfered += size;
         }
 
-        selector->version = selector->rx.buf[selector->rx.bytes_transfered - 2];
+        selector->version = buf[selector->rx.bytes_transfered - 2];
         selector->rx.bytes_transfered = 0;
 
         // send handshake response
@@ -249,7 +253,7 @@ poll_result_t _recv(poll_p poll, selector_p selector)
     {
         while (selector->rx.bytes_transfered < (i64_t)sizeof(struct header_t))
         {
-            size = sock_recv(selector->fd, &selector->rx.buf[selector->rx.bytes_transfered],
+            size = sock_recv(selector->fd, &buf[selector->rx.bytes_transfered],
                              sizeof(struct header_t) - selector->rx.bytes_transfered);
             if (size == -1)
                 return POLL_ERROR;
@@ -262,12 +266,12 @@ poll_result_t _recv(poll_p poll, selector_p selector)
         header = (header_t *)selector->rx.buf;
         selector->rx.msgtype = header->msgtype;
         selector->rx.size = header->size + sizeof(struct header_t);
-        selector->rx.buf = (u8_t *)heap_realloc(selector->rx.buf, selector->rx.size);
+        resize_obj(&selector->rx.buf, selector->rx.size);
     }
 
     while (selector->rx.bytes_transfered < selector->rx.size)
     {
-        size = sock_recv(selector->fd, &selector->rx.buf[selector->rx.bytes_transfered],
+        size = sock_recv(selector->fd, &buf[selector->rx.bytes_transfered],
                          selector->rx.size - selector->rx.bytes_transfered);
         if (size == -1)
             return POLL_ERROR;
@@ -284,14 +288,16 @@ poll_result_t _send(poll_p poll, selector_p selector)
 {
     i64_t size;
     obj_p obj;
-    nil_t *v;
+    raw_p v;
     i8_t msg_type = MSG_TYPE_RESP;
+    u8_t *buf;
     struct epoll_event ev;
 
 send:
     while (selector->tx.bytes_transfered < selector->tx.size)
     {
-        size = sock_send(selector->fd, &selector->tx.buf[selector->tx.bytes_transfered],
+        buf = as_u8(selector->tx.buf);
+        size = sock_send(selector->fd, &buf[selector->tx.bytes_transfered],
                          selector->tx.size - selector->tx.bytes_transfered);
         if (size == -1)
             return POLL_ERROR;
@@ -314,7 +320,7 @@ send:
     }
 
     heap_free(selector->tx.buf);
-    selector->tx.buf = NULL;
+    selector->tx.buf = NULL_OBJ;
     selector->tx.size = 0;
     selector->tx.bytes_transfered = 0;
 
@@ -324,8 +330,8 @@ send:
     {
         obj = (obj_p)((i64_t)v & ~(3ll << 61));
         msg_type = (((i64_t)v & (3ll << 61)) >> 61);
-        size = ser_raw(&selector->tx.buf, obj);
-        selector->tx.size = size;
+        selector->tx.buf = ser_obj(obj);
+        selector->tx.size = selector->tx.buf->len;
         drop_obj(obj);
         if (size == -1)
             return POLL_ERROR;
@@ -351,9 +357,9 @@ obj_p read_obj(selector_p selector)
 {
     obj_p res;
 
-    res = de_raw(selector->rx.buf, selector->rx.size);
+    res = de_obj(selector->rx.buf);
     heap_free(selector->rx.buf);
-    selector->rx.buf = NULL;
+    selector->rx.buf = NULL_OBJ;
     selector->rx.bytes_transfered = 0;
     selector->rx.size = 0;
 

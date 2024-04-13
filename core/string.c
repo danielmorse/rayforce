@@ -34,8 +34,8 @@ obj_p string_from_str(str_p str, i64_t len)
 {
     obj_p s;
 
-    s = vector(TYPE_C8, len); // vector call is aware of len + 1 and \0 in the end
-    memcpy(s->arr, str, len);
+    s = string(len);
+    strncpy(as_string(s), str, len);
 
     return s;
 }
@@ -228,14 +228,6 @@ b8_t str_match(str_p str, str_p pat)
     return B8_TRUE;
 }
 
-str_p str_dup(str_p str)
-{
-    u64_t len = strlen(str) + 1;
-    str_p dup = (str_p)heap_alloc(len);
-    strncpy(dup, str, len);
-    return dup;
-}
-
 u64_t str_len(str_p s, u64_t n)
 {
     u64_t i;
@@ -257,17 +249,9 @@ u64_t str_cpy(str_p dst, str_p src)
 obj_p vn_vstring(str_p fmt, va_list args)
 {
     obj_p res = string(0);
-    str_p dst = (str_p)res;
-    i64_t n, len = sizeof(struct obj_t), offset = sizeof(struct obj_t);
+    i64_t offset = sizeof(struct obj_t);
 
-    n = str_vfmt_into(&dst, &len, &offset, 0, fmt, args);
-
-    res = (obj_p)dst;
-
-    if (res == NULL_OBJ)
-        return res;
-
-    res->len = n + 1; // + 1 for '\0'
+    str_vfmt_into(&res, &offset, 0, fmt, args);
 
     return res;
 }

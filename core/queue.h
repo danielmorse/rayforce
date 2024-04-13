@@ -31,7 +31,7 @@ typedef struct queue_t
     i64_t size;
     i64_t head;
     i64_t tail;
-    nil_t **data;
+    obj_p data;
 } queue_t;
 
 queue_t queue_new(i64_t size);

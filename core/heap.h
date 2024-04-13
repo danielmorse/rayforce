@@ -64,9 +64,12 @@ typedef struct heap_t
 } *heap_p;
 
 heap_p heap_init(u64_t id);
-obj_p heap_alloc(u64_t size);
-obj_p heap_realloc(obj_p obj, u64_t size);
-nil_t heap_free(obj_p obj);
+obj_p heap_alloc_obj(u64_t size);
+obj_p heap_realloc_obj(obj_p obj, u64_t size);
+nil_t heap_free_obj(obj_p obj);
+raw_p heap_alloc_raw(u64_t size);
+raw_p heap_realloc_raw(raw_p ptr, u64_t size);
+nil_t heap_free_raw(raw_p ptr);
 i64_t heap_gc(nil_t);
 nil_t heap_borrow(heap_p heap);
 nil_t heap_merge(heap_p heap);
