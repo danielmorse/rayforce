@@ -129,7 +129,7 @@ i64_t fs_fopen(str_p path, i64_t attrs)
         p = slash;
     }
 
-    heap_free_raw(s);
+    heap_free_obj(s);
 
     return open(path, attrs, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 }

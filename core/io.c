@@ -83,16 +83,21 @@ obj_p ray_read(obj_p x)
 {
     i64_t fd, size, c = 0;
     str_p buf;
-    obj_p res;
+    obj_p s, res;
 
     switch (x->type)
     {
     case TYPE_C8:
-        fd = fs_fopen(as_string(x), ATTR_RDONLY);
+        s = cstring_from_str(as_string(x), x->len);
+        fd = fs_fopen(as_string(s), ATTR_RDONLY);
 
         // error handling if file does not exist
         if (fd == -1)
-            return sys_error(ERROR_TYPE_SYS, as_string(x));
+        {
+            res = sys_error(ERROR_TYPE_SYS, as_string(s));
+            drop_obj(s);
+            return res;
+        }
 
         size = fs_fsize(fd);
         res = string(size);
@@ -104,8 +109,12 @@ obj_p ray_read(obj_p x)
         if (c != size)
         {
             drop_obj(res);
-            return sys_error(ERROR_TYPE_SYS, as_string(x));
+            res = sys_error(ERROR_TYPE_SYS, as_string(s));
+            drop_obj(s);
+            return res;
         }
+
+        drop_obj(s);
 
         return res;
     default:

@@ -27,15 +27,25 @@
 #include "util.h"
 #include "ops.h"
 
-/*
- * Creates new obj_p string from a C string.
- */
+// Creates new obj_p string from a C string.
 obj_p string_from_str(str_p str, i64_t len)
 {
     obj_p s;
 
     s = string(len);
     strncpy(as_string(s), str, len);
+
+    return s;
+}
+
+// Null terminated string
+obj_p cstring_from_str(str_p str, i64_t len)
+{
+    obj_p s;
+
+    s = string(len + 1);
+    strncpy(as_string(s), str, len);
+    as_string(s)[len] = '\0';
 
     return s;
 }
