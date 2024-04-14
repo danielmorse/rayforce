@@ -49,6 +49,8 @@
 #pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 #endif
 
+nil_t dump_stack(nil_t);
+
 #define debug(fmt, ...)                      \
     do                                       \
     {                                        \
@@ -65,6 +67,7 @@
             fprintf(stderr, fmt, ##__VA_ARGS__);       \
             fprintf(stderr, "\n--\n");                 \
             fflush(stderr);                            \
+            dump_stack();                              \
             assert(x);                                 \
         }                                              \
     }

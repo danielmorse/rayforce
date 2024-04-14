@@ -258,8 +258,6 @@ __attribute__((hot)) obj_p heap_realloc_obj(obj_p obj, u64_t new_size)
     old_size = bsizeof(block->order);
     cap = blocksize(new_size);
 
-    // debug("REALLOC OBJ: %p, old_size: %lld, new_size: %lld, cap: %lld", obj, old_size, new_size, cap);
-
     if (cap == old_size)
         return obj;
 

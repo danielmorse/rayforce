@@ -584,7 +584,6 @@ obj_p ray_eval_str(obj_p str, obj_p file)
         drop_obj(info);
         return parsed;
     }
-
     ctx = ctx_top(info);
 
     res = (setjmp(ctx->jmp) == 0) ? eval(parsed) : stack_pop();

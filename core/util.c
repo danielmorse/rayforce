@@ -30,6 +30,30 @@
 #include "env.h"
 #include "runtime.h"
 
+#ifdef DEBUG
+
+#include <execinfo.h>
+
+nil_t dump_stack(nil_t)
+{
+    raw_p array[10]; // Array to store the backtrace addresses
+    u64_t i, size;
+    str_p *strings;
+
+    size = backtrace(array, 10);              // Capture the backtrace
+    strings = backtrace_symbols(array, size); // Translate addresses to an array of strings
+
+    if (strings != NULL)
+    {
+        fprintf(stderr, "Stack trace:\n");
+        for (i = 0; i < size; i++)
+            fprintf(stderr, "%s\n", strings[i]);
+        free(strings); // Free the memory allocated by backtrace_symbols
+    }
+}
+
+#endif
+
 u32_t next_power_of_two_u32(u32_t n)
 {
     if (n == 0)

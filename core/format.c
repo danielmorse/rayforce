@@ -40,7 +40,7 @@
 #include "error.h"
 #include "filter.h"
 
-#define MAX_ROW_WIDTH 800
+#define MAX_ROW_WIDTH 80
 #define FORMAT_TRAILER_SIZE 4
 #define F64_PRECISION 2
 #define TABLE_MAX_WIDTH 10      // Maximum number of columns
@@ -923,7 +923,7 @@ i64_t obj_fmt_into(obj_p *dst, i64_t *offset, i64_t indent, i64_t limit, b8_t fu
 
 obj_p obj_fmt(obj_p obj)
 {
-    obj_p dst = NULL_OBJ;
+    obj_p dst = string(0);
     i64_t offset = 0, limit = MAX_ROW_WIDTH;
 
     obj_fmt_into(&dst, &offset, 0, limit, B8_TRUE, obj);

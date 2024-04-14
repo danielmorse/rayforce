@@ -372,7 +372,7 @@ obj_p resize_obj(obj_p *obj, u64_t len)
     size = size_of_type((*obj)->type);
 
     // calculate size of vector with new length
-    new_size = sizeof(struct obj_t) + len * size;
+    new_size = len * size;
 
     if (is_internal(*obj))
         *obj = heap_realloc_obj(*obj, new_size);
