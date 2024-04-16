@@ -258,10 +258,9 @@ u64_t str_cpy(str_p dst, str_p src)
 
 obj_p vn_vstring(str_p fmt, va_list args)
 {
-    obj_p res = string(0);
-    i64_t offset = sizeof(struct obj_t);
+    obj_p res = NULL_OBJ;
 
-    str_vfmt_into(&res, &offset, 0, fmt, args);
+    str_vfmt_into(&res, 0, fmt, args);
 
     return res;
 }

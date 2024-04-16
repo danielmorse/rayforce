@@ -46,13 +46,13 @@
 #define BOLD "\033[1m"
 #define RESET "\033[0m"
 
-i64_t str_vfmt_into(obj_p *dst, i64_t *offset, i64_t limit, str_p fmt, va_list vargs);
-i64_t str_fmt_into(obj_p *dst, i64_t *offset, i64_t limit, str_p fmt, ...);
+i64_t str_vfmt_into(obj_p *dst, i64_t limit, str_p fmt, va_list vargs);
+i64_t str_fmt_into(obj_p *dst, i64_t limit, str_p fmt, ...);
 obj_p str_fmt(i64_t limit, str_p fmt, ...);
 obj_p str_vfmt(i64_t limit, str_p fmt, va_list args);
 obj_p obj_stringify(obj_p obj);
 obj_p obj_fmt(obj_p obj);
-i64_t obj_fmt_into(obj_p *dst, i64_t *offset, i64_t indent, i64_t limit, b8_t full, obj_p obj);
+i64_t obj_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj);
 obj_p obj_fmt_n(obj_p *obj, u64_t n);
 i64_t objprint(obj_p str);
 i64_t objprintln(obj_p str);
