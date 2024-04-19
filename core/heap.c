@@ -46,17 +46,26 @@ __thread heap_p __HEAP = NULL;
 
 #ifdef SYS_MALLOC
 
-obj_p heap_alloc_obj(u64_t size) { return malloc(sizeof(struct obj_t) + size); }
+obj_p heap_alloc_obj(u64_t size)
+{
+    obj_p obj = (obj_p)malloc(blocksize(size));
+    obj->mmod = MMOD_INTERNAL;
+    return obj;
+}
+heap_p heap_init(u64_t id)
+{
+    unused(id);
+    return NULL;
+}
 nil_t heap_free_obj(obj_p obj) { free(obj); }
-obj_p heap_realloc_obj(obj_p ptr, u64_t new_size) { return realloc(ptr, sizeof(struct obj_t) + new_size); }
+obj_p heap_realloc_obj(obj_p ptr, u64_t new_size) { return realloc(ptr, blocksize(new_size)); }
 raw_p heap_alloc_raw(u64_t size) { return malloc(size); }
 nil_t heap_free_raw(raw_p ptr) { free(ptr); }
 raw_p heap_realloc_raw(raw_p ptr, u64_t size) { return realloc(ptr, size); }
 i64_t heap_gc(nil_t) { return 0; }
 nil_t heap_cleanup(nil_t) {}
-nil_t heap_borrow(heap_p) {}
-nil_t heap_merge(heap_p) {}
-heap_p heap_init(u64_t) { return NULL; }
+nil_t heap_borrow(heap_p heap) { unused(heap); }
+nil_t heap_merge(heap_p heap) { unused(heap); }
 memstat_t heap_memstat(nil_t) { return (memstat_t){0}; }
 
 #else
@@ -162,6 +171,7 @@ find:
 
                 heap_gc();
                 gc_called = B8_TRUE;
+
                 goto find;
             }
 
@@ -180,6 +190,7 @@ find:
 
             heap_gc();
             gc_called = B8_TRUE;
+
             goto find;
         }
 
