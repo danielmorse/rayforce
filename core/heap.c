@@ -143,14 +143,26 @@ obj_p __attribute__((hot)) heap_alloc_obj(u64_t size)
     u64_t i, order, block_size;
     block_p block;
     obj_p obj;
-    b8_t gc_called = B8_FALSE;
 
     block_size = blocksize(size);
 
     // calculate minimal order for this size
     order = orderof(block_size);
 
-find:
+    if (order > MAX_ORDER)
+    {
+        size = bsizeof(order);
+        block = (block_p)mmap_alloc(size);
+
+        // try to gc if no memory left
+        if (block == NULL)
+            return NULL;
+
+        __HEAP->memstat.system += size;
+
+        goto complete;
+    }
+
     // find least order block that fits
     i = (AVAIL_MASK << order) & __HEAP->avail;
 
@@ -158,84 +170,17 @@ find:
     // add a new pool and split as well
     if (i == 0)
     {
-        if (order >= MAX_ORDER)
-        {
-            size = bsizeof(order);
-            block = (block_p)mmap_alloc(size);
-
-            // try to gc if no memory left
-            if (block == NULL)
-            {
-                if (gc_called)
-                    return NULL;
-
-                heap_gc();
-                gc_called = B8_TRUE;
-
-                goto find;
-            }
-
-            __HEAP->memstat.system += size;
-
-            goto complete;
-        }
-
         block = heap_add_pool(bsizeof(MAX_ORDER));
 
         // try to gc if no memory left
         if (block == NULL)
-        {
-            if (gc_called)
-                return NULL;
-
-            heap_gc();
-            gc_called = B8_TRUE;
-
-            goto find;
-        }
+            return NULL;
 
         i = MAX_ORDER;
         heap_insert_block(block, i);
     }
     else
-    {
         i = __builtin_ctzll(i);
-
-        // big blocks are not splitted
-        if (i > MAX_ORDER)
-        {
-            // exact block is found
-            if (i == order)
-            {
-                block = __HEAP->freelist[i];
-                __HEAP->freelist[i] = block->next;
-                if (__HEAP->freelist[i] != NULL)
-                    __HEAP->freelist[i]->prev = blockaddr(NULL, i);
-                else
-                    __HEAP->avail &= ~bsizeof(i);
-
-                goto complete;
-            }
-
-            // allocate a new block otherwise
-            size = bsizeof(order);
-            block = (block_p)mmap_alloc(size);
-
-            if (block == NULL)
-            {
-                if (gc_called)
-                    return NULL;
-
-                heap_gc();
-                gc_called = B8_TRUE;
-                goto find;
-            }
-
-            __HEAP->memstat.system += size;
-
-            goto complete;
-        }
-    }
 
     // remove the block out of list
     block = __HEAP->freelist[i];
@@ -270,7 +215,11 @@ __attribute__((hot)) nil_t heap_free_obj(obj_p obj)
 
     // blocks over MAX_ORDER are not being splitted
     if (order > MAX_ORDER)
-        return heap_insert_block(block, order);
+    {
+        mmap_free(block, bsizeof(order));
+        return;
+        // return heap_insert_block(block, order);
+    }
 
     for (;; order++)
     {
