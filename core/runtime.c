@@ -117,7 +117,7 @@ i32_t runtime_init(i32_t argc, str_p argv[])
     __RUNTIME = (runtime_p)heap_mmap(sizeof(struct runtime_t));
     __RUNTIME->symbols = symbols_new();
     __RUNTIME->env = create_env();
-    __RUNTIME->addr = (sock_addr_t){0};
+    __RUNTIME->addr = (sock_addr_t){{0}, 0};
     __RUNTIME->fds = dict(vector_i64(0), vector_i64(0));
     __RUNTIME->args = NULL_OBJ;
     __RUNTIME->pool = NULL;
@@ -207,7 +207,7 @@ nil_t runtime_cleanup(nil_t)
     __RUNTIME = NULL;
 }
 
-obj_p runtime_get_arg(str_p key)
+obj_p runtime_get_arg(lit_p key)
 {
     i64_t i = find_sym(as_list(__RUNTIME->args)[0], key);
     if (i < (i64_t)as_list(__RUNTIME->args)[0]->len)

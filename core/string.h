@@ -32,13 +32,13 @@ str_p str_chk_from_end(str_p pat);
 b8_t str_starts_with(str_p str, str_p pat);
 b8_t str_ends_with(str_p str, str_p pat);
 b8_t str_match(str_p str, str_p pat);
-obj_p string_from_str(str_p str, i64_t len);
-obj_p cstring_from_str(str_p str, i64_t len);
+obj_p string_from_str(lit_p str, i64_t len);
+obj_p cstring_from_str(lit_p str, i64_t len);
 obj_p cstring_from_obj(obj_p obj);
 str_p str_dup(str_p str);
 u64_t str_cpy(str_p dst, str_p src);
 u64_t str_len(str_p s, u64_t n);
-obj_p vn_vstring(str_p fmt, va_list args);
+obj_p vn_vstring(lit_p fmt, va_list args);
 i64_t string_cmp(obj_p lhs, obj_p rhs);
 
 #endif // STRING_H

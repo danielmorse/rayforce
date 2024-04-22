@@ -45,12 +45,12 @@ obj_p error_obj(i8_t code, obj_p msg)
     return obj;
 }
 
-obj_p error_str(i8_t code, str_p msg)
+obj_p error_str(i8_t code, lit_p msg)
 {
     return error_obj(code, cstring_from_str(msg, strlen(msg)));
 }
 
-obj_p error(i8_t code, str_p fmt, ...)
+obj_p error(i8_t code, lit_p fmt, ...)
 {
     obj_p e;
     va_list args;

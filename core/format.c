@@ -77,7 +77,7 @@ nil_t debug_str(obj_p str)
  * n < limit - fits into buffer
  * n < 0 - error
  */
-i64_t str_vfmt_into(obj_p *dst, i64_t limit, str_p fmt, va_list vargs)
+i64_t str_vfmt_into(obj_p *dst, i64_t limit, lit_p fmt, va_list vargs)
 {
     str_p s;
     i64_t n = 0, l, o, size;
@@ -142,7 +142,7 @@ i64_t str_vfmt_into(obj_p *dst, i64_t limit, str_p fmt, va_list vargs)
     }
 }
 
-i64_t str_fmt_into(obj_p *dst, i64_t limit, str_p fmt, ...)
+i64_t str_fmt_into(obj_p *dst, i64_t limit, lit_p fmt, ...)
 {
     i64_t n;
     va_list args;
@@ -154,7 +154,7 @@ i64_t str_fmt_into(obj_p *dst, i64_t limit, str_p fmt, ...)
     return n;
 }
 
-i64_t str_fmt_into_n(obj_p *dst, i64_t limit, i64_t repeat, str_p fmt, ...)
+i64_t str_fmt_into_n(obj_p *dst, i64_t limit, i64_t repeat, lit_p fmt, ...)
 {
     i64_t i, n;
 
@@ -164,7 +164,7 @@ i64_t str_fmt_into_n(obj_p *dst, i64_t limit, i64_t repeat, str_p fmt, ...)
     return n;
 }
 
-obj_p str_vfmt(i64_t limit, str_p fmt, va_list vargs)
+obj_p str_vfmt(i64_t limit, lit_p fmt, va_list vargs)
 {
     i64_t n = 0, size;
     obj_p res;
@@ -211,7 +211,7 @@ obj_p str_vfmt(i64_t limit, str_p fmt, va_list vargs)
     return res;
 }
 
-obj_p str_fmt(i64_t limit, str_p fmt, ...)
+obj_p str_fmt(i64_t limit, lit_p fmt, ...)
 {
     obj_p res;
     va_list args;
@@ -353,7 +353,8 @@ i64_t error_frame_fmt_into(obj_p *dst, i64_t limit, obj_p obj, i64_t idx, str_p 
     i64_t n = 0;
     u32_t line_len, fname_len;
     u16_t line_number = 0, i;
-    str_p filename, source, function, start, end, lf = "", flname = "repl", fnname = "anonymous";
+    lit_p filename, source, function, start, end,
+        lf = "", flname = "repl", fnname = "anonymous";
     obj_p *frame = as_list(obj);
     span_t span = (span_t){0};
 
@@ -382,7 +383,7 @@ i64_t error_frame_fmt_into(obj_p *dst, i64_t limit, obj_p obj, i64_t idx, str_p 
 
     while (1)
     {
-        end = memchr(start, '\n', line_len);
+        end = (str_p)memchr(start, '\n', line_len);
 
         if (end == NULL)
         {
@@ -443,7 +444,8 @@ i64_t error_fmt_into(obj_p *dst, i64_t limit, obj_p obj)
     i64_t n = 0;
     u64_t msg_len;
     u16_t i, l, m;
-    str_p error_desc, msg;
+    lit_p error_desc;
+    str_p msg;
     ray_error_p error = as_error(obj);
 
     switch (error->code)
@@ -513,7 +515,6 @@ i64_t error_fmt_into(obj_p *dst, i64_t limit, obj_p obj)
         for (i = 0; i < m; i++)
         {
             n += error_frame_fmt_into(dst, MAX_ERROR_LEN, as_list(error->locs)[i], l - i - 1, msg, msg_len);
-            msg = "";
             msg_len = 0;
         }
 

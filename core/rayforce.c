@@ -186,7 +186,7 @@ obj_p f64(f64_t val)
     return f;
 }
 
-obj_p symbol(str_p s)
+obj_p symbol(lit_p s)
 {
     i64_t id = intern_symbol(s, strlen(s));
     obj_p a = atom(TYPE_SYMBOL);
@@ -520,7 +520,7 @@ obj_p append_list(obj_p *obj, obj_p vals)
     }
 }
 
-obj_p push_sym(obj_p *obj, str_p str)
+obj_p push_sym(obj_p *obj, lit_p str)
 {
     i64_t sym = intern_symbol(str, strlen(str));
     return push_raw(obj, &sym);
@@ -597,7 +597,7 @@ obj_p ins_obj(obj_p *obj, i64_t idx, obj_p val)
     return ret;
 }
 
-obj_p ins_sym(obj_p *obj, i64_t idx, str_p str)
+obj_p ins_sym(obj_p *obj, i64_t idx, lit_p str)
 {
     i64_t sym = intern_symbol(str, strlen(str));
     return ins_raw(obj, idx, &sym);
@@ -875,7 +875,7 @@ obj_p at_obj(obj_p obj, obj_p idx)
     }
 }
 
-obj_p at_sym(obj_p obj, str_p str)
+obj_p at_sym(obj_p obj, lit_p str)
 {
     obj_p sym, res;
 
@@ -1404,7 +1404,7 @@ i64_t find_obj(obj_p obj, obj_p val)
     }
 }
 
-i64_t find_sym(obj_p obj, str_p str)
+i64_t find_sym(obj_p obj, lit_p str)
 {
     i64_t n = intern_symbol(str, strlen(str));
     return find_raw(obj, &n);
@@ -1678,7 +1678,7 @@ str_p type_name(i8_t type)
     return strof_sym(env_get_typename_by_type(&runtime_get()->env, type));
 }
 
-obj_p eval_str(str_p str)
+obj_p eval_str(lit_p str)
 {
     obj_p s, res;
 
@@ -1689,7 +1689,7 @@ obj_p eval_str(str_p str)
     return res;
 }
 
-obj_p parse_str(str_p str)
+obj_p parse_str(lit_p str)
 {
     return parse(str, NULL_OBJ);
 }

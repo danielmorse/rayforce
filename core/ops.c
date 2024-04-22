@@ -40,8 +40,9 @@
 #endif
 
 __thread u64_t __RND_SEED__ = 0;
+
 // Initialize the Global null object
-struct obj_t __NULL_OBJECT = {.mmod = 0, .type = TYPE_NULL, .attrs = 0, .rc = 0, .len = 0};
+struct obj_t __NULL_OBJECT = {.mmod = 0, .order = 0, .type = TYPE_NULL, .attrs = 0, .rc = 0, .len = 0};
 
 /*
  * Treat obj as a b8
@@ -213,7 +214,7 @@ u64_t ops_rank(obj_p *x, u64_t n)
 
 #if defined(_WIN32) || defined(__CYGWIN__)
 
-obj_p sys_error(os_ray_error_type_t tp, str_p msg)
+obj_p sys_error(os_ray_error_type_t tp, lit_p msg)
 {
     str_p emsg;
     obj_p err;
@@ -256,7 +257,7 @@ obj_p sys_error(os_ray_error_type_t tp, str_p msg)
 
 #else
 
-obj_p sys_error(os_ray_error_type_t tp, str_p msg)
+obj_p sys_error(os_ray_error_type_t tp, lit_p msg)
 {
     return error(tp, "'%s': %s", msg, strerror(errno));
 }

@@ -46,10 +46,10 @@
 span_t span_start(parser_t *parser)
 {
     span_t s = {
-        .start_line = parser->line,
-        .end_line = parser->line,
-        .start_column = parser->column,
-        .end_column = parser->column,
+        .start_line = (u16_t)parser->line,
+        .end_line = (u16_t)parser->line,
+        .start_column = (u16_t)parser->column,
+        .end_column = (u16_t)parser->column,
     };
 
     return s;
@@ -155,7 +155,7 @@ obj_p parse_timestamp(parser_t *parser)
 {
     str_p end, current = parser->current;
     u32_t nanos;
-    timestamp_t ts = {0};
+    timestamp_t ts = {.null = B8_FALSE, .year = 0, .month = 0, .day = 0, .hours = 0, .mins = 0, .secs = 0, .nanos = 0};
     obj_p res;
     span_t span = span_start(parser);
 
@@ -1126,7 +1126,7 @@ obj_p parse_do(parser_t *parser)
     return lst != NULL_OBJ ? lst : car;
 }
 
-obj_p parse(str_p input, obj_p nfo)
+obj_p parse(lit_p input, obj_p nfo)
 {
     obj_p res, err;
     span_t span;
@@ -1135,7 +1135,7 @@ obj_p parse(str_p input, obj_p nfo)
         .nfo = nfo,
         .count = 0,
         .input = input,
-        .current = input,
+        .current = (str_p)input,
         .line = 0,
         .column = 0,
         .replace_symbols = B8_TRUE,

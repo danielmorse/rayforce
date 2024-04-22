@@ -178,7 +178,13 @@ i64_t fs_fclose(i64_t fd)
 
 i64_t fs_dcreate(str_p path)
 {
+#ifdef __cplusplus
+    struct stat st
+    {
+    };
+#else
     struct stat st = {0};
+#endif
 
     if (stat(path, &st) == -1)
     {

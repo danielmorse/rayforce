@@ -54,7 +54,7 @@ extern runtime_p __RUNTIME;
 i32_t runtime_init(i32_t argc, str_p argv[]);
 i32_t runtime_run(nil_t);
 nil_t runtime_cleanup(nil_t);
-obj_p runtime_get_arg(str_p key);
+obj_p runtime_get_arg(lit_p key);
 inline __attribute__((always_inline)) runtime_p runtime_get(nil_t) { return __RUNTIME; }
 
 #endif // RUNTIME_H

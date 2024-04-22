@@ -332,10 +332,10 @@ str_p env_get_internal_name(obj_p obj)
     if (sym)
         return strof_sym(sym);
 
-    return "@fn";
+    return (str_p) "@fn";
 }
 
-obj_p env_get_internal_function(str_p name)
+obj_p env_get_internal_function(lit_p name)
 {
     i64_t i;
 

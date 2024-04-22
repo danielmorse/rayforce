@@ -38,7 +38,7 @@
 /*
  * Simplefied version of murmurhash
  */
-u64_t str_hash(str_p key, u64_t len)
+u64_t str_hash(lit_p key, u64_t len)
 {
     u64_t i, k, k1;
     u64_t hash = 0x1234ABCD1234ABCD;
@@ -112,7 +112,7 @@ u64_t string_hash(i64_t key, raw_p seed)
     return str_hash(sym->str, sym->len);
 }
 
-i64_t str_cmp(str_p a, u64_t aln, str_p b, u64_t bln)
+i64_t str_cmp(lit_p a, u64_t aln, lit_p b, u64_t bln)
 {
     if (aln != bln)
         return 1;
@@ -120,7 +120,7 @@ i64_t str_cmp(str_p a, u64_t aln, str_p b, u64_t bln)
     return strncmp(a, b, aln);
 }
 
-i64_t symbols_next(obj_p *obj, str_p str, u64_t len)
+i64_t symbols_next(obj_p *obj, lit_p str, u64_t len)
 {
     u64_t i, size;
     i64_t *keys;
@@ -158,7 +158,7 @@ nil_t pool_node_free(pool_node_p node)
     heap_unmap(node, STRINGS_POOL_SIZE);
 }
 
-symbol_p str_intern(symbols_p symbols, str_p str, u64_t len)
+symbol_p str_intern(symbols_p symbols, lit_p str, u64_t len)
 {
     symbol_p sym = symbols->symbols_pool;
     u64_t size = alignup(sizeof(struct symbol_t) + len + 1, sizeof(struct symbol_t));
@@ -212,7 +212,7 @@ nil_t symbols_free(symbols_p symbols)
     drop_obj(symbols->id_to_str);
 }
 
-i64_t intern_symbol(str_p s, u64_t len)
+i64_t intern_symbol(lit_p s, u64_t len)
 {
     symbol_p sym;
     symbols_p symbols = runtime_get()->symbols;
@@ -253,7 +253,7 @@ str_p strof_sym(i64_t key)
     symbol_p sym;
 
     if (as_i64(as_list(symbols->id_to_str)[0])[idx] == NULL_I64)
-        return "";
+        return (str_p) "";
 
     sym = (symbol_p)as_i64(as_list(symbols->id_to_str)[1])[idx];
 

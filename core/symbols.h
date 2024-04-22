@@ -60,7 +60,7 @@ typedef struct symbols_t
     symbol_p symbols_pool;
 } *symbols_p;
 
-i64_t intern_symbol(str_p s, u64_t len);
+i64_t intern_symbol(lit_p s, u64_t len);
 symbols_p symbols_new(nil_t);
 nil_t symbols_free(symbols_p symbols);
 str_p strof_sym(i64_t key);

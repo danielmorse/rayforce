@@ -66,6 +66,6 @@ typedef struct ray_error_t
 } *ray_error_p;
 
 obj_p error_obj(i8_t code, obj_p msg);
-obj_p error_str(i8_t code, str_p msg);
+obj_p error_str(i8_t code, lit_p msg);
 
 #endif // ERROR_H

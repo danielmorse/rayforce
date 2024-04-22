@@ -78,6 +78,7 @@ typedef char i8_t;
 typedef char c8_t;
 typedef char b8_t;
 typedef char *str_p;
+typedef const char *lit_p;
 typedef unsigned char u8_t;
 typedef short i16_t;
 typedef unsigned short u16_t;
@@ -140,12 +141,12 @@ extern obj_p u8(u8_t val);                    // byte atom
 extern obj_p c8(c8_t c);                      // char
 extern obj_p i64(i64_t val);                  // i64 atom
 extern obj_p f64(f64_t val);                  // f64 atom
-extern obj_p symbol(str_p ptr);               // symbol
+extern obj_p symbol(lit_p ptr);               // symbol
 extern obj_p symboli64(i64_t id);             // symbol from i64
 extern obj_p timestamp(i64_t val);            // timestamp
 extern obj_p guid(u8_t buf[16]);              // GUID
 extern obj_p string(u64_t len);               // string 
-extern obj_p vn_string(str_p fmt, ...);       // string from format
+extern obj_p vn_string(lit_p fmt, ...);       // string from format
 extern obj_p enumerate(obj_p sym, obj_p vec); // enum
 extern obj_p anymap(obj_p sym, obj_p vec);    // anymap
 
@@ -167,7 +168,7 @@ extern obj_p cow_obj(obj_p obj);   // clone_obj if refcount > 1
 extern u32_t rc_obj(obj_p obj);    // get refcount
 
 // Errors
-extern obj_p error(i8_t code, str_p fmt, ...); // Creates an error object
+extern obj_p error(i8_t code, lit_p fmt, ...); // Creates an error object
 
 // Destructors
 extern nil_t drop_obj(obj_p obj); // Free an object
@@ -194,7 +195,7 @@ extern str_p type_name(i8_t tp);
 // Push a value to the end of a list
 extern obj_p push_raw(obj_p *obj, raw_p val); // push raw value into a list
 extern obj_p push_obj(obj_p *obj, obj_p val); // push object to a list
-extern obj_p push_sym(obj_p *obj, str_p str); // push interned string to a symbol vector
+extern obj_p push_sym(obj_p *obj, lit_p str); // push interned string to a symbol vector
 
 // Append list to a list
 extern obj_p append_list(obj_p *obj, obj_p vals);  
@@ -205,13 +206,13 @@ extern obj_p pop_obj(obj_p *obj); // pop object from a list
 // Insert a value into a list by an index (doesn't call a drop)
 extern obj_p ins_raw(obj_p *obj, i64_t idx, raw_p val); // write raw value into a list
 extern obj_p ins_obj(obj_p *obj, i64_t idx, obj_p val); // write object to a list
-extern obj_p ins_sym(obj_p *obj, i64_t idx, str_p str); // write interned string to a symbol vector
+extern obj_p ins_sym(obj_p *obj, i64_t idx, lit_p str); // write interned string to a symbol vector
 
 // Read
 extern obj_p at_idx(obj_p obj, i64_t idx);              // read value from an obj at index
 extern obj_p at_ids(obj_p obj, i64_t ids[], u64_t len); // read values from an obj at indexes
 extern obj_p at_obj(obj_p obj, obj_p idx);              // read from obj indexed by obj
-extern obj_p at_sym(obj_p obj, str_p str);              // read value indexed by symbol created from str
+extern obj_p at_sym(obj_p obj, lit_p str);              // read value indexed by symbol created from str
 
 // Format
 extern str_p strof_sym(i64_t id);                       // return interned string by interned id
@@ -233,7 +234,7 @@ extern obj_p resize_obj(obj_p *obj, u64_t len);
 // Search
 extern i64_t find_raw(obj_p obj, raw_p val); // find raw value in a list, return index (obj->len if not found)
 extern i64_t find_obj(obj_p obj, obj_p val); // find object in a list, return index (obj->len if not found)
-extern i64_t find_sym(obj_p obj, str_p str); // find interned string in a symbol vector, return index (obj->len if not found)
+extern i64_t find_sym(obj_p obj, lit_p str); // find interned string in a symbol vector, return index (obj->len if not found)
 
 // Cast
 extern obj_p cast_obj(i8_t type, obj_p obj);
@@ -246,10 +247,10 @@ extern obj_p ser_obj(obj_p obj);
 extern obj_p de_obj(obj_p buf);
 
 // Parse
-extern obj_p parse_str(str_p str);
+extern obj_p parse_str(lit_p str);
 
 // Evaluate
-extern obj_p eval_str(str_p str);
+extern obj_p eval_str(lit_p str);
 extern obj_p eval_obj(obj_p obj); // Moves ownership of obj to the eval function
 extern obj_p try_obj(obj_p obj, obj_p ctch);
 

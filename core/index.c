@@ -106,7 +106,7 @@ index_scope_t index_scope(i64_t values[], i64_t indices[], u64_t len)
         }
     }
 
-    return (index_scope_t){min, max, max - min + 1};
+    return (index_scope_t){min, max, (u64_t)(max - min + 1)};
 }
 
 obj_p index_distinct_i8(i8_t values[], u64_t len, b8_t term)

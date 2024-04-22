@@ -56,7 +56,7 @@ i64_t env_get_typename_by_type(env_t *env, i8_t type);
 i8_t env_get_type_by_type_name(env_t *env, i64_t name);
 str_p env_get_type_name(i8_t type);
 str_p env_get_internal_name(obj_p obj);
-obj_p env_get_internal_function(str_p name);
+obj_p env_get_internal_function(lit_p name);
 obj_p env_get_internal_function_by_id(i64_t id);
 obj_p env_set(env_t *env, obj_p key, obj_p val);
 obj_p env_get(env_t *env, obj_p key);

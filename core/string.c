@@ -28,7 +28,7 @@
 #include "ops.h"
 
 // Creates new obj_p string from a C string.
-obj_p string_from_str(str_p str, i64_t len)
+obj_p string_from_str(lit_p str, i64_t len)
 {
     obj_p s;
 
@@ -39,7 +39,7 @@ obj_p string_from_str(str_p str, i64_t len)
 }
 
 // Null terminated string
-obj_p cstring_from_str(str_p str, i64_t len)
+obj_p cstring_from_str(lit_p str, i64_t len)
 {
     obj_p s;
 
@@ -273,7 +273,7 @@ u64_t str_cpy(str_p dst, str_p src)
     return i;
 }
 
-obj_p vn_vstring(str_p fmt, va_list args)
+obj_p vn_vstring(lit_p fmt, va_list args)
 {
     obj_p res = NULL_OBJ;
 
@@ -282,7 +282,7 @@ obj_p vn_vstring(str_p fmt, va_list args)
     return res;
 }
 
-obj_p vn_string(str_p fmt, ...)
+obj_p vn_string(lit_p fmt, ...)
 {
     obj_p res;
     va_list args;

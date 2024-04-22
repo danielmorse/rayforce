@@ -101,9 +101,9 @@ date_t date_from_days(i64_t v)
     i64_t dd = (1 + days - MONTHDAYS_FWD[leap][mid]);
 
     return (date_t){
-        .year = yy,
-        .month = mm,
-        .day = dd,
+        .year = (u16_t)yy,
+        .month = (u8_t)mm,
+        .day = (u8_t)dd,
     };
 }
 
@@ -117,10 +117,10 @@ timespan_t timespan_from_nanos(i64_t nanos)
     i64_t ss = mins % 60;
 
     return (timespan_t){
-        .hours = hh,
-        .mins = mm,
-        .secs = ss,
-        .nanos = ns,
+        .hours = (u8_t)hh,
+        .mins = (u8_t)mm,
+        .secs = (u8_t)ss,
+        .nanos = (u32_t)ns,
     };
 }
 
@@ -201,7 +201,7 @@ i64_t timestamp_into_i64(timestamp_t ts)
 timestamp_t timestamp_from_str(str_p src)
 {
     i64_t cnt, val;
-    timestamp_t ts = {0};
+    timestamp_t ts = {.null = B8_FALSE, .year = 0, .month = 0, .day = 0, .hours = 0, .mins = 0, .secs = 0, .nanos = 0};
     c8_t *cur, *end;
 
     if (src == NULL)
