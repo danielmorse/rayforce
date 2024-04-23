@@ -331,16 +331,12 @@ i64_t heap_gc(nil_t)
 
 nil_t heap_borrow(heap_p heap)
 {
-    u64_t i, size, avail_mask = __HEAP->avail;
+    u64_t i;
 
-    while (avail_mask != 0)
+    for (i = MIN_BLOCK_ORDER; i <= MAX_POOL_ORDER; i++)
     {
-        i = __builtin_ctzll(avail_mask);
-        size = bsizeof(i);
-        avail_mask &= ~size;
-
         // Only borrow if the source heap has a freelist[i] and it has more than one node
-        if (__HEAP->freelist[i]->next == NULL)
+        if (__HEAP->freelist[i] == NULL || __HEAP->freelist[i]->next == NULL)
             continue;
 
         heap->freelist[i] = __HEAP->freelist[i];
@@ -349,30 +345,26 @@ nil_t heap_borrow(heap_p heap)
 
         heap->freelist[i]->next = NULL;
         heap->freelist[i]->prev = NULL;
-        heap->avail |= size;
+        heap->avail |= bsizeof(i);
     }
 }
 
 nil_t heap_merge(heap_p heap)
 {
-    u64_t i, avail_mask = heap->avail;
-    block_p block, next;
+    u64_t i;
+    block_p block, prev;
 
-    while (avail_mask != 0)
+    for (i = MIN_BLOCK_ORDER; i <= MAX_POOL_ORDER; i++)
     {
-        i = __builtin_ctzll(avail_mask);
-        avail_mask &= ~bsizeof(i);
-
         block = heap->freelist[i];
+        heap->freelist[i] = NULL;
 
         while (block)
         {
-            next = block;
+            prev = block;
             block = block->next;
-            heap_free(next);
+            heap_free(block2raw(prev));
         }
-
-        heap->freelist[i] = NULL;
     }
 
     // Update memory statistics
@@ -415,6 +407,7 @@ nil_t heap_cleanup(nil_t)
     for (i = MIN_BLOCK_ORDER; i <= MAX_POOL_ORDER; i++)
     {
         block = __HEAP->freelist[i];
+
         while (block)
         {
             next = block->next;
