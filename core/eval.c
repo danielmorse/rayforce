@@ -673,6 +673,7 @@ nil_t interpreter_env_unset(interpreter_p interpreter)
     l = as_lambda(lambda)->args->len;
     env = interpreter->stack[ctx->sp + l];
     drop_obj(env);
+    interpreter->stack[ctx->sp + l] = NULL_OBJ;
 }
 
 obj_p *deref(obj_p sym)

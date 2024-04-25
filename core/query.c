@@ -214,6 +214,7 @@ obj_p eval_field(raw_p x, u64_t n)
 
     val = (obj_p)x;
     res = eval(val);
+    // TODO: avoid call drop_obj in a another thread
     drop_obj(val);
 
     // Materialize fields

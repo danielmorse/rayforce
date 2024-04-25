@@ -26,7 +26,7 @@
 #include "runtime.h"
 #include "error.h"
 
-#define MPMC_SIZE 16
+#define MPMC_SIZE 1024
 
 raw_p executor_run(raw_p arg)
 {
@@ -146,8 +146,10 @@ nil_t pool_prepare(pool_p pool)
     for (i = 0; i < n; i++)
     {
         heap_borrow(pool->executors[i].heap);
-        interpreter_env_set(pool->executors[i].interpreter, env);
+        interpreter_env_set(pool->executors[i].interpreter, clone_obj(env));
     }
+
+    drop_obj(env);
 }
 
 nil_t pool_add_task(pool_p pool, u64_t id, task_fn fn, raw_p arg, u64_t len)

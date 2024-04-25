@@ -42,7 +42,7 @@ nil_t backoff_spin(u64_t *rounds)
 {
     u64_t i;
 
-    for (i = 0; i < (1 << *rounds); i++)
+    for (i = 0; i < (1ull << *rounds); i++)
         cpu_relax();
 
     if (*rounds <= BACKOFF_SPIN_LIMIT)
@@ -124,7 +124,7 @@ i64_t mpmc_push(mpmc_p queue, mpmc_data_t data)
 mpmc_data_t mpmc_pop(mpmc_p queue)
 {
     cell_p cell;
-    mpmc_data_t data = {.id = -1, {0}};
+    mpmc_data_t data = {.id = -1, .in = {0}};
     i64_t pos, seq, dif;
     u64_t rounds = 0;
 
