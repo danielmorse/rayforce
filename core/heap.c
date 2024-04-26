@@ -74,7 +74,8 @@ nil_t heap_destroy(nil_t)
     u64_t i;
     block_p block, next;
 
-    heap_print_blocks(__HEAP);
+    if (__HEAP->id != 0)
+        heap_print_blocks(__HEAP);
 
     // All the nodes remains are pools, so just munmap them
     for (i = MIN_BLOCK_ORDER; i <= MAX_POOL_ORDER; i++)
@@ -209,7 +210,8 @@ raw_p __attribute__((hot)) heap_alloc(u64_t size)
 
     // calculate minimal order for this size
     order = orderof(block_size);
-
+    if (__HEAP->id != 0)
+        printf("heap_alloc[%lld]: %lld\n", __HEAP->id, order);
     // find least order block that fits
     i = (AVAIL_MASK << order) & __HEAP->avail;
 
@@ -269,7 +271,8 @@ __attribute__((hot)) nil_t heap_free(raw_p ptr)
 
     block = raw2block(ptr);
     order = block->order;
-
+    if (__HEAP->id != 0)
+        printf("heap_free[%lld]: %lld\n", __HEAP->id, order);
     for (;; order++)
     {
         // check if we are at the root block (no buddies left)
@@ -301,7 +304,8 @@ __attribute__((hot)) raw_p heap_realloc(raw_p ptr, u64_t new_size)
     old_size = bsizeof(block->order);
     cap = blocksize(new_size);
     order = orderof(cap);
-
+    if (__HEAP->id != 0)
+        printf("heap_realloc[%lld]: %lld\n", __HEAP->id, order);
     if (block->order == order)
         return ptr;
 
@@ -367,29 +371,29 @@ i64_t heap_gc(nil_t)
 
 nil_t heap_borrow(heap_p heap)
 {
-    u64_t i;
+    // u64_t i;
 
-    for (i = MAX_BLOCK_ORDER; i <= MAX_POOL_ORDER; i++)
-    {
-        // Only borrow if the source heap has a freelist[i] and it has more than one node and it is the pool (not a splitted block)
-        if (__HEAP->freelist[i] == NULL || __HEAP->freelist[i]->next == NULL || __HEAP->freelist[i]->pool_order != i)
-            continue;
+    // for (i = MAX_BLOCK_ORDER; i <= MAX_POOL_ORDER; i++)
+    // {
+    //     // Only borrow if the source heap has a freelist[i] and it has more than one node and it is the pool (not a splitted block)
+    //     if (__HEAP->freelist[i] == NULL || __HEAP->freelist[i]->next == NULL || __HEAP->freelist[i]->pool_order != i)
+    //         continue;
 
-        heap->freelist[i] = __HEAP->freelist[i];
-        __HEAP->freelist[i] = __HEAP->freelist[i]->next;
-        __HEAP->freelist[i]->prev = NULL;
+    //     heap->freelist[i] = __HEAP->freelist[i];
+    //     __HEAP->freelist[i] = __HEAP->freelist[i]->next;
+    //     __HEAP->freelist[i]->prev = NULL;
 
-        heap->freelist[i]->next = NULL;
-        heap->freelist[i]->prev = NULL;
-        heap->avail |= bsizeof(i);
-    }
+    //     heap->freelist[i]->next = NULL;
+    //     heap->freelist[i]->prev = NULL;
+    //     heap->avail |= bsizeof(i);
+    // }
 }
 
 nil_t heap_merge(heap_p heap)
 {
     u64_t i;
     block_p block, last;
-
+    printf("MERGE[%lld]:\n", heap->id);
     for (i = MAX_BLOCK_ORDER; i <= MAX_POOL_ORDER; i++)
     {
         block = heap->freelist[i];
@@ -403,6 +407,7 @@ nil_t heap_merge(heap_p heap)
 
         if (last != NULL)
         {
+            printf("MERGE[%lld]: order: %lld\n", heap->id, i);
             last->next = __HEAP->freelist[i];
 
             if (__HEAP->freelist[i] != NULL)

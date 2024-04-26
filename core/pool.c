@@ -54,21 +54,24 @@ raw_p executor_run(raw_p arg)
 
         pthread_mutex_unlock(&executor->mutex);
 
-        data = mpmc_pop(executor->pool->task_queue);
+        // process tasks
+        for (;;)
+        {
+            data = mpmc_pop(executor->pool->task_queue);
 
-        // Nothing to do
-        if (data.id == -1)
-            continue;
+            // Nothing to do
+            if (data.id == -1)
+                break;
 
-        // execute task
-        res = data.in.fn(data.in.arg, data.in.len);
-        mpmc_push(executor->pool->result_queue,
-                  (mpmc_data_t){data.id, .out = {data.in.fn, data.in.arg, data.in.len, res}});
+            // execute task
+            res = data.in.fn(data.in.arg, data.in.len);
+            mpmc_push(executor->pool->result_queue, (mpmc_data_t){data.id, .out = {data.in.arg, data.in.len, res}});
 
-        pthread_mutex_lock(&executor->pool->mutex);
-        executor->pool->done_count++;
-        pthread_cond_signal(&executor->pool->done_task);
-        pthread_mutex_unlock(&executor->pool->mutex);
+            pthread_mutex_lock(&executor->pool->mutex);
+            executor->pool->done_count++;
+            pthread_cond_signal(&executor->pool->done_task);
+            pthread_mutex_unlock(&executor->pool->mutex);
+        }
     }
 
     interpreter_destroy();
@@ -90,6 +93,7 @@ pool_p pool_new(u64_t executors_count)
 
     pthread_mutex_init(&pool->mutex, NULL);
     pthread_cond_init(&pool->done_task, NULL);
+    pthread_mutex_lock(&pool->mutex);
 
     for (i = 0; i < executors_count; i++)
     {
@@ -98,6 +102,8 @@ pool_p pool_new(u64_t executors_count)
         pool->executors[i].pool = pool;
         pthread_create(&pool->executors[i].handle, NULL, executor_run, &pool->executors[i]);
     }
+
+    pthread_mutex_unlock(&pool->mutex);
 
     return pool;
 }
@@ -184,7 +190,7 @@ obj_p pool_run(pool_p pool, u64_t tasks_count)
 
         // execute task
         res = data.in.fn(data.in.arg, data.in.len);
-        mpmc_push(pool->result_queue, (mpmc_data_t){data.id, .out = {data.in.fn, data.in.arg, data.in.len, res}});
+        mpmc_push(pool->result_queue, (mpmc_data_t){data.id, .out = {data.in.arg, data.in.len, res}});
         pthread_mutex_lock(&pool->mutex);
         pool->done_count++;
         pthread_mutex_unlock(&pool->mutex);
@@ -203,9 +209,6 @@ obj_p pool_run(pool_p pool, u64_t tasks_count)
         heap_merge(pool->executors[i].heap);
     }
 
-    pthread_mutex_unlock(&pool->mutex);
-    rc_sync(B8_FALSE);
-
     // collect results
     res = vector(TYPE_LIST, tasks_count);
 
@@ -214,8 +217,14 @@ obj_p pool_run(pool_p pool, u64_t tasks_count)
         data = mpmc_pop(pool->result_queue);
         if (data.id == -1)
             panic("Pool run: invalid data id!!!!");
+
+        drop_obj(data.out.arg);
+
         ins_obj(&res, data.id, data.out.result);
     }
+
+    pthread_mutex_unlock(&pool->mutex);
+    rc_sync(B8_FALSE);
 
     return res;
 }

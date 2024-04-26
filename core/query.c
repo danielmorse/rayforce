@@ -214,8 +214,6 @@ obj_p eval_field(raw_p x, u64_t n)
 
     val = (obj_p)x;
     res = eval(val);
-    // TODO: avoid call drop_obj in a another thread
-    drop_obj(val);
 
     // Materialize fields
     if (res->type == TYPE_GROUPMAP)
@@ -378,6 +376,7 @@ obj_p ray_select(obj_p obj)
                 drop_obj(sym);
 
                 val = eval_field(prm, 1);
+                drop_obj(prm);
 
                 if (is_error(val))
                 {

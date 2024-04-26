@@ -40,7 +40,6 @@ typedef struct
 
 typedef struct
 {
-    task_fn fn;
     raw_p arg;
     u64_t len;
     obj_p result;
