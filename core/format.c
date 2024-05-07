@@ -864,7 +864,7 @@ i64_t table_fmt_into(obj_p *dst, i64_t indent, b8_t full, obj_p obj)
             s = formatted_columns[i][j];
             p = as_string(s);
             n = n - s->len;
-            str_fmt_into(dst, s->len + 2, " %.*s", s->len, p);
+            str_fmt_into(dst, s->len + 2, " %.*s", (i32_t)s->len, p);
             str_fmt_into_n(dst, NO_LIMIT, n, " ");
             str_fmt_into(dst, 2, "|");
             // Free formatted column
