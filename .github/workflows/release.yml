@@ -55,7 +55,7 @@ jobs:
 
     - name: Make (macOS)
       if: runner.os == 'macOS'
-      run: make RELEASE_CFLAGS="-fPIC -Wall -Wextra -std=c17 -Ofast -march=x86-64 -msse -msse2 -mavx -mavx2 -fassociative-math -ftree-vectorize -m64" release
+      run: make RELEASE_CFLAGS="-fPIC -Wall -Wextra -std=c17 -Ofast -march=native -fassociative-math -ftree-vectorize -m64" release
 
     - name: Create build directory and copy binary (Linux)
       if: runner.os == 'Linux'
