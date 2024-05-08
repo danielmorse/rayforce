@@ -50,5 +50,6 @@ nil_t timers_destroy(timers_p timers);
 i64_t timer_next_timeout(timers_p timers);
 
 obj_p ray_timer(obj_p *x, u64_t n);
+obj_p ray_time(obj_p x);
 
 #endif // TIMER_H

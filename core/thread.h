@@ -28,19 +28,21 @@
 
 #if defined(_WIN32) || defined(__CYGWIN__)
 
+#include <windows.h>
+
 typedef struct
 {
-    pthread_t handle;
+    HANDLE handle;
 } thread_t;
 
 typedef struct
 {
-    pthread_mutex_t inner;
+    CRITICAL_SECTION inner;
 } mutex_t;
 
 typedef struct
 {
-    pthread_cond_t inner;
+    CONDITION_VARIABLE inner;
 } cond_t;
 
 #else

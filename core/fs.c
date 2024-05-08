@@ -32,9 +32,12 @@
 
 i64_t fs_fopen(str_p path, i64_t attrs)
 {
-    str_p tmp_path = str_dup(path);
-    str_p p = tmp_path;
-    str_p slash;
+    obj_p s;
+    str_p tmp_path, p, slash;
+
+    s = cstring_from_str(path, strlen(path));
+    tmp_path = as_string(s);
+    p = tmp_path;
 
     while ((slash = strchr(p + 1, '/')) != NULL)
     {
@@ -44,7 +47,7 @@ i64_t fs_fopen(str_p path, i64_t attrs)
         p = slash;
     }
 
-    heap_free(tmp_path);
+    drop_obj(s);
 
     return (i64_t)CreateFile(path, attrs, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 }

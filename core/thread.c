@@ -22,6 +22,93 @@
  */
 
 #include "thread.h"
+#include "util.h"
+
+#if defined(_WIN32) || defined(__CYGWIN__)
+
+// Mutex functions
+mutex_t mutex_create()
+{
+    mutex_t m;
+    InitializeCriticalSection(&m.inner);
+    return m;
+}
+
+nil_t mutex_destroy(mutex_t *mutex)
+{
+    DeleteCriticalSection(&mutex->inner);
+}
+
+nil_t mutex_lock(mutex_t *mutex)
+{
+    EnterCriticalSection(&mutex->inner);
+}
+
+nil_t mutex_unlock(mutex_t *mutex)
+{
+    LeaveCriticalSection(&mutex->inner);
+}
+
+// Condition variable functions
+cond_t cond_create()
+{
+    cond_t c;
+    InitializeConditionVariable(&c.inner);
+    return c;
+}
+
+nil_t cond_destroy(cond_t *cond)
+{
+    // Windows does not require destruction of condition variables
+    unused(cond);
+}
+
+i32_t cond_wait(cond_t *cond, mutex_t *mutex)
+{
+    return SleepConditionVariableCS(&cond->inner, &mutex->inner, INFINITE) ? 0 : -1;
+}
+
+int cond_signal(cond_t *cond)
+{
+    WakeConditionVariable(&cond->inner);
+    return 0;
+}
+
+int cond_broadcast(cond_t *cond)
+{
+    WakeAllConditionVariable(&cond->inner);
+    return 0;
+}
+
+// Thread functions
+thread_t thread_create(void *(*fn)(void *), void *arg)
+{
+    thread_t t;
+    t.handle = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)fn, arg, 0, NULL);
+    return t;
+}
+
+i32_t thread_destroy(thread_t *thread)
+{
+    return CloseHandle(thread->handle) ? 0 : -1;
+}
+
+i32_t thread_join(thread_t thread)
+{
+    return WaitForSingleObject(thread.handle, INFINITE) == WAIT_OBJECT_0 ? 0 : -1;
+}
+
+i32_t thread_detach(thread_t thread)
+{
+    return CloseHandle(thread.handle) ? 0 : -1;
+}
+
+nil_t thread_exit(void *res)
+{
+    ExitThread((DWORD)res);
+}
+
+#else
 
 mutex_t mutex_create()
 {
@@ -98,3 +185,5 @@ nil_t thread_exit(raw_p res)
 {
     return pthread_exit(res);
 }
+
+#endif

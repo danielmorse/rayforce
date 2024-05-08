@@ -30,6 +30,7 @@
 #include "io.h"
 
 #if defined(_WIN32) || defined(__CYGWIN__)
+
 u64_t get_time_millis(nil_t)
 {
     FILETIME ft;
@@ -39,13 +40,56 @@ u64_t get_time_millis(nil_t)
     uli.HighPart = ft.dwHighDateTime;
     return uli.QuadPart / 10000ULL - 11644473600000ULL; // Convert to milliseconds since Unix epoch
 }
+
+obj_p ray_time(obj_p x)
+{
+    LARGE_INTEGER start, end, freq;
+    f64_t elapsed;
+
+    QueryPerformanceFrequency(&freq);
+    QueryPerformanceCounter(&start);
+
+    x = eval(x);
+    if (is_error(x))
+        return x;
+    drop_obj(x);
+
+    QueryPerformanceCounter(&end);
+
+    elapsed = ((end.QuadPart - start.QuadPart) * 1000.0) / freq.QuadPart; // Convert to milliseconds
+
+    return f64(elapsed);
+}
+
 #else
+
 u64_t get_time_millis(nil_t)
 {
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
     return (u64_t)ts.tv_sec * 1000 + (u64_t)ts.tv_nsec / 1000000;
 }
+
+obj_p ray_time(obj_p x)
+{
+    struct timespec start, end;
+    f64_t elapsed;
+
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
+    x = eval(x);
+    if (is_error(x))
+        return x;
+    drop_obj(x);
+
+    clock_gettime(CLOCK_MONOTONIC, &end);
+
+    elapsed = (end.tv_sec - start.tv_sec) * 1e3;    // Convert to milliseconds
+    elapsed += (end.tv_nsec - start.tv_nsec) / 1e6; // Convert nanoseconds to milliseconds
+
+    return f64(elapsed);
+}
+
 #endif
 
 ray_timer_p ray_timer_create(i64_t id, u64_t tic, u64_t exp, i64_t num, obj_p clb)
