@@ -37,7 +37,7 @@ typedef struct symbols_t
 i64_t symbols_intern(lit_p s, u64_t len);
 symbols_p symbols_create(nil_t);
 nil_t symbols_destroy(symbols_p symbols);
-str_p symbols_strof(i64_t key);
+str_p str_from_symbol(i64_t key);
 u64_t symbols_count(symbols_p symbols);
 
 #endif // SYMBOLS_H

@@ -215,7 +215,7 @@ extern obj_p at_obj(obj_p obj, obj_p idx);              // read from obj indexed
 extern obj_p at_sym(obj_p obj, lit_p str);              // read value indexed by symbol created from str
 
 // Format
-extern str_p symbols_strof(i64_t id);                   // return interned string by interned id
+extern str_p str_from_symbol(i64_t id);                   // return interned string by interned id
 
 // Initialize obj with zeroed memory
 extern nil_t zero_obj(obj_p obj);

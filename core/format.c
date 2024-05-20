@@ -370,7 +370,7 @@ i64_t symbol_fmt_into(obj_p *dst, i64_t limit, i64_t val)
     if (val == NULL_I64)
         return str_fmt_into(dst, 3, "0s");
 
-    i64_t n = str_fmt_into(dst, limit, "%s", symbols_strof(val));
+    i64_t n = str_fmt_into(dst, limit, "%s", str_from_symbol(val));
 
     if (n > limit)
         n += str_fmt_into(dst, 3, "..");
@@ -426,7 +426,7 @@ i64_t error_frame_fmt_into(obj_p *dst, obj_p obj, i64_t idx, str_p msg, i32_t ms
         filename = flname;
         fname_len = strlen(flname);
     }
-    function = (frame[2] != NULL_OBJ) ? symbols_strof(frame[2]->i64) : fnname;
+    function = (frame[2] != NULL_OBJ) ? str_from_symbol(frame[2]->i64) : fnname;
     source = as_string(frame[3]);
     line_len = frame[3]->len;
 
@@ -922,7 +922,7 @@ i64_t table_fmt_into(obj_p *dst, i64_t indent, b8_t full, obj_p obj)
     for (i = 0; i < table_width; i++)
     {
         // First check the column name
-        l = strlen(symbols_strof(header[i]));
+        l = strlen(str_from_symbol(header[i]));
 
         // Then traverse first n elements of column
         for (j = 0; j < table_height / 2; j++)
@@ -990,7 +990,7 @@ i64_t table_fmt_into(obj_p *dst, i64_t indent, b8_t full, obj_p obj)
     n += glyph_fmt_into(dst, GLYPH_VLINE, unicode);
     for (i = 0; i < table_width; i++)
     {
-        p = symbols_strof(header[i]);
+        p = str_from_symbol(header[i]);
         m = as_i64(column_widths)[i] - strlen(p) - 2;
         n += str_fmt_into(dst, NO_LIMIT, " %s ", p);
         n += str_fmt_into_n(dst, NO_LIMIT, m, " ");
@@ -1104,7 +1104,7 @@ i64_t lambda_fmt_into(obj_p *dst, i64_t limit, obj_p obj)
     i64_t n;
 
     if (as_lambda(obj)->name)
-        n = str_fmt_into(dst, limit, "@%s", symbols_strof((as_lambda(obj)->name)->i64));
+        n = str_fmt_into(dst, limit, "@%s", str_from_symbol((as_lambda(obj)->name)->i64));
     else
     {
         n = str_fmt_into(dst, 4, "(fn ");

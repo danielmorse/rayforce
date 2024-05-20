@@ -1671,7 +1671,7 @@ u32_t rc_obj(obj_p obj)
 
 str_p type_name(i8_t type)
 {
-    return symbols_strof(env_get_typename_by_type(&runtime_get()->env, type));
+    return str_from_symbol(env_get_typename_by_type(&runtime_get()->env, type));
 }
 
 obj_p eval_str(lit_p str)

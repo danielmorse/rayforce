@@ -337,7 +337,7 @@ __attribute__((hot)) obj_p eval(obj_p obj)
         case -TYPE_SYMBOL:
             val = deref(car);
             if (val == NULL)
-                return unwrap(error(ERR_EVAL, "undefined symbol: '%s", symbols_strof(car->i64)), (i64_t)obj);
+                return unwrap(error(ERR_EVAL, "undefined symbol: '%s", str_from_symbol(car->i64)), (i64_t)obj);
             car = *val;
             goto call;
 
@@ -349,7 +349,7 @@ __attribute__((hot)) obj_p eval(obj_p obj)
             return symboli64(obj->i64);
         val = deref(obj);
         if (val == NULL)
-            return unwrap(error(ERR_EVAL, "undefined symbol: '%s", symbols_strof(obj->i64)), (i64_t)obj);
+            return unwrap(error(ERR_EVAL, "undefined symbol: '%s", str_from_symbol(obj->i64)), (i64_t)obj);
         return clone_obj(*val);
     default:
         return clone_obj(obj);

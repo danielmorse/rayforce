@@ -181,8 +181,7 @@ obj_p ray_write(obj_p x, obj_p y)
 
 obj_p parse_csv_field(i8_t type, str_p start, str_p end, i64_t row, obj_p out)
 {
-    i64_t n, inum;
-    f64_t fnum;
+    i64_t n;
 
     switch (type)
     {
@@ -192,23 +191,10 @@ obj_p parse_csv_field(i8_t type, str_p start, str_p end, i64_t row, obj_p out)
             as_u8(out)[row] = 0;
             break;
         }
-        inum = strtoll(start, &end, 10);
-        if ((inum == LONG_MAX || inum == LONG_MIN) && errno == ERANGE)
-            as_u8(out)[row] = 0;
-        else
-            as_u8(out)[row] = inum;
+        as_u8(out)[row] = (u8_t)i64_from_str(start, end - start);
         break;
     case TYPE_I64:
-        if (start == NULL || end == NULL)
-        {
-            as_i64(out)[row] = NULL_I64;
-            break;
-        }
-        inum = strtoll(start, &end, 10);
-        if ((inum == LONG_MAX || inum == LONG_MIN) && errno == ERANGE)
-            as_i64(out)[row] = NULL_I64;
-        else
-            as_i64(out)[row] = inum;
+        as_i64(out)[row] = i64_from_str(start, end - start);
         break;
     case TYPE_TIMESTAMP:
         if (start == NULL || end == NULL)
@@ -216,20 +202,10 @@ obj_p parse_csv_field(i8_t type, str_p start, str_p end, i64_t row, obj_p out)
             as_timestamp(out)[row] = NULL_I64;
             break;
         }
-        inum = timestamp_into_i64(timestamp_from_str(start));
-        as_timestamp(out)[row] = inum;
+        as_timestamp(out)[row] = timestamp_into_i64(timestamp_from_str(start));
         break;
     case TYPE_F64:
-        if (start == NULL || end == NULL)
-        {
-            as_f64(out)[row] = NULL_F64;
-            break;
-        }
-        fnum = strtod(start, &end);
-        if (errno == ERANGE)
-            as_f64(out)[row] = NULL_F64;
-        else
-            as_f64(out)[row] = fnum;
+        as_f64(out)[row] = f64_from_str(start, end - start);
         break;
     case TYPE_SYMBOL:
         if (start == NULL || end == NULL)
@@ -479,7 +455,7 @@ obj_p ray_csv(obj_p *x, i64_t n)
             if (type == TYPE_ERROR)
             {
                 drop_obj(types);
-                throw(ERR_TYPE, "csv: invalid type: '%s", symbols_strof(as_symbol(x[0])[i]));
+                throw(ERR_TYPE, "csv: invalid type: '%s", str_from_symbol(as_symbol(x[0])[i]));
             }
 
             if (type < 0)

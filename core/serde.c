@@ -106,7 +106,7 @@ u64_t size_obj(obj_p obj)
     case -TYPE_F64:
         return sizeof(i8_t) + sizeof(f64_t);
     case -TYPE_SYMBOL:
-        return sizeof(i8_t) + strlen(symbols_strof(obj->i64)) + 1;
+        return sizeof(i8_t) + strlen(str_from_symbol(obj->i64)) + 1;
     case -TYPE_C8:
         return sizeof(i8_t) + sizeof(c8_t);
     case -TYPE_GUID:
@@ -128,7 +128,7 @@ u64_t size_obj(obj_p obj)
         l = obj->len;
         size = sizeof(i8_t) + sizeof(u64_t);
         for (i = 0; i < l; i++)
-            size += strlen(symbols_strof(as_symbol(obj)[i])) + 1;
+            size += strlen(str_from_symbol(as_symbol(obj)[i])) + 1;
         return size;
     case TYPE_LIST:
         l = obj->len;
@@ -182,7 +182,7 @@ u64_t save_obj(u8_t *buf, u64_t len, obj_p obj)
         return sizeof(i8_t) + sizeof(f64_t);
 
     case -TYPE_SYMBOL:
-        s = symbols_strof(obj->i64);
+        s = str_from_symbol(obj->i64);
         return sizeof(i8_t) + str_cpy((str_p)buf, s) + 1;
 
     case -TYPE_C8:
@@ -243,7 +243,7 @@ u64_t save_obj(u8_t *buf, u64_t len, obj_p obj)
         buf += sizeof(u64_t);
         for (i = 0, c = 0; i < l; i++)
         {
-            s = symbols_strof(as_symbol(obj)[i]);
+            s = str_from_symbol(as_symbol(obj)[i]);
             c += str_cpy((str_p)buf + c, s);
             buf[c] = '\0';
             c++;

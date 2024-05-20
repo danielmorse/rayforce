@@ -145,7 +145,7 @@ obj_p ray_get(obj_p x)
     case -TYPE_SYMBOL:
         sym = deref(x);
         if (sym == NULL)
-            return error(ERR_TYPE, "get: symbol '%s' not found", symbols_strof(x->i64));
+            return error(ERR_TYPE, "get: symbol '%s' not found", str_from_symbol(x->i64));
 
         return clone_obj(*sym);
     case TYPE_C8:

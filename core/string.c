@@ -27,8 +27,11 @@
 #include "util.h"
 #include "ops.h"
 
+#define is_digit(c) ((c) >= '0' && (c) <= '9')
+#define is_space(c) ((c) == ' ' || (c) == '\t' || (c) == '\n' || (c) == '\r')
+
 // Creates new obj_p string from a C string.
-obj_p string_from_str(lit_p str, i64_t len)
+obj_p string_from_str(lit_p str, u64_t len)
 {
     obj_p s;
 
@@ -39,7 +42,7 @@ obj_p string_from_str(lit_p str, i64_t len)
 }
 
 // Null terminated string
-obj_p cstring_from_str(lit_p str, i64_t len)
+obj_p cstring_from_str(lit_p str, u64_t len)
 {
     obj_p s;
 
@@ -65,6 +68,75 @@ obj_p cstring_from_str(lit_p str, i64_t len)
 obj_p cstring_from_obj(obj_p obj)
 {
     return cstring_from_str(as_string(obj), obj->len);
+}
+
+i64_t i64_from_str(lit_p str, u64_t len)
+{
+    i64_t result = 0, sign = 1;
+
+    if (len == 0)
+        return NULL_I64;
+
+    // Skip leading whitespace
+    while (is_space(*str))
+        str++;
+
+    // Handle optional sign
+    if (*str == '-')
+    {
+        sign = -1;
+        str++;
+    }
+
+    // Parse the digits
+    while (is_digit(*str))
+    {
+        result = result * 10 + (*str - '0');
+        str++;
+    }
+
+    return result * sign;
+}
+
+f64_t f64_from_str(lit_p str, u64_t len)
+{
+    f64_t result = 0.0, factor = 1.0, fraction;
+
+    if (len == 0)
+        return NULL_F64;
+
+    // Skip leading whitespace
+    while (is_space(*str))
+        str++;
+
+    // Handle optional sign
+    if (*str == '-')
+    {
+        factor = -1.0;
+        str++;
+    }
+
+    // Parse the integer part
+    while (is_digit(*str))
+    {
+        result = result * 10.0 + (*str - '0');
+        str++;
+    }
+
+    // Parse the fractional part
+    if (*str == '.')
+    {
+        str++;
+        fraction = 1.0;
+        while (is_digit(*str))
+        {
+            fraction /= 10.0;
+            result += (*str - '0') * fraction;
+            str++;
+        }
+    }
+
+    return result * factor;
 }
 
 /*

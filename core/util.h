@@ -105,7 +105,7 @@ nil_t dump_stack(nil_t);
         printf("%f\n", ((f64_t)(clock() - timer)) / CLOCKS_PER_SEC * 1000); \
     }
 
-#define enum_key(x) (x->mmod == MMOD_INTERNAL ? symbols_strof(as_list(x)[0]->i64) : as_string((obj_p)((str_p)x - PAGE_SIZE)))
+#define enum_key(x) (x->mmod == MMOD_INTERNAL ? str_from_symbol(as_list(x)[0]->i64) : as_string((obj_p)((str_p)x - PAGE_SIZE)))
 #define enum_val(x) (x->mmod == MMOD_INTERNAL ? as_list(x)[1] : x)
 
 #define anymap_key(x) (((obj_p)((str_p)x - PAGE_SIZE))->obj)

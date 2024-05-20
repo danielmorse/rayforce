@@ -312,7 +312,7 @@ str_p env_get_type_name(i8_t type)
     env_t *env = &runtime_get()->env;
     i64_t name = env_get_typename_by_type(env, type);
 
-    return symbols_strof(name);
+    return str_from_symbol(name);
 }
 
 str_p env_get_internal_name(obj_p obj)
@@ -332,7 +332,7 @@ str_p env_get_internal_name(obj_p obj)
     }
 
     if (sym)
-        return symbols_strof(sym);
+        return str_from_symbol(sym);
 
     return (str_p) "@fn";
 }

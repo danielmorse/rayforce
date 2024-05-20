@@ -78,7 +78,7 @@ i64_t symbols_intern(lit_p s, u64_t len)
     return new_id;
 }
 
-str_p symbols_strof(i64_t key)
+str_p str_from_symbol(i64_t key)
 {
     symbols_p symbols = runtime_get()->symbols;
     i64_t sym = ht_bk_get(symbols->id_to_str, key);
