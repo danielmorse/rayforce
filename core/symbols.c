@@ -103,13 +103,65 @@ static inline u64_t str_hash(lit_p key, u64_t len)
     return hash;
 }
 
+str_p heap_intern(symbols_p symbols, u64_t len)
+{
+    str_p str;
+
+    // add node if there is no space left
+    if (((u64_t)symbols->string_curr + len) >= (u64_t)symbols->string_node)
+    {
+        if (mmap_commit(symbols->string_node, STRING_NODE_SIZE) != 0)
+        {
+            perror("mmap_commit");
+            return NULL;
+        }
+
+        symbols->string_node += STRING_NODE_SIZE;
+    }
+
+    // Additional check before memcpy to prevent out of bounds write
+    if (symbols->string_curr + len > symbols->string_pool + STRING_POOL_SIZE)
+    {
+        fprintf(stderr, "Error: Out of bounds write attempt\n");
+        return NULL;
+    }
+
+    str = symbols->string_curr;
+    symbols->string_curr += len;
+
+    return str;
+}
+
+nil_t heap_untern(symbols_p symbols, u64_t len)
+{
+    symbols->string_curr -= len;
+}
+
 symbols_p symbols_create(nil_t)
 {
     symbols_p symbols = (symbols_p)heap_mmap(sizeof(struct symbols_t));
+    raw_p pooladdr = (raw_p)(16 * PAGE_SIZE);
 
-    symbols->size = SYMBOLS_SIZE;
+    symbols->size = SYMBOLS_HT_SIZE;
     symbols->count = 0;
-    symbols->syms = (symbol_p *)heap_mmap(SYMBOLS_SIZE * sizeof(symbol_p));
+    symbols->syms = (symbol_p *)heap_mmap(SYMBOLS_HT_SIZE * sizeof(symbol_p));
+    symbols->string_pool = (str_p)mmap_reserve(pooladdr, STRING_POOL_SIZE);
+
+    debug("STRING POOL ADDR: %p", symbols->string_pool);
+    if (symbols->string_pool == NULL)
+    {
+        perror("string_pool mmap_reserve");
+        exit(1);
+    }
+
+    symbols->string_curr = symbols->string_pool;
+    symbols->string_node = symbols->string_pool + STRING_NODE_SIZE;
+
+    if (mmap_commit(symbols->string_pool, STRING_NODE_SIZE) == -1)
+    {
+        perror("string_pool mmap_commit");
+        exit(1);
+    }
 
     return symbols;
 }
@@ -129,7 +181,7 @@ i64_t symbols_intern(lit_p str, u64_t len)
 
     syms = symbols->syms;
     index = str_hash(str, len) % symbols->size;
-    intr = heap_intern(len + 1);
+    intr = heap_intern(symbols, len + 1);
 
     new_bucket = (symbol_p)heap_alloc(sizeof(struct symbol_t));
     if (new_bucket == NULL)
@@ -149,7 +201,7 @@ i64_t symbols_intern(lit_p str, u64_t len)
         {
             if (strncmp(b->str, str, len) == 0)
             {
-                heap_untern(len + 1);
+                heap_untern(symbols, len + 1);
                 heap_free(new_bucket);
                 return (i64_t)b->str;
             }

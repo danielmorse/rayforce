@@ -43,8 +43,6 @@ __thread heap_p __HEAP = NULL;
 
 heap_p heap_create(u64_t id)
 {
-    raw_p pooladdr = (raw_p)(16 * PAGE_SIZE);
-
     __HEAP = (heap_p)mmap_alloc(sizeof(struct heap_t));
 
     if (__HEAP == NULL)
@@ -55,22 +53,6 @@ heap_p heap_create(u64_t id)
 
     __HEAP->id = id;
     __HEAP->avail = 0;
-    __HEAP->string_pool = (str_p)mmap_reserve(pooladdr, STRING_POOL_SIZE);
-    debug("STRING POOL ADDR: %p", __HEAP->string_pool);
-    if (__HEAP->string_pool == NULL)
-    {
-        perror("string_pool mmap_reserve");
-        exit(1);
-    }
-
-    __HEAP->string_curr = __HEAP->string_pool;
-    __HEAP->string_node = __HEAP->string_pool + STRING_NODE_SIZE;
-
-    if (mmap_commit(__HEAP->string_pool, STRING_NODE_SIZE) == -1)
-    {
-        perror("string_pool mmap_commit");
-        exit(1);
-    }
 
     memset(__HEAP->freelist, 0, sizeof(__HEAP->freelist));
 
@@ -101,9 +83,6 @@ nil_t heap_destroy(nil_t)
         }
     }
 
-    // munmap string pool
-    mmap_free(__HEAP->string_pool, STRING_POOL_SIZE);
-
     // munmap heap
     mmap_free(__HEAP, sizeof(struct heap_t));
 
@@ -113,40 +92,6 @@ nil_t heap_destroy(nil_t)
 heap_p heap_get(nil_t)
 {
     return __HEAP;
-}
-
-str_p heap_intern(u64_t len)
-{
-    str_p str;
-
-    // add node if there is no space left
-    if (((u64_t)__HEAP->string_curr + len) >= (u64_t)__HEAP->string_node)
-    {
-        if (mmap_commit(__HEAP->string_node, STRING_NODE_SIZE) != 0)
-        {
-            perror("mmap_commit");
-            return NULL;
-        }
-
-        __HEAP->string_node += STRING_NODE_SIZE;
-    }
-
-    // Additional check before memcpy to prevent out of bounds write
-    if (__HEAP->string_curr + len > __HEAP->string_pool + STRING_POOL_SIZE)
-    {
-        fprintf(stderr, "Error: Out of bounds write attempt\n");
-        return NULL;
-    }
-
-    str = __HEAP->string_curr;
-    __HEAP->string_curr += len;
-
-    return str;
-}
-
-nil_t heap_untern(u64_t len)
-{
-    __HEAP->string_curr -= len;
 }
 
 #ifdef SYS_MALLOC

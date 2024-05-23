@@ -27,7 +27,9 @@
 #include "rayforce.h"
 #include "hash.h"
 
-#define SYMBOLS_SIZE 4096 * 1024
+#define SYMBOLS_HT_SIZE 4096 * 1024
+#define STRING_NODE_SIZE 4096
+#define STRING_POOL_SIZE (STRING_NODE_SIZE * 1024ull * 1024ull)
 
 typedef struct symbol_t
 {
@@ -40,6 +42,9 @@ typedef struct symbols_t
     u64_t size;
     u64_t count;
     symbol_p *syms;
+    str_p string_pool; // string pool
+    str_p string_node; // string pool current node
+    str_p string_curr; // string pool cursor
 } *symbols_p;
 
 i64_t symbols_intern(lit_p s, u64_t len);

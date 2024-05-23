@@ -30,8 +30,6 @@
 #define MIN_BLOCK_ORDER 5  // 2^5 = 32 bytes
 #define MAX_BLOCK_ORDER 26 // 2^26 = 64MB
 #define MAX_POOL_ORDER 38  // 2^38 = 256GB
-#define STRING_NODE_SIZE 4096
-#define STRING_POOL_SIZE (STRING_NODE_SIZE * 1024ull * 1024ull)
 
 // Memory modes
 #define MMOD_INTERNAL 0xff
@@ -63,9 +61,6 @@ typedef struct heap_t
     u64_t id;
     block_p freelist[MAX_POOL_ORDER + 2]; // free list of blocks by order
     u64_t avail;                          // mask of available blocks by order
-    str_p string_pool;                    // string pool
-    str_p string_node;                    // string pool current node
-    str_p string_curr;                    // string pool cursor
     memstat_t memstat;
 } *heap_p;
 
@@ -81,8 +76,6 @@ nil_t heap_unmap(raw_p ptr, u64_t size);
 i64_t heap_gc(nil_t);
 nil_t heap_borrow(heap_p heap);
 nil_t heap_merge(heap_p heap);
-str_p heap_intern(u64_t len);
-nil_t heap_untern(u64_t len);
 memstat_t heap_memstat(nil_t);
 nil_t heap_print_blocks(heap_p heap);
 
