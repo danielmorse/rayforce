@@ -28,8 +28,8 @@
 #include "hash.h"
 
 #define SYMBOLS_HT_SIZE 4096 * 1024
-#define STRING_NODE_SIZE 4096 * 1024ull * 16
-#define STRING_POOL_SIZE (STRING_NODE_SIZE * 1024ull)
+#define STRING_NODE_SIZE 4096
+#define STRING_POOL_SIZE (STRING_NODE_SIZE * 1024ull * 1024ull)
 
 typedef struct symbol_t
 {
@@ -53,5 +53,6 @@ symbols_p symbols_create(nil_t);
 nil_t symbols_destroy(symbols_p symbols);
 str_p str_from_symbol(i64_t key);
 u64_t symbols_count(symbols_p symbols);
+nil_t symbols_rebuild(symbols_p symbols);
 
 #endif // SYMBOLS_H

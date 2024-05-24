@@ -37,7 +37,7 @@
 /*
  * Simplefied version of murmurhash
  */
-static inline u64_t str_hash(lit_p key, u64_t len)
+static inline u64_t str_hash(lit_p str, u64_t len)
 {
     u64_t i, k, k1;
     u64_t hash = 0x1234ABCD1234ABCD;
@@ -51,14 +51,14 @@ static inline u64_t str_hash(lit_p key, u64_t len)
     // Process each 8-byte block of the key
     for (i = 0; i + 7 < len; i += 8)
     {
-        k = (u64_t)key[i] |
-            ((u64_t)key[i + 1] << 8) |
-            ((u64_t)key[i + 2] << 16) |
-            ((u64_t)key[i + 3] << 24) |
-            ((u64_t)key[i + 4] << 32) |
-            ((u64_t)key[i + 5] << 40) |
-            ((u64_t)key[i + 6] << 48) |
-            ((u64_t)key[i + 7] << 56);
+        k = (u64_t)str[i] |
+            ((u64_t)str[i + 1] << 8) |
+            ((u64_t)str[i + 2] << 16) |
+            ((u64_t)str[i + 3] << 24) |
+            ((u64_t)str[i + 4] << 32) |
+            ((u64_t)str[i + 5] << 40) |
+            ((u64_t)str[i + 6] << 48) |
+            ((u64_t)str[i + 7] << 56);
 
         k *= c1;
         k = (k << r1) | (k >> (64 - r1));
@@ -73,19 +73,19 @@ static inline u64_t str_hash(lit_p key, u64_t len)
     switch (len & 7)
     {
     case 7:
-        k1 ^= ((u64_t)key[i + 6]) << 48; // fall through
+        k1 ^= ((u64_t)str[i + 6]) << 48; // fall through
     case 6:
-        k1 ^= ((u64_t)key[i + 5]) << 40; // fall through
+        k1 ^= ((u64_t)str[i + 5]) << 40; // fall through
     case 5:
-        k1 ^= ((u64_t)key[i + 4]) << 32; // fall through
+        k1 ^= ((u64_t)str[i + 4]) << 32; // fall through
     case 4:
-        k1 ^= ((u64_t)key[i + 3]) << 24; // fall through
+        k1 ^= ((u64_t)str[i + 3]) << 24; // fall through
     case 3:
-        k1 ^= ((u64_t)key[i + 2]) << 16; // fall through
+        k1 ^= ((u64_t)str[i + 2]) << 16; // fall through
     case 2:
-        k1 ^= ((u64_t)key[i + 1]) << 8; // fall through
+        k1 ^= ((u64_t)str[i + 1]) << 8; // fall through
     case 1:
-        k1 ^= ((u64_t)key[i]);
+        k1 ^= ((u64_t)str[i]);
         k1 *= c1;
         k1 = (k1 << r1) | (k1 >> (64 - r1));
         k1 *= c2;
@@ -103,17 +103,35 @@ static inline u64_t str_hash(lit_p key, u64_t len)
     return hash;
 }
 
+u64_t polynomial_rolling_hash(lit_p str, u64_t len)
+{
+    const i32_t p = 31;      // A small prime number
+    const u64_t m = 1e9 + 9; // A large prime number
+    u64_t hash_value = 0, p_pow = 1, i;
+
+    for (i = 0; i < len; i++)
+    {
+        hash_value = (hash_value + (str[i] - 'a' + 1) * p_pow) % m;
+        p_pow = (p_pow * p) % m;
+    }
+
+    return hash_value;
+}
+
 str_p string_intern(symbols_p symbols, lit_p str, u64_t len)
 {
+    u64_t rounds = 0, cap;
     str_p curr, node;
 
-    curr = __atomic_fetch_add(&symbols->string_curr, len + 1, __ATOMIC_RELAXED);
+    cap = len + 1;
+    curr = __atomic_fetch_add(&symbols->string_curr, cap, __ATOMIC_RELAXED);
     node = __atomic_load_n(&symbols->string_node, __ATOMIC_ACQUIRE);
 
-    while (curr + len + 1 >= node)
+    while ((i64_t)(curr + cap) >= (i64_t)node)
     {
         if ((i64_t)node == NULL_I64)
         {
+            backoff_spin(&rounds);
             node = __atomic_load_n(&symbols->string_node, __ATOMIC_ACQUIRE);
             continue;
         }
@@ -132,6 +150,7 @@ str_p string_intern(symbols_p symbols, lit_p str, u64_t len)
         }
         else
         {
+            backoff_spin(&rounds);
             node = __atomic_load_n(&symbols->string_node, __ATOMIC_ACQUIRE);
         }
     }
@@ -145,6 +164,7 @@ str_p string_intern(symbols_p symbols, lit_p str, u64_t len)
 
 i64_t symbols_intern(lit_p str, u64_t len)
 {
+    u64_t rounds = 0;
     i64_t index;
     str_p intr;
     symbols_p symbols = runtime_get()->symbols;
@@ -153,56 +173,57 @@ i64_t symbols_intern(lit_p str, u64_t len)
     syms = symbols->syms;
     index = str_hash(str, len) % symbols->size;
 
-    for (;;)
+load:
+    current_bucket = __atomic_load_n(&syms[index], __ATOMIC_ACQUIRE);
+    b = current_bucket;
+
+    if ((i64_t)b == NULL_I64)
     {
-        current_bucket = __atomic_load_n(&syms[index], __ATOMIC_ACQUIRE);
-        b = current_bucket;
-
-        if ((i64_t)b == NULL_I64)
-            continue;
-
-        while (b != NULL)
-        {
-            if (str_cmp(b->str, b->len, str, len) == 0)
-                return (i64_t)b->str;
-
-            b = __atomic_load_n(&b->next, __ATOMIC_ACQUIRE);
-        }
-
-        for (;;)
-        {
-            if (__atomic_compare_exchange_n(&syms[index], &current_bucket, (symbol_p)NULL_I64,
-                                            1, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))
-                break;
-
-            b = current_bucket;
-
-            while (b != NULL)
-            {
-                if (str_cmp(b->str, b->len, str, len) == 0)
-                {
-                    __atomic_store_n(&syms[index], current_bucket, __ATOMIC_RELEASE);
-                    return (i64_t)b->str;
-                }
-
-                b = __atomic_load_n(&b->next, __ATOMIC_ACQUIRE);
-            }
-        }
-
-        new_bucket = (symbol_p)heap_alloc(sizeof(struct symbol_t));
-        if (new_bucket == NULL)
-            return NULL_I64;
-
-        intr = string_intern(symbols, str, len);
-        new_bucket->len = len;
-        new_bucket->str = intr;
-        new_bucket->next = current_bucket;
-
-        __atomic_store_n(&syms[index], new_bucket, __ATOMIC_RELEASE);
-        __atomic_fetch_add(&symbols->count, 1, __ATOMIC_RELAXED);
-
-        return (i64_t)intr;
+        backoff_spin(&rounds);
+        goto load;
     }
+
+    while (b != NULL)
+    {
+        if (str_cmp(b->str, b->len, str, len) == 0)
+            return (i64_t)b->str;
+
+        b = __atomic_load_n(&b->next, __ATOMIC_ACQUIRE);
+    }
+
+    if (!__atomic_compare_exchange_n(&syms[index], &current_bucket, (symbol_p)NULL_I64,
+                                     1, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))
+    {
+        backoff_spin(&rounds);
+        goto load;
+    }
+
+    b = current_bucket;
+
+    while (b != NULL)
+    {
+        if (str_cmp(b->str, b->len, str, len) == 0)
+        {
+            __atomic_store_n(&syms[index], current_bucket, __ATOMIC_RELEASE);
+            return (i64_t)b->str;
+        }
+
+        b = __atomic_load_n(&b->next, __ATOMIC_ACQUIRE);
+    }
+
+    new_bucket = (symbol_p)heap_alloc(sizeof(struct symbol_t));
+    if (new_bucket == NULL)
+        return NULL_I64;
+
+    intr = string_intern(symbols, str, len);
+    new_bucket->len = len;
+    new_bucket->str = intr;
+    new_bucket->next = current_bucket;
+
+    __atomic_store_n(&syms[index], new_bucket, __ATOMIC_RELEASE);
+    __atomic_fetch_add(&symbols->count, 1, __ATOMIC_RELAXED);
+
+    return (i64_t)intr;
 }
 
 symbols_p symbols_create(nil_t)
@@ -285,4 +306,40 @@ str_p str_from_symbol(i64_t key)
 u64_t symbols_count(symbols_p symbols)
 {
     return symbols->count;
+}
+
+// TODO
+nil_t symbols_rebuild(symbols_p symbols)
+{
+    unused(symbols);
+    // u64_t i, size, new_size;
+    // symbol_p bucket, *syms, *new_syms;
+
+    // syms = symbols->syms;
+    // size = symbols->size;
+    // new_size = size * 2;
+    // new_syms = (symbol_p *)heap_mmap(new_size * sizeof(symbol_p));
+
+    // if (new_syms == NULL)
+    // {
+    //     debug("Memory allocation failed during symbols rebuild.");
+    //     return;
+    // }
+
+    // // Rehash all elements from the old table to the new table
+    // for (i = 0; i < size; ++i)
+    // {
+    //     bucket = syms[i];
+    //     while (bucket != NULL)
+    //     {
+    //         ht_bk_insert(new_ht, bucket->key, bucket->val);
+    //         bucket = bucket->next;
+    //     }
+    // }
+
+    // // Free the old hash table
+    // ht_bk_destroy(*ht);
+
+    // // Update the pointer to point to the new hash table
+    // *ht = new_ht;
 }
