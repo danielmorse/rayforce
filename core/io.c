@@ -351,7 +351,7 @@ obj_p parse_csv_lines(i8_t *types, i64_t num_types, str_p buf, i64_t size, i64_t
     str_p batch_start, batch_end;
     pool_p pool = runtime_get()->pool;
 
-    num_batches = pool_executors_count(pool) + 1; // Number of batches is equal to the number of executors plus the main thread
+    num_batches = pool_executors_count(pool);
 
     // TODO: Uncomment to enable parallel batch processing
     if (num_batches == 1 || total_lines <= num_batches)

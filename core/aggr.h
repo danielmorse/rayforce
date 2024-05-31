@@ -25,6 +25,13 @@
 #define AGGR_H
 
 #include "rayforce.h"
+typedef struct aggr_ctx_t
+{
+    u64_t offset;
+    obj_p val;
+    obj_p bins;
+    obj_p out;
+} *aggr_ctx_p;
 
 obj_p aggr_sum(obj_p val, obj_p bins, obj_p filter);
 obj_p aggr_first(obj_p val, obj_p bins, obj_p filter);

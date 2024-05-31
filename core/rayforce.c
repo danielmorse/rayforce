@@ -1580,9 +1580,6 @@ nil_t __attribute__((hot)) drop_obj(obj_p obj)
         else
             heap_free(obj);
         return;
-    case TYPE_INDEXGROUP:
-        l = obj->len;
-
     case TYPE_ENUM:
         if (is_external_compound(obj))
             mmap_free((str_p)obj - PAGE_SIZE, size_of(obj) + PAGE_SIZE);

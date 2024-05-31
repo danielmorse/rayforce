@@ -228,7 +228,7 @@ obj_p pool_run(pool_p pool, u64_t tasks_count)
 u64_t pool_executors_count(pool_p pool)
 {
     if (pool)
-        return pool->executors_count;
+        return pool->executors_count + 1;
     else
-        return 0;
+        return 1;
 }

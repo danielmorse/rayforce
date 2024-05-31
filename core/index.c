@@ -454,39 +454,6 @@ obj_p index_find_obj(obj_p x[], u64_t xl, obj_p y[], u64_t yl)
     return res;
 }
 
-obj_p index_group_create(i64_t *buckets, u64_t buckets_cnt, u64_t chunks_cnt)
-{
-    u64_t i, l, m;
-    obj_p obj;
-    index_group_p index;
-
-    obj = (obj_p)heap_alloc(sizeof(struct obj_t) + sizeof(struct index_group_t) * chunks_cnt);
-    obj->mmod = MMOD_INTERNAL;
-    obj->type = TYPE_INDEXGROUP;
-    obj->rc = 1;
-    obj->len = chunks_cnt;
-
-    index = (index_group_p)obj->arr;
-    m = buckets_cnt / chunks_cnt;
-
-    // fill chunks but last
-    for (i = 0; i < chunks_cnt - 1; i++)
-    {
-        index[i].buckets = buckets + i * buckets_cnt;
-        index[i].len = m;
-    }
-
-    // fill last chunk
-    index[i].buckets = buckets + i * buckets_cnt;
-    index[i].len = buckets_cnt - i * buckets_cnt;
-
-    return obj;
-}
-
-nil_t index_group_fill_buckets(obj_p obj)
-{
-}
-
 obj_p index_group_i8(i8_t values[], i64_t indices[], u64_t len)
 {
     u64_t i, j, n, range;
@@ -536,15 +503,18 @@ obj_p index_group_i8(i8_t values[], i64_t indices[], u64_t len)
 
 obj_p index_group_i64_scoped(i64_t values[], i64_t indices[], u64_t len, const index_scope_t scope)
 {
-    u64_t i, j, n;
+    u64_t i, j, m, n;
     i64_t idx, *hk, *hv, *hp;
-    obj_p keys, vals, ht, idx;
+    obj_p keys, vals, ht;
 
     // use open addressing if range is compatible with the input length
     if (scope.range <= len)
     {
-        hk = heap_alloc(sizeof(i64_t) * scope.range);
-        hv = heap_alloc(sizeof(i64_t) * len);
+        keys = vector_i64(scope.range);
+        hk = as_i64(keys);
+
+        vals = vector_i64(len);
+        hv = as_i64(vals);
 
         for (i = 0; i < scope.range; i++)
             hk[i] = NULL_I64;
@@ -557,6 +527,8 @@ obj_p index_group_i64_scoped(i64_t values[], i64_t indices[], u64_t len, const i
                 n = values[indices[i]] - scope.min;
                 if (hk[n] == NULL_I64)
                     hk[n] = j++;
+
+                hv[i] = hk[n];
             }
         }
         else
@@ -566,20 +538,14 @@ obj_p index_group_i64_scoped(i64_t values[], i64_t indices[], u64_t len, const i
                 n = values[i] - scope.min;
                 if (hk[n] == NULL_I64)
                     hk[n] = j++;
+
+                hv[i] = hk[n];
             }
         }
 
-        for (i = 0; i < len; i++)
-        {
-            n = values[i] - scope.min;
-            hv[i] = hk[n];
-        }
+        drop_obj(keys);
 
-        heap_free(hk);
-
-        idx = index_group_create(vals, len, 1);
-
-        return idx;
+        return vn_list(2, i64(j), vals);
     }
 
     // use hash table if range is large

@@ -44,7 +44,6 @@ extern "C"
 #define TYPE_ANYMAP 77
 #define TYPE_FILTERMAP 78
 #define TYPE_GROUPMAP 79
-#define TYPE_INDEXGROUP 80
 #define TYPE_TABLE 98
 #define TYPE_DICT 99
 #define TYPE_LAMBDA 100

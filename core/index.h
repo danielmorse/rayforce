@@ -47,15 +47,6 @@ typedef struct index_scope_t
     u64_t range;
 } index_scope_t;
 
-typedef struct index_group_t
-{
-    u64_t len;
-    i64_t *buckets;
-    obj_p val;
-} *index_group_p;
-
-#define as_index_group(o) ((index_group_p)(as_string(o)))
-
 index_scope_t index_scope(i64_t values[], i64_t filter[], u64_t len);
 obj_p index_distinct_i8(i8_t values[], u64_t len, b8_t term);
 obj_p index_distinct_i64(i64_t values[], u64_t len);
@@ -65,7 +56,6 @@ obj_p index_find_i8(i8_t x[], u64_t xl, i8_t y[], u64_t yl);
 obj_p index_find_i64(i64_t x[], u64_t xl, i64_t y[], u64_t yl);
 obj_p index_find_guid(guid_t x[], u64_t xl, guid_t y[], u64_t yl);
 obj_p index_find_obj(obj_p x[], u64_t xl, obj_p y[], u64_t yl);
-obj_p index_group_create(i64_t *buckets, u64_t buckets_cnt, u64_t chunks_cnt);
 obj_p index_group_i8(i8_t values[], i64_t filter[], u64_t len);
 obj_p index_group_i64(i64_t values[], i64_t filter[], u64_t len);
 obj_p index_group_guid(guid_t values[], i64_t filter[], u64_t len);
