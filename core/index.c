@@ -574,7 +574,6 @@ obj_p index_group_i64_scoped(i64_t values[], i64_t indices[], u64_t len, const i
     i64_t idx, *hk, *hv, *hp;
     obj_p keys, vals, ht;
 
-    // use open addressing if range is compatible with the input length
     if (scope.range <= INDEX_SCOPE_LIMIT)
     {
         keys = vector_i64(scope.range);
