@@ -29,6 +29,15 @@
 
 #define TERM_BUF_SIZE 1024
 
+typedef struct history_t
+{
+    i64_t fd;
+    str_p lines;
+    u64_t size;
+    u64_t pos;
+    u64_t index;
+} *history_p;
+
 typedef struct term_t
 {
     struct termios oldattr;
@@ -36,11 +45,14 @@ typedef struct term_t
     i32_t buf_len;
     i32_t buf_pos;
     c8_t buf[TERM_BUF_SIZE];
-    str_p history;
-    u64_t history_size;
-    u64_t history_pos;
-    u64_t history_index;
+    history_p history;
 } *term_p;
+
+history_p history_create();
+nil_t history_destroy(history_p history);
+nil_t history_add(history_p history, str_p line);
+str_p history_prev(history_p history);
+str_p history_next(history_p history);
 
 term_p term_create();
 nil_t term_prompt(term_p term);

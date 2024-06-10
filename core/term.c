@@ -32,15 +32,180 @@
 #include "format.h"
 #include "parse.h"
 #include "env.h"
+#include "mmap.h"
+#include "fs.h"
 
+#define HISTORY_FILE_PATH ".rayhist.dat"
+#define HISTORY_SIZE 4096
 #define COMMANDS_LIST "\
   :?  - Displays help.\n\
   :g  - Use rich graphic formatting: [0|1].\n\
   :q  - Exits the application: [exit code]."
 
+// Function to extend the file size
+i64_t extend_file_size(i64_t fd, u64_t new_size)
+{
+    if (lseek(fd, new_size - 1, SEEK_SET) == -1)
+        return -1;
+
+    if (write(fd, "", 1) == -1)
+        return -1;
+
+    return new_size;
+}
+
+history_p history_create()
+{
+    i64_t fd, fsize;
+    str_p lines;
+    history_p history;
+
+    fd = fs_fopen(HISTORY_FILE_PATH, O_RDWR | ATTR_CREAT);
+
+    if (fd == -1)
+    {
+        perror("can't open history file");
+        return NULL;
+    }
+
+    fsize = fs_fsize(fd);
+    if (fsize == 0)
+    {
+        // Set initial file size if the file is empty
+        if (extend_file_size(fd, HISTORY_SIZE) == -1)
+        {
+            perror("can't truncate history file");
+            fs_fclose(fd);
+            return NULL;
+        }
+
+        fsize = HISTORY_SIZE;
+    }
+
+    // Map file to memory
+    lines = (str_p)mmap_file(fd, fsize);
+    if (lines == NULL)
+    {
+        perror("can't map history file");
+        fs_fclose(fd);
+        return NULL;
+    }
+
+    history = (history_p)heap_mmap(sizeof(struct history_t));
+    if (history == NULL)
+    {
+        perror("can't allocate memory for history");
+        fs_fclose(fd);
+        mmap_free(lines, fsize);
+        return NULL;
+    }
+
+    history->fd = fd;
+    history->lines = lines;
+    history->size = fsize;
+    history->pos = 0;
+    history->index = 0;
+
+    return history;
+}
+
+nil_t history_destroy(history_p history)
+{
+    if (mmap_sync(history->lines, history->size) == -1)
+        perror("can't sync history buffer");
+    mmap_free(history->lines, history->size);
+    fs_fclose(history->fd);
+    heap_unmap(history, sizeof(struct history_t));
+}
+
+nil_t history_add(history_p history, str_p line)
+{
+    u64_t len = strlen(line);
+    u64_t pos = history->pos;
+    u64_t index = history->index;
+    u64_t size = history->size;
+
+    // if (len + pos + 1 > size)
+    // {
+    //     // Resize the history buffer
+    //     size = size * 2;
+    //     history->lines = (str_p)mmap_reserve(history->lines, size);
+    //     if (history->lines == NULL)
+    //     {
+    //         perror("can't resize history buffer");
+    //         return;
+    //     }
+
+    //     history->size = size;
+    // }
+
+    // Add the line to the history buffer
+    memcpy(history->lines + pos, line, len);
+    history->lines[pos + len] = '\n';
+    history->pos += len + 1;
+    history->index++;
+
+    // Sync the history buffer to the file
+    if (mmap_sync(history->lines, history->size) == -1)
+        perror("can't sync history buffer");
+}
+
+str_p history_prev(history_p history)
+{
+    u64_t pos = history->pos;
+    u64_t index = history->index;
+    str_p line = NULL;
+
+    if (index == 0)
+        return NULL;
+
+    // Find the previous line
+    while (pos > 0)
+    {
+        if (history->lines[--pos] == '\n')
+        {
+            line = history->lines + pos + 1;
+            break;
+        }
+    }
+
+    history->pos = pos;
+    history->index--;
+
+    return line;
+}
+
+str_p history_next(history_p history)
+{
+    u64_t pos = history->pos;
+    u64_t index = history->index;
+    str_p line = NULL;
+
+    if (index == history->size)
+        return NULL;
+
+    // Find the next line
+    while (pos < history->size)
+    {
+        if (history->lines[pos++] == '\n')
+        {
+            line = history->lines + pos;
+            break;
+        }
+    }
+
+    history->pos = pos;
+    history->index++;
+
+    return line;
+}
+
 term_p term_create()
 {
-    term_p term = (term_p)heap_mmap(sizeof(struct term_t));
+    term_p term;
+    history_p history;
+
+    term = (term_p)heap_mmap(sizeof(struct term_t));
 
     if (term == NULL)
         return NULL;
@@ -55,6 +220,8 @@ term_p term_create()
     term->buf_len = 0;
     term->buf_pos = 0;
 
+    term->history = history_create();
+
     return term;
 }
 
@@ -62,6 +229,8 @@ nil_t term_destroy(term_p term)
 {
     // Restore the terminal attributes
     tcsetattr(STDIN_FILENO, TCSANOW, &term->oldattr);
+
+    history_destroy(term->history);
 
     // Unmap the terminal structure
     heap_unmap(term, sizeof(struct term_t));
@@ -242,6 +411,7 @@ obj_p term_read(term_p term)
     c8_t c;
     i64_t exit_code;
     obj_p res = NULL;
+    str_p line;
 
     if (read(STDIN_FILENO, &c, 1) == 1)
     {
@@ -270,9 +440,10 @@ obj_p term_read(term_p term)
             else
                 res = (term->buf_len) ? cstring_from_str(term->buf, term->buf_len) : NULL_OBJ;
 
+            history_add(term->history, term->buf);
+
             term->buf_len = 0;
             term->buf_pos = 0;
-            term->history_index = 0;
 
             printf("\n");
             fflush(stdout);
@@ -293,10 +464,24 @@ obj_p term_read(term_p term)
                     switch (c)
                     {
                     case 'A': // Up arrow
-                        // term_navigate_history(term, -1);
+                        line = history_prev(term->history);
+                        if (line != NULL)
+                        {
+                            term->buf_len = strlen(line);
+                            term->buf_pos = term->buf_len;
+                            memcpy(term->buf, line, term->buf_len);
+                            term_redraw(term);
+                        }
                         break;
                     case 'B': // Down arrow
-                        // term_navigate_history(term, 1);
+                        line = history_next(term->history);
+                        if (line != NULL)
+                        {
+                            term->buf_len = strlen(line);
+                            term->buf_pos = term->buf_len;
+                            memcpy(term->buf, line, term->buf_len);
+                            term_redraw(term);
+                        }
                         break;
                     case 'C': // Right arrow
                         if (term->buf_pos < term->buf_len)

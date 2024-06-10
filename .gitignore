@@ -9,5 +9,6 @@ rayforce.S
 rayforce.js
 rayforce.py
 rayforce_wrap.*
+*.dat
 gmon.out
 __pycache__/
