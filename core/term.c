@@ -542,47 +542,28 @@ nil_t term_autocomplete(term_p term)
 
     verb = env_get_internal_function_lit(buf + i, n, &term->fnidx, B8_FALSE);
     if (verb != NULL)
-    {
-        l = strlen(verb);
-        strncpy(term->buf + i, verb, l);
-        term->buf_len = i + l;
-        term->buf_pos = i + l;
-        term_redraw(term);
-        return;
-    }
+        goto redraw;
 
     verb = env_get_internal_kw_lit(term->buf + i, n, B8_FALSE);
     if (verb != NULL)
-    {
-        l = strlen(verb);
-        strncpy(term->buf + i, verb, l);
-        term->buf_len = i + l;
-        term->buf_pos = i + l;
-        term_redraw(term);
-        return;
-    }
+        goto redraw;
 
     verb = env_get_internal_lit_lit(term->buf + i, n, B8_FALSE);
     if (verb != NULL)
-    {
-        l = strlen(verb);
-        strncpy(term->buf + i, verb, l);
-        term->buf_len = i + l;
-        term->buf_pos = i + l;
-        term_redraw(term);
-        return;
-    }
+        goto redraw;
 
     verb = env_get_global_lit_lit(term->buf + i, n, &term->varidx, &term->colidx);
     if (verb != NULL)
-    {
-        l = strlen(verb);
-        strncpy(term->buf + i, verb, l);
-        term->buf_len = i + l;
-        term->buf_pos = i + l;
-        term_redraw(term);
-        return;
-    }
+        goto redraw;
+
+    return;
+
+redraw:
+    l = strlen(verb);
+    strncpy(term->buf + i, verb, l);
+    term->buf_len = i + l;
+    term->buf_pos = i + l;
+    term_redraw(term);
 }
 
 nil_t term_reset_idx(term_p term)
