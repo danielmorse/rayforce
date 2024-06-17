@@ -597,7 +597,7 @@ i64_t term_redraw_into(term_p term, obj_p *dst)
 
 i32_t term_out_diff(obj_p old_out, obj_p new_out)
 {
-    i32_t pos, old_len, new_len, len;
+    i32_t i, old_len, new_len, len;
     str_p old_str, new_str;
 
     old_len = old_out->len;
@@ -610,10 +610,10 @@ i32_t term_out_diff(obj_p old_out, obj_p new_out)
     // if (old_len == 0)
     //     return 0;
 
-    for (pos = 0; pos < len; pos++)
+    for (i = 0; i < len; i++)
     {
-        if (old_str[pos] != new_str[pos])
-            return pos;
+        if (old_str[i] != new_str[i])
+            return i;
     }
 
     return len;
@@ -622,21 +622,21 @@ i32_t term_out_diff(obj_p old_out, obj_p new_out)
 nil_t term_redraw(term_p term)
 {
     obj_p out = NULL_OBJ;
-    i32_t n, offset, diff;
+    i32_t n, offset, pos;
 
     term_redraw_into(term, &out);
 
     // Compare old out with new out
-    diff = term_out_diff(term->out, out);
+    pos = term_out_diff(term->out, out);
 
-    if (diff < term->out->len - 1)
+    if (pos < term->out->len)
     {
-        offset = term->out->len - diff;
+        offset = term->out->len - pos;
         cursor_move_left(offset);
         // line_clear();
     }
 
-    printf("%s", as_string(out) + diff);
+    printf("%s", as_string(out) + pos);
     fflush(stdout);
 
     drop_obj(term->out);
