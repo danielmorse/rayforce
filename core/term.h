@@ -29,32 +29,21 @@
 #include <windows.h>
 #include "pool.h"
 #define KEYCODE_RETURN '\r'
-#define KEYCODE_BACKSPACE '\b'
-#define KEYCODE_DELETE 127
-#define KEYCODE_TAB '\t'
-#define KEYCODE_UP 0x48
-#define KEYCODE_DOWN 0x50
-#define KEYCODE_LEFT 0x4b
-#define KEYCODE_RIGHT 0x4d
-#define KEYCODE_HOME 0x47
-#define KEYCODE_END 0x4f
-#define KEYCODE_ESC 0x1b
-#define KEYCODE_CTRL_C 0x03
 #else
 #include <termios.h>
 #define KEYCODE_RETURN '\n'
-#define KEYCODE_BACKSPACE '\b'
-#define KEYCODE_DELETE 127
-#define KEYCODE_TAB '\t'
-#define KEYCODE_UP 0x48
-#define KEYCODE_DOWN 0x50
-#define KEYCODE_LEFT 0x4b
-#define KEYCODE_RIGHT 0x4d
-#define KEYCODE_HOME 0x47
-#define KEYCODE_END 0x4f
-#define KEYCODE_ESC 0x1b
-#define KEYCODE_CTRL_C 0x03
 #endif
+#define KEYCODE_BACKSPACE '\b'
+#define KEYCODE_DELETE 0x7f
+#define KEYCODE_TAB '\t'
+#define KEYCODE_UP 'A'
+#define KEYCODE_DOWN 'B'
+#define KEYCODE_LEFT 'D'
+#define KEYCODE_RIGHT 'C'
+#define KEYCODE_HOME 'H'
+#define KEYCODE_END 'F'
+#define KEYCODE_ESCAPE 0x1b
+#define KEYCODE_CTRL_C 0x03
 
 #define TERM_BUF_SIZE 1024
 
@@ -81,7 +70,8 @@ typedef struct term_t
     struct termios oldattr; // Store the old terminal attributes
     struct termios newattr; // Store the new terminal attributes
 #endif
-    c8_t nextc; // Next input character
+    u64_t input_len;
+    c8_t input[8];
     i32_t buf_len;
     i32_t buf_pos;
     c8_t buf[TERM_BUF_SIZE];
@@ -102,6 +92,7 @@ i64_t hist_restore_current(hist_p hist, c8_t buf[]);
 term_p term_create();
 nil_t term_prompt(term_p term);
 nil_t term_destroy(term_p term);
+i64_t term_getc(term_p term);
 obj_p term_read(term_p term);
 
 #endif // TERM_H

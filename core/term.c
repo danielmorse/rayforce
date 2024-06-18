@@ -400,6 +400,8 @@ term_p term_create()
 
     // Initialize the input buffer
     term->lock = mutex_create();
+    term->input_len = 0;
+    memset(term->input, 0, 8);
     term->buf_len = 0;
     term->buf_pos = 0;
     term->hist = hist;
@@ -426,6 +428,21 @@ nil_t term_destroy(term_p term)
     heap_unmap(term, sizeof(struct term_t));
 }
 
+i64_t term_getc(term_p term)
+{
+    i64_t sz;
+
+    if (term->input[0] != KEYCODE_ESCAPE)
+        term->input_len = 0;
+
+    sz = (i64_t)read(STDIN_FILENO, term->input + term->input_len++, 1);
+
+    if (sz == -1)
+        return -1;
+
+    return sz;
+}
+
 #else
 
 term_p term_create()
@@ -449,6 +466,8 @@ term_p term_create()
     tcsetattr(STDIN_FILENO, TCSANOW, &term->newattr);
 
     // Initialize the input buffer
+    term->input_len = 0;
+    memset(term->input, 0, 8);
     term->buf_len = 0;
     term->buf_pos = 0;
     term->hist = hist;
@@ -468,6 +487,21 @@ nil_t term_destroy(term_p term)
 
     // Unmap the terminal structure
     heap_unmap(term, sizeof(struct term_t));
+}
+
+i64_t term_getc(term_p term)
+{
+    i64_t sz;
+
+    if (term->input[0] != KEYCODE_ESCAPE || term->input_len == 3)
+        term->input_len = 0;
+
+    sz = (i64_t)read(STDIN_FILENO, term->input + term->input_len++, 1);
+
+    if (sz == -1)
+        return -1;
+
+    return sz;
 }
 
 #endif
@@ -609,6 +643,7 @@ i64_t term_redraw_into(term_p term, obj_p *dst)
 
 nil_t term_redraw(term_p term)
 {
+    u64_t n;
     obj_p out = NULL_OBJ;
 
     term_redraw_into(term, &out);
@@ -616,14 +651,21 @@ nil_t term_redraw(term_p term)
     cursor_hide();
     cursor_move_start();
     line_clear();
+
     printf("%s", as_string(out));
+
+    n = term->buf_len - term->buf_pos;
+    if (n > 0)
+        cursor_move_left(n);
+
     cursor_show();
+
     fflush(stdout);
 
     drop_obj(out);
 }
 
-nil_t term_backspace(term_p term)
+nil_t term_handle_backspace(term_p term)
 {
     if (term->buf_pos == 0)
         return;
@@ -643,7 +685,7 @@ nil_t term_backspace(term_p term)
     term_redraw(term);
 }
 
-nil_t term_autocomplete(term_p term)
+nil_t term_handle_tab(term_p term)
 {
     u64_t l, n, len, pos, start, end;
     c8_t *tbuf, *hbuf;
@@ -735,16 +777,105 @@ obj_p term_handle_return(term_p term)
     return res;
 }
 
+obj_p term_handle_escape(term_p term)
+{
+    u64_t l;
+
+    // wait for the next key
+    if (term->input_len < 3)
+        return NULL;
+
+    switch (term->input[2])
+    {
+    case KEYCODE_UP: // Up arrow key
+        hist_save_current(term->hist, term->buf, term->buf_len);
+        l = hist_prev(term->hist, term->buf);
+        if (l > 0)
+        {
+            term->buf_len = l;
+            term->buf_pos = l;
+            term_redraw(term);
+        }
+        return NULL;
+    case KEYCODE_DOWN: // Down arrow key
+        l = hist_next(term->hist, term->buf);
+        if (l > 0)
+        {
+            term->buf_len = l;
+            term->buf_pos = l;
+        }
+        else
+        {
+            l = hist_restore_current(term->hist, term->buf);
+            term->buf_len = l;
+            term->buf_pos = l;
+        }
+        term_redraw(term);
+        return NULL;
+    case KEYCODE_RIGHT: // Right arrow key
+        if (term->buf_pos < term->buf_len)
+        {
+            term->buf_pos++;
+            cursor_move_right(1);
+            fflush(stdout);
+        }
+        return NULL;
+    case KEYCODE_LEFT: // Left arrow key
+        if (term->buf_pos > 0)
+        {
+            term->buf_pos--;
+            cursor_move_left(1);
+            fflush(stdout);
+        }
+        return NULL;
+    case KEYCODE_HOME: // Home key
+        if (term->buf_pos > 0)
+        {
+            cursor_move_left(term->buf_pos);
+            term->buf_pos = 0;
+            fflush(stdout);
+        }
+        return NULL;
+    case KEYCODE_END: // End key
+        if (term->buf_len > 0)
+        {
+            cursor_move_right(term->buf_len - term->buf_pos);
+            term->buf_pos = term->buf_len;
+            fflush(stdout);
+        }
+        return NULL;
+    default:
+        return NULL;
+    }
+}
+
+obj_p term_handle_symbol(term_p term)
+{
+    if (term->buf_len + 1 >= TERM_BUF_SIZE)
+        return NULL;
+
+    if (term->buf_pos < term->buf_len)
+        memmove(term->buf + term->buf_pos + 1, term->buf + term->buf_pos, term->buf_len - term->buf_pos);
+
+    term->buf[term->buf_pos] = term->input[0];
+    term->buf_len++;
+    term->buf_pos++;
+    term->buf[term->buf_len] = '\0';
+
+    term_redraw(term);
+
+    return NULL;
+}
+
 obj_p term_read(term_p term)
 {
-    u64_t l, n;
     obj_p res = NULL;
 
 #if defined(_WIN32) || defined(__CYGWIN__)
     mutex_lock(&term->lock);
 #endif
 
-    switch (term->nextc)
+    switch (term->input[0])
     {
     case KEYCODE_RETURN:
         res = term_handle_return(term);
@@ -759,99 +890,22 @@ obj_p term_read(term_p term)
     case KEYCODE_DELETE:
         term_reset_idx(term);
         hist_reset_current(term->hist);
-        term_backspace(term);
+        term_handle_backspace(term);
         break;
     case KEYCODE_TAB:
         hist_save_current(term->hist, term->buf, term->buf_len);
-        term_autocomplete(term);
+        term_handle_tab(term);
         break;
     case KEYCODE_CTRL_C:
         poll_exit(runtime_get()->poll, 0);
         break;
-    // case 0: // Non-printable character, handle arrow keys and other control keys
-    //     switch (inputRecord.Event.KeyEvent.wVirtualKeyCode)
-    //     {
-    //     case VK_UP: // Up arrow key
-    //         hist_save_current(term->hist, term->buf, term->buf_len);
-    //         l = hist_prev(term->hist, term->buf);
-    //         if (l > 0)
-    //         {
-    //             term->buf_len = l;
-    //             term->buf_pos = l;
-    //             term_redraw(term);
-    //         }
-    //         break;
-    //     case VK_DOWN: // Down arrow key
-    //         l = hist_next(term->hist, term->buf);
-    //         if (l > 0)
-    //         {
-    //             term->buf_len = l;
-    //             term->buf_pos = l;
-    //         }
-    //         else
-    //         {
-    //             l = hist_restore_current(term->hist, term->buf);
-    //             term->buf_len = l;
-    //             term->buf_pos = l;
-    //         }
-
-    //         term_redraw(term);
-    //         break;
-    //     case VK_RIGHT: // Right arrow key
-    //         if (term->buf_pos < term->buf_len)
-    //         {
-    //             term->buf_pos++;
-    //             cursor_move_right(1);
-    //             fflush(stdout);
-    //         }
-    //         break;
-    //     case VK_LEFT: // Left arrow key
-    //         if (term->buf_pos > 0)
-    //         {
-    //             term->buf_pos--;
-    //             cursor_move_left(1);
-    //             fflush(stdout);
-    //         }
-    //         break;
-    //     case VK_HOME: // Home key
-    //         if (term->buf_pos > 0)
-    //         {
-    //             cursor_move_left(term->buf_pos);
-    //             term->buf_pos = 0;
-    //             fflush(stdout);
-    //         }
-    //         break;
-    //     case VK_END: // End key
-    //         if (term->buf_len > 0)
-    //         {
-    //             cursor_move_right(term->buf_len - term->buf_pos);
-    //             term->buf_pos = term->buf_len;
-    //             fflush(stdout);
-    //         }
-    //         break;
-    //     default:
-    //         break;
-    //     }
-    //     return res;
+    case KEYCODE_ESCAPE:
+        res = term_handle_escape(term);
+        break;
     default:
         term_reset_idx(term);
         hist_reset_current(term->hist);
-
-        if (term->buf_pos < term->buf_len)
-        {
-            memmove(term->buf + term->buf_pos + 1, term->buf + term->buf_pos, term->buf_len - term->buf_pos);
-            term->buf[term->buf_pos] = term->nextc;
-            term->buf_len++;
-            term->buf_pos++;
-        }
-        else if (term->buf_pos == term->buf_len && term->buf_len < TERM_BUF_SIZE - 1)
-        {
-            term->buf[term->buf_len++] = term->nextc;
-            term->buf_pos++;
-        }
-
-        term->buf[term->buf_len] = '\0';
-        term_redraw(term);
+        res = term_handle_symbol(term);
         break;
     }
 
