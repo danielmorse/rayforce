@@ -392,8 +392,10 @@ str_p env_get_internal_function_lit(lit_p name, u64_t len, u64_t *fnidx, b8_t ex
         for (i = *fnidx; i < l; i++)
         {
             nm = str_from_symbol(names[i]);
-            n = mini64((i64_t)len, (i64_t)strlen(nm));
-            if (strncmp(name, nm, n) == 0)
+            n = strlen(nm);
+            if (len > n)
+                continue;
+            if (strncmp(name, nm, len) == 0)
             {
                 *fnidx = i + 1;
                 return nm;
@@ -421,15 +423,15 @@ str_p env_get_internal_kw_lit(lit_p name, u64_t len, b8_t exact)
     }
     else
     {
-        if (strncmp(name, "fn", mini64((i64_t)len, 2)) == 0)
+        if (len <= 2 && strncmp(name, "fn", len) == 0)
             return (str_p) "fn";
-        if (strncmp(name, "self", mini64((i64_t)len, 4)) == 0)
+        if (len <= 4 && strncmp(name, "self", len) == 0)
             return (str_p) "self";
-        if (strncmp(name, "do", mini64((i64_t)len, 2)) == 0)
+        if (len <= 2 && strncmp(name, "do", len) == 0)
             return (str_p) "do";
-        if (strncmp(name, "set", mini64((i64_t)len, 3)) == 0)
+        if (len <= 3 && strncmp(name, "set", len) == 0)
             return (str_p) "set";
-        if (strncmp(name, "let", mini64((i64_t)len, 3)) == 0)
+        if (len <= 3 && strncmp(name, "let", len) == 0)
             return (str_p) "let";
     }
 
@@ -455,17 +457,17 @@ str_p env_get_internal_lit_lit(lit_p name, u64_t len, b8_t exact)
     }
     else
     {
-        if (strncmp(name, "0i", mini64((i64_t)len, 2)) == 0)
+        if (len <= 2 && strncmp(name, "0i", len) == 0)
             return (str_p) "0i";
-        if (strncmp(name, "0f", mini64((i64_t)len, 2)) == 0)
+        if (len <= 2 && strncmp(name, "0f", len) == 0)
             return (str_p) "0f";
-        if (strncmp(name, "by", mini64((i64_t)len, 2)) == 0)
+        if (len <= 2 && strncmp(name, "by", len) == 0)
             return (str_p) "by";
-        if (strncmp(name, "from", mini64((i64_t)len, 4)) == 0)
+        if (len <= 4 && strncmp(name, "from", len) == 0)
             return (str_p) "from";
-        if (strncmp(name, "true", mini64((i64_t)len, 4)) == 0)
+        if (len <= 4 && strncmp(name, "true", len) == 0)
             return (str_p) "true";
-        if (strncmp(name, "false", mini64((i64_t)len, 5)) == 0)
+        if (len <= 2 && strncmp(name, "false", len) == 0)
             return (str_p) "false";
     }
 
