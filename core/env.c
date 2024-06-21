@@ -46,7 +46,7 @@
 #include "cond.h"
 #include "iter.h"
 #include "dynlib.h"
-#include "timer.h"
+#include "time.h"
 #include "string.h"
 
 i64_t SYMBOL_FN;

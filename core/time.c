@@ -23,7 +23,7 @@
 
 #define _POSIX_C_SOURCE 200809L // Define POSIX source version for CLOCK_REALTIME
 #include <time.h>
-#include "timer.h"
+#include "time.h"
 #include "heap.h"
 #include "runtime.h"
 #include "error.h"

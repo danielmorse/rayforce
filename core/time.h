@@ -21,8 +21,8 @@
  *   SOFTWARE.
  */
 
-#ifndef TIMER_H
-#define TIMER_H
+#ifndef TIME_H
+#define TIME_H
 
 #include "rayforce.h"
 
@@ -45,6 +45,12 @@ typedef struct timers_t
     i64_t counter;       // Counter to assign unique IDs to timers
 } *timers_p;
 
+typedef struct
+{
+    i64_t start; // Start time of the clock
+    i64_t stop;  // Stop time of the clock
+} ray_clock_t;
+
 timers_p timers_create(u64_t capacity);
 nil_t timers_destroy(timers_p timers);
 i64_t timer_next_timeout(timers_p timers);
@@ -53,4 +59,4 @@ nil_t timer_sleep(u64_t ms);
 obj_p ray_timer(obj_p *x, u64_t n);
 obj_p ray_timeit(obj_p x);
 
-#endif // TIMER_H
+#endif // TIME_H

@@ -34,7 +34,7 @@
 #include "format.h"
 #include "queue.h"
 #include "freelist.h"
-#include "timer.h"
+#include "time.h"
 #include "term.h"
 
 #define MAX_EVENTS 1024
