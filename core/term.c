@@ -123,7 +123,7 @@ hist_p hist_create()
     str_p lines;
     hist_p hist;
 
-    fd = fs_fopen(HIST_FILE_PATH, ATTR_RDWR);
+    fd = fs_fopen(HIST_FILE_PATH, ATTR_RDWR | ATTR_CREAT);
 
     if (fd == -1)
     {
@@ -222,18 +222,7 @@ nil_t hist_add(hist_p hist, c8_t buf[], u64_t len)
     pos = hist->pos;
 
     if (len + pos + 1 > size)
-    {
-        // Resize the history buffer
-        size = size * 2;
-        hist->lines = (str_p)mmap_reserve(hist->lines, size);
-        if (hist->lines == NULL)
-        {
-            perror("can't resize history buffer");
-            return;
-        }
-
-        hist->size = size;
-    }
+        return;
 
     // Add the line to the history buffer
     memcpy(hist->lines + pos, buf, len);
@@ -467,11 +456,9 @@ term_p term_create()
     tcgetattr(STDIN_FILENO, &term->oldattr);
     term->newattr = term->oldattr;
     term->newattr.c_lflag &= ~(ICANON | ECHO | ISIG);
-    // term->newattr.c_iflag &= ~(IXON | ICRNL);
-    // term->newattr.c_oflag &= ~(OPOST);
-    // Deny long pressing keys as repeated input
-    // term->newattr.c_cc[VMIN] = 1;
-    // term->newattr.c_cc[VTIME] = 0;
+    // Set the minimum number of characters to read and the read timeout
+    term->newattr.c_cc[VMIN] = 1;  // Minimum number of characters to read
+    term->newattr.c_cc[VTIME] = 0; // Timeout (in deciseconds) for read
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &term->newattr);
 
     // Initialize the input buffer
@@ -1080,10 +1067,12 @@ obj_p term_read(term_p term)
         res = term_handle_escape(term);
         break;
     default:
+        term->input_len = 0;
+        if (term->buf_len + 1 == TERM_BUF_SIZE)
+            return NULL;
         term_reset_idx(term);
         hist_reset_current(term->hist);
         res = term_handle_symbol(term);
-        term->input_len = 0;
         break;
     }
 

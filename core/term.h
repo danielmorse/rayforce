@@ -53,7 +53,7 @@
 #define KEYCODE_LBRACKET '['
 #define KEYCODE_RBRACKET ']'
 
-#define TERM_BUF_SIZE 1024
+#define TERM_BUF_SIZE 4096
 
 typedef struct hist_t
 {
