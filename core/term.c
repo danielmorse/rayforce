@@ -906,7 +906,7 @@ obj_p term_handle_return(term_p term)
     if (is_cmd(term, ":t"))
     {
         onoff = (term->buf_len > 2 && term->buf[3] == '1') ? B8_TRUE : B8_FALSE;
-        set_timeit(onoff);
+        timeit_activate(onoff);
         printf("\n%s. Timeit is %s.%s", YELLOW, onoff ? "on" : "off", RESET);
         return NULL_OBJ;
     }

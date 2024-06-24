@@ -32,6 +32,7 @@
 #endif
 
 #define TIMEOUT_INFINITY -1
+#define TIMEIT_SPANS_MAX 1024
 
 typedef struct ray_timer_t
 {
@@ -54,8 +55,7 @@ typedef struct timers_t
 
 typedef struct
 {
-    LARGE_INTEGER start;
-    LARGE_INTEGER end;
+    LARGE_INTEGER clock;
     LARGE_INTEGER freq;
 } ray_clock_t;
 
@@ -68,8 +68,36 @@ typedef struct
 
 #endif
 
+typedef enum
+{
+    TIMEIT_SPAN_START,
+    TIMEIT_SPAN_END,
+    TIMEIT_SPAN_TICK
+} timeit_span_type_t;
+
+typedef struct
+{
+    timeit_span_type_t type;
+    lit_p msg;
+    ray_clock_t clock;
+} timeit_span_t;
+
+typedef struct
+{
+    b8_t active;
+    u64_t n;
+    timeit_span_t spans[TIMEIT_SPANS_MAX];
+} timeit_t;
+
+nil_t timeit_activate(b8_t active);
+nil_t timeit_reset();
+nil_t timeit_span_start(lit_p name);
+nil_t timeit_span_end(lit_p name);
+nil_t timeit_tick(lit_p msg);
+nil_t timeit_print(nil_t);
+
 nil_t ray_clock_get_time(ray_clock_t *clock);
-f64_t ray_clock_elapsed_ms(ray_clock_t *clock);
+f64_t ray_clock_elapsed_ms(ray_clock_t *start, ray_clock_t *end);
 
 timers_p timers_create(u64_t capacity);
 nil_t timers_destroy(timers_p timers);

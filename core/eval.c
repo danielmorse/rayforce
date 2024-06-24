@@ -73,7 +73,7 @@ interpreter_p interpreter_create(nil_t)
     interpreter->stack = (obj_p *)heap_stack(sizeof(obj_p) * EVAL_STACK_SIZE);
     interpreter->cp = 0;
     interpreter->ctxstack = (ctx_p)heap_stack(sizeof(struct ctx_t) * EVAL_STACK_SIZE);
-    interpreter->timeit = B8_FALSE;
+    interpreter->timeit.active = B8_FALSE;
     memset(interpreter->ctxstack, 0, sizeof(struct ctx_t) * EVAL_STACK_SIZE);
 
     __INTERPRETER = interpreter;
@@ -103,6 +103,11 @@ nil_t interpreter_destroy(nil_t)
     heap_unmap(__INTERPRETER->ctxstack[0].lambda, sizeof(struct obj_t) + sizeof(struct lambda_t));
     heap_unmap(__INTERPRETER->ctxstack, sizeof(struct ctx_t) * EVAL_STACK_SIZE);
     heap_unmap(__INTERPRETER, sizeof(struct interpreter_t));
+}
+
+interpreter_p interpreter_current(nil_t)
+{
+    return __INTERPRETER;
 }
 
 obj_p call(obj_p obj, u64_t arity)
@@ -534,32 +539,21 @@ obj_p ray_eval_str(obj_p str, obj_p file)
     obj_p parsed, res, info;
     ctx_p ctx;
     i64_t sp;
-    f64_t elapsed;
-    ray_clock_t clock;
 
     if (str->type != TYPE_C8)
         throw(ERR_TYPE, "eval: expected string, got %s", type_name(str->type));
 
     info = nfo(clone_obj(file), clone_obj(str));
 
-    if (__INTERPRETER->timeit)
-        ray_clock_get_time(&clock);
-
+    timeit_reset();
+    timeit_span_start("top-level");
     parsed = parse(as_string(str), info);
-
-    if (__INTERPRETER->timeit)
-        elapsed = ray_clock_elapsed_ms(&clock);
+    timeit_tick("parse");
 
     if (is_error(parsed))
     {
         drop_obj(info);
         return parsed;
-    }
-
-    if (__INTERPRETER->timeit)
-    {
-        ray_print_elapsed_ms("parse", elapsed);
-        ray_clock_get_time(&clock);
     }
 
     ctx = ctx_top(info);
@@ -574,11 +568,7 @@ obj_p ray_eval_str(obj_p str, obj_p file)
     while (__INTERPRETER->sp > sp)
         drop_obj(stack_pop());
 
-    if (__INTERPRETER->timeit)
-    {
-        elapsed = ray_clock_elapsed_ms(&clock);
-        ray_print_elapsed_ms("eval", elapsed);
-    }
+    timeit_span_end("top-level");
 
     return res;
 }
@@ -678,16 +668,6 @@ nil_t interpreter_env_set(interpreter_p interpreter, obj_p env)
 nil_t interpreter_env_unset(interpreter_p interpreter)
 {
     drop_obj(interpreter->stack[--interpreter->sp]);
-}
-
-nil_t set_timeit(b8_t timeit)
-{
-    __INTERPRETER->timeit = timeit;
-}
-
-b8_t get_timeit()
-{
-    return __INTERPRETER->timeit;
 }
 
 obj_p *deref(obj_p sym)

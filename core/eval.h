@@ -25,7 +25,7 @@
 #define EVAL_H
 
 #include <setjmp.h>
-#include <time.h>
+#include "time.h"
 #include "rayforce.h"
 #include "lambda.h"
 #include "mmap.h"
@@ -44,17 +44,18 @@ typedef struct ctx_t
 
 typedef struct interpreter_t
 {
-    i64_t sp;       // Stack pointer.
-    obj_p *stack;   // Stack.
-    i64_t cp;       // Context pointer.
-    ctx_p ctxstack; // Stack of contexts.
-    b8_t timeit;    // Timeit flag.
+    i64_t sp;        // Stack pointer.
+    obj_p *stack;    // Stack.
+    i64_t cp;        // Context pointer.
+    ctx_p ctxstack;  // Stack of contexts.
+    timeit_t timeit; // Timeit spans.
 } *interpreter_p;
 
 extern __thread interpreter_p __INTERPRETER;
 
 interpreter_p interpreter_create(nil_t);
 nil_t interpreter_destroy(nil_t);
+interpreter_p interpreter_current(nil_t);
 obj_p call(obj_p obj, u64_t arity);
 obj_p *deref(obj_p sym);
 obj_p amend(obj_p sym, obj_p val);
@@ -71,8 +72,6 @@ nil_t error_add_loc(obj_p err, i64_t id, ctx_p ctx);
 // TODO: replace with correct functions
 nil_t interpreter_env_set(interpreter_p interpreter, obj_p env);
 nil_t interpreter_env_unset(interpreter_p interpreter);
-nil_t set_timeit(b8_t timeit);
-b8_t get_timeit();
 
 inline __attribute__((always_inline)) nil_t stack_push(obj_p val)
 {

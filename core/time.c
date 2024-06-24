@@ -25,6 +25,7 @@
 #include "heap.h"
 #include "runtime.h"
 #include "error.h"
+#include "eval.h"
 #include "io.h"
 
 #if defined(_WIN32) || defined(__CYGWIN__)
@@ -49,16 +50,14 @@ ray_clock_t ray_clock_get_time()
     ray_clock_t clock;
 
     QueryPerformanceFrequency(&clock.freq);
-    QueryPerformanceCounter(&clock.start);
+    QueryPerformanceCounter(&clock.clock);
 
     return clock;
 }
 
-f64_t ray_clock_elapsed_ms(ray_clock_t *clock)
+f64_t ray_clock_elapsed_ms(ray_clock_t *start, ray_clock_t *end)
 {
-    QueryPerformanceCounter(&clock->end);
-
-    return ((clock->end.QuadPart - clock->start.QuadPart) * 1000.0) / clock->freq.QuadPart; // Convert to milliseconds
+    return ((end->clock.QuadPart - start->clock.QuadPart) * 1000.0) / clock->freq.QuadPart; // Convert to milliseconds
 }
 
 #else
@@ -83,24 +82,83 @@ nil_t ray_clock_get_time(ray_clock_t *clock)
     clock_gettime(CLOCK_MONOTONIC, &clock->clock);
 }
 
-f64_t ray_clock_elapsed_ms(ray_clock_t *clock)
+f64_t ray_clock_elapsed_ms(ray_clock_t *start, ray_clock_t *end)
 {
-    struct timespec now;
     f64_t elapsed;
 
-    clock_gettime(CLOCK_MONOTONIC, &now);
-
-    elapsed = (now.tv_sec - clock->clock.tv_sec) * 1e3;    // Convert to milliseconds
-    elapsed += (now.tv_nsec - clock->clock.tv_nsec) / 1e6; // Convert nanoseconds to milliseconds
+    elapsed = (end->clock.tv_sec - start->clock.tv_sec) * 1e3;    // Convert to milliseconds
+    elapsed += (end->clock.tv_nsec - start->clock.tv_nsec) / 1e6; // Convert nanoseconds to milliseconds
 
     return elapsed;
 }
 
 #endif
 
+nil_t timeit_activate(b8_t active)
+{
+    timeit_t *timeit = &interpreter_current()->timeit;
+    timeit->active = active;
+}
+
+nil_t timeit_reset()
+{
+    timeit_t *timeit = &interpreter_current()->timeit;
+    if (timeit->active)
+        timeit->n = 0;
+}
+
+nil_t timeit_span_start(lit_p name)
+{
+    timeit_t *timeit = &interpreter_current()->timeit;
+    if (timeit->n < TIMEIT_SPANS_MAX)
+    {
+        timeit->spans[timeit->n].type = TIMEIT_SPAN_START;
+        timeit->spans[timeit->n].msg = name;
+        ray_clock_get_time(&timeit->spans[timeit->n].clock);
+        timeit->n++;
+    }
+}
+
+nil_t timeit_span_end(lit_p name)
+{
+    timeit_t *timeit = &interpreter_current()->timeit;
+    if (timeit->n < TIMEIT_SPANS_MAX)
+    {
+        timeit->spans[timeit->n].type = TIMEIT_SPAN_END;
+        timeit->spans[timeit->n].msg = name;
+        ray_clock_get_time(&timeit->spans[timeit->n].clock);
+        timeit->n++;
+    }
+}
+
+nil_t timeit_tick(lit_p msg)
+{
+    timeit_t *timeit = &interpreter_current()->timeit;
+    if (timeit->n < TIMEIT_SPANS_MAX)
+    {
+        timeit->spans[timeit->n].type = TIMEIT_SPAN_TICK;
+        timeit->spans[timeit->n].msg = msg;
+        ray_clock_get_time(&timeit->spans[timeit->n].clock);
+        timeit->n++;
+    }
+}
+
+nil_t timeit_print(nil_t)
+{
+    timeit_t *timeit = &interpreter_current()->timeit;
+    obj_p fmt;
+
+    if (!timeit->active)
+        return;
+
+    fmt = timeit_fmt();
+    printf("%s%s%s", GRAY, as_string(fmt), RESET);
+    drop_obj(fmt);
+}
+
 obj_p ray_timeit(obj_p x)
 {
-    ray_clock_t start;
+    ray_clock_t start, end;
 
     ray_clock_get_time(&start);
 
@@ -109,7 +167,9 @@ obj_p ray_timeit(obj_p x)
         return x;
     drop_obj(x);
 
-    return f64(ray_clock_elapsed_ms(&start));
+    ray_clock_get_time(&end);
+
+    return f64(ray_clock_elapsed_ms(&start, &end));
 }
 
 ray_timer_p ray_timer_create(i64_t id, u64_t tic, u64_t exp, i64_t num, obj_p clb)

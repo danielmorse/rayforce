@@ -43,6 +43,7 @@
 #include "error.h"
 #include "eval.h"
 #include "sys.h"
+#include "time.h"
 
 __thread i32_t __EVENT_FD; // eventfd to notify epoll loop of shutdown
 
@@ -436,6 +437,7 @@ i64_t poll_run(poll_p poll)
                         drop_obj(str);
                         io_write(STDOUT_FILENO, MSG_TYPE_RESP, res);
                         drop_obj(res);
+                        timeit_print();
                     }
 
                     term_prompt(poll->term);

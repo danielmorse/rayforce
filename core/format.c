@@ -39,6 +39,7 @@
 #include "io.h"
 #include "error.h"
 #include "filter.h"
+#include "time.h"
 
 #define FORMAT_TRAILER_SIZE 4
 #define ERR_STACK_MAX_HEIGHT 10 // Maximum number of error stack frames
@@ -55,9 +56,9 @@ static u32_t MAX_ROW_WIDTH = DEFAULT_MAX_ROW_WIDTH;
 static u32_t F64_PRECISION = DEFAULT_F64_PRECISION;
 
 const lit_p unicode_glyphs[] = {"│", "─", "┌", "┐", "└", "┘", "├", "┤", "┬", "┴", "┼", "↪", "∶",
-                                "‾", "•", "╭", "╰", "╮", "╯", "┆", "…"};
+                                "‾", "•", "╭", "╰", "╮", "╯", "┆", "…", "█"};
 const lit_p ascii_glyphs[] = {"|", "-", "+", "+", "+", "+", "+", "+", "+", "+", "+", ">", ":",
-                              "~", "*", "|", "|", "|", "|", ":", "."};
+                              "~", "*", "|", "|", "|", "|", ":", ".", "|"};
 
 static b8_t __USE_UNICODE = B8_TRUE;
 
@@ -110,6 +111,7 @@ typedef enum
     GLYPH_BR_CURLY,
     GLYPH_VDOTS,
     GLYPH_HDOTS,
+    GLYPH_V_BLOCK
 } glyph_t;
 
 #define maxn(n, e)         \
@@ -1275,12 +1277,76 @@ obj_p obj_fmt_n(obj_p *x, u64_t n)
     return res;
 }
 
+i64_t timeit_fmt_into(obj_p *dst, u64_t indent, u64_t *index, timeit_t *timeit)
+{
+    i64_t n;
+    u64_t i;
+    f64_t elapsed = 0.0;
+    b8_t unicode = __USE_UNICODE;
+    timeit_span_t span;
+
+    n = 0;
+
+    while (*index < timeit->n)
+    {
+        span = timeit->spans[*index];
+
+        switch (span.type)
+        {
+        case TIMEIT_SPAN_START:
+            for (i = 0; i < indent; i++)
+            {
+                n += glyph_fmt_into(dst, GLYPH_VLINE, unicode);
+                n += str_fmt_into(dst, 2, " ");
+            }
+            n += glyph_fmt_into(dst, GLYPH_TL_CURLY, unicode);
+            n += str_fmt_into(dst, NO_LIMIT, " %s\n", span.msg);
+            (*index)++;
+            n += timeit_fmt_into(dst, indent + 1, index, timeit);
+            elapsed = ray_clock_elapsed_ms(&span.clock, &timeit->spans[*index].clock);
+            for (i = 0; i < indent; i++)
+            {
+                n += glyph_fmt_into(dst, GLYPH_VLINE, unicode);
+                n += str_fmt_into(dst, 2, " ");
+            }
+            n += glyph_fmt_into(dst, GLYPH_BL_CURLY, unicode);
+            n += glyph_fmt_into(dst, GLYPH_HLINE, unicode);
+            n += glyph_fmt_into(dst, GLYPH_R_TEE, unicode);
+            n += str_fmt_into(dst, NO_LIMIT, " %.*f ms\n", F64_PRECISION, elapsed);
+            (*index)++;
+            break;
+        case TIMEIT_SPAN_END:
+            return n;
+        case TIMEIT_SPAN_TICK:
+            if (*index > 0)
+                elapsed = ray_clock_elapsed_ms(&timeit->spans[*index - 1].clock, &span.clock);
+            for (i = 0; i < indent; i++)
+            {
+                n += glyph_fmt_into(dst, GLYPH_VLINE, unicode);
+                n += str_fmt_into(dst, 2, " ");
+            }
+            n += glyph_fmt_into(dst, GLYPH_ASTERISK, unicode);
+            n += str_fmt_into(dst, NO_LIMIT, "  %s: %.*f ms\n", span.msg, F64_PRECISION, elapsed);
+            (*index)++;
+            break;
+        }
+    }
+
+    return n;
+}
+
+obj_p timeit_fmt(nil_t)
+{
+    timeit_t *timeit = &interpreter_current()->timeit;
+    u64_t index = 0;
+    obj_p dst = NULL_OBJ;
+
+    timeit_fmt_into(&dst, 0, &index, timeit);
+
+    return dst;
+}
+
 nil_t format_use_unicode(b8_t use)
 {
     __USE_UNICODE = use;
-}
-
-nil_t ray_print_elapsed_ms(str_p msg, f64_t elapsed)
-{
-    printf("%s. %s %.3f ms%s\n", GRAY, msg, elapsed, RESET);
 }

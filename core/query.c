@@ -248,13 +248,11 @@ nil_t drop_field_arg(raw_p x, u64_t n)
 obj_p ray_select(obj_p obj)
 {
     u64_t i, l, tablen;
-    ray_clock_t clock;
-    b8_t timeit;
     obj_p keys = NULL_OBJ, vals = NULL_OBJ, filters = NULL_OBJ, groupby = NULL_OBJ,
           gcol = NULL_OBJ, gkeys = NULL_OBJ, gvals = NULL_OBJ, tab, sym, prm, val;
     pool_p pool;
 
-    timeit = get_timeit();
+    timeit_span_start("select");
 
     if (obj->type != TYPE_DICT)
         throw(ERR_LENGTH, "'select' takes dict of params");
@@ -268,26 +266,19 @@ obj_p ray_select(obj_p obj)
     if (is_null(prm))
         throw(ERR_LENGTH, "'select' expects 'from' param");
 
-    if (timeit)
-        ray_clock_get_time(&clock);
-
     tab = eval(prm);
     drop_obj(prm);
 
     if (is_error(tab))
         return tab;
 
-    if (timeit)
-    {
-        ray_print_elapsed_ms("select: get table", ray_clock_elapsed_ms(&clock));
-        ray_clock_get_time(&clock);
-    }
-
     if (tab->type != TYPE_TABLE)
     {
         drop_obj(tab);
         throw(ERR_TYPE, "'select' from: expects table");
     }
+
+    timeit_tick("get table");
 
     // Mount table columns to a local env
     tablen = as_list(tab)[0]->len;
@@ -313,17 +304,14 @@ obj_p ray_select(obj_p obj)
             return filters;
         }
 
-        if (timeit)
-        {
-            ray_print_elapsed_ms("select: apply filters", ray_clock_elapsed_ms(&clock));
-            ray_clock_get_time(&clock);
-        }
+        timeit_tick("apply filters");
     }
 
     // Apply groupping
     prm = at_sym(obj, "by");
     if (prm != NULL_OBJ)
     {
+        timeit_span_start("group");
         gkeys = get_gkeys(as_list(tab)[0], prm);
         groupby = get_gvals(prm);
 
@@ -344,6 +332,8 @@ obj_p ray_select(obj_p obj)
             drop_obj(tab);
             return groupby;
         }
+
+        timeit_tick("get keys");
 
         prm = remap_group(&gcol, groupby, tab, filters, gkeys, gvals);
         drop_obj(gvals);
@@ -370,11 +360,8 @@ obj_p ray_select(obj_p obj)
             return gcol;
         }
 
-        if (timeit)
-        {
-            ray_print_elapsed_ms("select: apply groupby", ray_clock_elapsed_ms(&clock));
-            ray_clock_get_time(&clock);
-        }
+        timeit_tick("build index");
+        timeit_span_end("group");
     }
     else if (filters != NULL_OBJ)
     {
@@ -390,6 +377,8 @@ obj_p ray_select(obj_p obj)
     // Find all mappings (non-keyword fields)
     keys = get_fields(obj);
     l = keys->len;
+
+    timeit_span_start("collect");
 
     // Apply mappings
     if (l)
@@ -450,11 +439,7 @@ obj_p ray_select(obj_p obj)
             vals = pool_run(pool, l);
         }
 
-        if (timeit)
-        {
-            ray_print_elapsed_ms("select: apply mappings", ray_clock_elapsed_ms(&clock));
-            ray_clock_get_time(&clock);
-        }
+        timeit_tick("apply mappings");
     }
     else
     {
@@ -531,11 +516,7 @@ obj_p ray_select(obj_p obj)
             }
         }
 
-        if (timeit)
-        {
-            ray_print_elapsed_ms("select: collect results", ray_clock_elapsed_ms(&clock));
-            ray_clock_get_time(&clock);
-        }
+        timeit_tick("get fields");
     }
 
     // Prepare result table
@@ -580,6 +561,10 @@ obj_p ray_select(obj_p obj)
     val = ray_table(keys, vals);
     drop_obj(keys);
     drop_obj(vals);
+
+    timeit_tick("build table");
+    timeit_span_end("collect");
+    timeit_span_end("select");
 
     return val;
 }
