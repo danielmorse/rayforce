@@ -32,6 +32,7 @@
 #include <direct.h>
 #define getcwd _getcwd
 #elif defined(__APPLE__) && defined(__MACH__)
+#define _DARWIN_C_SOURCE
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #include <stdint.h>
