@@ -805,6 +805,7 @@ b8_t term_autocomplete_word(term_p term)
         term->autocp_idx.index = 0;
         term->autocp_idx.sbidx = 0;
         term->autocp_idx.entry++;
+        // fallthrough
     case 1:
         word = env_get_internal_function_name(tbuf + start, n, &term->autocp_idx.index, B8_FALSE);
         if (word != NULL)
@@ -812,6 +813,7 @@ b8_t term_autocomplete_word(term_p term)
         term->autocp_idx.index = 0;
         term->autocp_idx.sbidx = 0;
         term->autocp_idx.entry++;
+        // fallthrough
     case 2:
         word = env_get_global_name(tbuf + start, n, &term->autocp_idx.index, &term->autocp_idx.sbidx);
         if (word != NULL)
@@ -819,6 +821,7 @@ b8_t term_autocomplete_word(term_p term)
         term->autocp_idx.index = 0;
         term->autocp_idx.sbidx = 0;
         term->autocp_idx.entry++;
+        // fallthrough
     default:
         break;
     }
@@ -869,15 +872,18 @@ b8_t term_autocomplete_path(term_p term, u64_t start)
         path_len = last_slash - hbuf - start + 1;
         strncpy(path, hbuf + start, path_len);
         prefix_len = hbuf + end - last_slash - 1;
-        strncpy(prefix, last_slash + 1, prefix_len + 1);
+        strncpy(prefix, last_slash + 1, prefix_len);
     }
     else
     {
         path_len = 2;
-        strncpy(path, "./", path_len + 1);
+        strncpy(path, "./", path_len);
         prefix_len = n;
-        strncpy(prefix, hbuf + start, prefix_len + 1);
+        strncpy(prefix, hbuf + start, prefix_len);
     }
+
+    path[path_len] = '\0';
+    prefix[prefix_len] = '\0';
 
     files = fs_read_dir(path);
     l = files->len;

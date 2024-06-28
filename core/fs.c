@@ -27,6 +27,7 @@
 #include "string.h"
 #include "util.h"
 #include "heap.h"
+#include "ops.h"
 
 #if defined(_WIN32) || defined(__CYGWIN__)
 
@@ -111,6 +112,30 @@ i64_t fs_dopen(lit_p path)
 i64_t fs_dclose(i64_t fd)
 {
     return FindClose((HANDLE)fd);
+}
+
+obj_p fs_read_dir(lit_p path)
+{
+    WIN32_FIND_DATA findFileData;
+    HANDLE hFind;
+    obj_p lst = list(0);
+    char searchPath[MAX_PATH];
+
+    // Append \* to the path for Windows API
+    snprintf(searchPath, MAX_PATH, "%s\\*", path);
+
+    hFind = FindFirstFile(searchPath, &findFileData);
+    if (hFind == INVALID_HANDLE_VALUE)
+        return NULL_OBJ;
+
+    do
+    {
+        push_obj(&lst, string_from_str(findFileData.cFileName, strlen(findFileData.cFileName)));
+    } while (FindNextFile(hFind, &findFileData) != 0);
+
+    FindClose(hFind);
+
+    return lst;
 }
 
 #elif defined(__EMSCRIPTEN__)
@@ -198,31 +223,6 @@ i64_t fs_dopen(lit_p path)
 i64_t fs_dclose(i64_t fd)
 {
     return closedir((DIR *)fd);
-}
-
-obj_p fs_read_dir(lit_p path)
-{
-    WIN32_FIND_DATA findFileData;
-    HANDLE hFind;
-
-    // Append \* to the path for Windows API
-    char searchPath[MAX_PATH];
-    snprintf(searchPath, MAX_PATH, "%s\\*", path);
-
-    hFind = FindFirstFile(searchPath, &findFileData);
-    if (hFind == INVALID_HANDLE_VALUE)
-    {
-        printf("Error: Unable to open directory %s\n", path);
-        return;
-    }
-
-    do
-    {
-        const char *name = findFileData.cFileName;
-        printf("%s\n", name);
-    } while (FindNextFile(hFind, &findFileData) != 0);
-
-    FindClose(hFind);
 }
 
 #else

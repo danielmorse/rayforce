@@ -597,7 +597,8 @@ i64_t poll_run(poll_p poll)
                             timeit_print();
                         }
 
-                        term_prompt(poll->term);
+                        term_prompt(poll-
+                        >term);
                     }
 
                     break;
