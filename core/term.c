@@ -726,13 +726,9 @@ paren_t term_find_open_paren(term_p term)
         case KEYCODE_RPAREN:
         case KEYCODE_RCURLY:
         case KEYCODE_RBRACKET:
-            // if the current parenthesis is the opposite of the last one, then pop it
-            if (opposite_paren(parens[p - 1].type) == term->buf[i])
-            {
+            if (p > 0 && opposite_paren(parens[p - 1].type) == term->buf[i])
                 p--;
-                break;
-            }
-            // fallthrough
+            break;
         case KEYCODE_LPAREN:
         case KEYCODE_LCURLY:
         case KEYCODE_LBRACKET:
