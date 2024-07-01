@@ -325,25 +325,6 @@ obj_p parse_csv_range(i8_t *types, i64_t num_types, str_p buf, i64_t size, i64_t
     return NULL_OBJ; // Success
 }
 
-typedef struct csv_parse_ctx_t
-{
-    i8_t *types;
-    i64_t num_types;
-    str_p buf;
-    i64_t size;
-    i64_t lines;
-    i64_t start_line;
-    obj_p cols;
-    c8_t sep;
-} csv_parse_ctx_t;
-
-obj_p parse_csv_batch(raw_p arg)
-{
-    csv_parse_ctx_t *ctx = (csv_parse_ctx_t *)arg;
-    return parse_csv_range(ctx->types, ctx->num_types, ctx->buf,
-                           ctx->size, ctx->lines, ctx->start_line, ctx->cols, ctx->sep);
-}
-
 obj_p parse_csv_lines(i8_t *types, i64_t num_types, str_p buf, i64_t size, i64_t total_lines, obj_p cols, c8_t sep)
 {
     obj_p res = NULL_OBJ;
@@ -353,11 +334,9 @@ obj_p parse_csv_lines(i8_t *types, i64_t num_types, str_p buf, i64_t size, i64_t
 
     num_batches = pool_executors_count(pool);
 
-    // TODO: Uncomment to enable parallel batch processing
     if (num_batches == 1 || total_lines <= num_batches)
         return parse_csv_range(types, num_types, buf, size, total_lines, 0, cols, sep);
 
-    csv_parse_ctx_t ctx[num_batches];
     lines_per_batch = (total_lines + num_batches - 1) / num_batches; // Calculate lines per batch
 
     for (batch = 0; batch < num_batches; ++batch)
@@ -394,18 +373,7 @@ obj_p parse_csv_lines(i8_t *types, i64_t num_types, str_p buf, i64_t size, i64_t
             break;
 
         batch_size = batch_end - batch_start;
-
-        // Fill the new batch
-        ctx[batch].types = types;
-        ctx[batch].num_types = num_types;
-        ctx[batch].buf = batch_start;
-        ctx[batch].size = batch_size;
-        ctx[batch].lines = lines_in_batch;
-        ctx[batch].start_line = start_line;
-        ctx[batch].cols = cols;
-        ctx[batch].sep = sep;
-
-        pool_add_task(pool, batch, parse_csv_batch, NULL, &ctx[batch]);
+        pool_add_task(pool, parse_csv_range, 8, types, num_types, batch_start, batch_size, lines_in_batch, start_line, cols, sep);
     }
 
     pool_prepare(pool, num_batches);

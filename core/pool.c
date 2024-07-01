@@ -26,13 +26,160 @@
 #include "runtime.h"
 #include "error.h"
 #include "symbols.h"
+#include "atomic.h"
+#include "util.h"
+#include "heap.h"
+#include "string.h"
 
 #define MPMC_SIZE 1024
+
+mpmc_p mpmc_create(u64_t size)
+{
+    size = next_power_of_two_u64(size);
+
+    i64_t i;
+    mpmc_p queue;
+    cell_p buf;
+
+    queue = (mpmc_p)heap_mmap(sizeof(struct mpmc_t));
+
+    if (queue == NULL)
+        return NULL;
+
+    buf = (cell_p)heap_mmap(size * sizeof(struct cell_t));
+
+    if (buf == NULL)
+        return NULL;
+
+    for (i = 0; i < (i64_t)size; i += 1)
+        __atomic_store_n(&buf[i].seq, i, __ATOMIC_RELAXED);
+
+    queue->buf = buf;
+    queue->mask = size - 1;
+
+    __atomic_store_n(&queue->tail, 0, __ATOMIC_RELAXED);
+    __atomic_store_n(&queue->head, 0, __ATOMIC_RELAXED);
+
+    return queue;
+}
+
+nil_t mpmc_destroy(mpmc_p queue)
+{
+    if (queue->buf)
+        heap_unmap(queue->buf, (queue->mask + 1) * sizeof(struct cell_t));
+
+    heap_unmap(queue, sizeof(struct mpmc_t));
+}
+
+i64_t mpmc_push(mpmc_p queue, task_data_t data)
+{
+    cell_p cell;
+    i64_t pos, seq, dif;
+    u64_t rounds = 0;
+
+    pos = __atomic_load_n(&queue->tail, __ATOMIC_RELAXED);
+
+    for (;;)
+    {
+        cell = &queue->buf[pos & queue->mask];
+        seq = __atomic_load_n(&cell->seq, __ATOMIC_ACQUIRE);
+
+        dif = seq - pos;
+        if (dif == 0)
+        {
+            if (__atomic_compare_exchange_n(&queue->tail, &pos, pos + 1, 1, __ATOMIC_RELAXED, __ATOMIC_RELAXED))
+                break;
+        }
+        else if (dif < 0)
+            return -1;
+        else
+        {
+            backoff_spin(&rounds);
+            pos = __atomic_load_n(&queue->tail, __ATOMIC_RELAXED);
+        }
+    }
+
+    cell->data = data;
+    __atomic_store_n(&cell->seq, pos + 1, __ATOMIC_RELEASE);
+
+    return 0;
+}
+
+task_data_t mpmc_pop(mpmc_p queue)
+{
+    cell_p cell;
+    task_data_t data = {.id = -1, .fn = NULL, .argc = 0, .result = NULL_OBJ};
+    i64_t pos, seq, dif;
+    u64_t rounds = 0;
+
+    pos = __atomic_load_n(&queue->head, __ATOMIC_RELAXED);
+
+    for (;;)
+    {
+        cell = &queue->buf[pos & queue->mask];
+        seq = __atomic_load_n(&cell->seq, __ATOMIC_ACQUIRE);
+        dif = seq - (pos + 1);
+        if (dif == 0)
+        {
+            if (__atomic_compare_exchange_n(&queue->head, &pos, pos + 1, 1, __ATOMIC_RELAXED, __ATOMIC_RELAXED))
+                break;
+        }
+        else if (dif < 0)
+            return data;
+        else
+        {
+            backoff_spin(&rounds);
+            pos = __atomic_load_n(&queue->head, __ATOMIC_RELAXED);
+        }
+    }
+
+    data = cell->data;
+    __atomic_store_n(&cell->seq, pos + queue->mask + 1, __ATOMIC_RELEASE);
+
+    return data;
+}
+
+u64_t mpmc_count(mpmc_p queue)
+{
+    return __atomic_load_n(&queue->tail, __ATOMIC_RELAXED) - __atomic_load_n(&queue->head, __ATOMIC_RELAXED);
+}
+
+u64_t mpmc_size(mpmc_p queue)
+{
+    return queue->mask + 1;
+}
+
+obj_p pool_call_task_fn(raw_p fn, u64_t argc, raw_p argv[])
+{
+    switch (argc)
+    {
+    case 0:
+        return ((fn0)fn)();
+    case 1:
+        return ((fn1)fn)(argv[0]);
+    case 2:
+        return ((fn2)fn)(argv[0], argv[1]);
+    case 3:
+        return ((fn3)fn)(argv[0], argv[1], argv[2]);
+    case 4:
+        return ((fn4)fn)(argv[0], argv[1], argv[2], argv[3]);
+    case 5:
+        return ((fn5)fn)(argv[0], argv[1], argv[2], argv[3], argv[4]);
+    case 6:
+        return ((fn6)fn)(argv[0], argv[1], argv[2], argv[3], argv[4], argv[5]);
+    case 7:
+        return ((fn7)fn)(argv[0], argv[1], argv[2], argv[3], argv[4], argv[5], argv[6]);
+    case 8:
+        return ((fn8)fn)(argv[0], argv[1], argv[2], argv[3], argv[4], argv[5], argv[6], argv[7]);
+    default:
+        return NULL_OBJ;
+    }
+}
 
 raw_p executor_run(raw_p arg)
 {
     executor_t *executor = (executor_t *)arg;
-    mpmc_data_t data;
+    task_data_t data;
     obj_p res;
 
     executor->heap = heap_create(executor->id + 1);
@@ -62,8 +209,9 @@ raw_p executor_run(raw_p arg)
                 break;
 
             // execute task
-            res = data.in.fn(data.in.arg);
-            mpmc_push(executor->pool->result_queue, (mpmc_data_t){data.id, .out = {data.in.drop, data.in.arg, res}});
+            res = pool_call_task_fn(data.fn, data.argc, data.argv);
+            data.result = res;
+            mpmc_push(executor->pool->result_queue, data);
         }
 
         mutex_lock(&executor->pool->mutex);
@@ -165,16 +313,33 @@ nil_t pool_prepare(pool_p pool, u64_t tasks_count)
     }
 }
 
-nil_t pool_add_task(pool_p pool, u64_t id, task_fn fn, drop_fn drop, raw_p arg)
+nil_t pool_add_task(pool_p pool, raw_p fn, u64_t argc, ...)
 {
-    mpmc_push(pool->task_queue, (mpmc_data_t){.id = (i64_t)id, .in = {fn, drop, arg}});
+    u64_t i;
+    va_list args;
+    task_data_t data;
+
+    data.id = mpmc_count(pool->task_queue);
+    data.fn = fn;
+    data.argc = argc;
+
+    va_start(args, argc);
+
+    data.argv[0] = va_arg(args, raw_p);
+
+    for (i = 0; i < argc; i++)
+        data.argv[i + 1] = va_arg(args, raw_p);
+
+    va_end(args);
+
+    mpmc_push(pool->task_queue, data);
 }
 
 obj_p pool_run(pool_p pool, u64_t tasks_count)
 {
     u64_t i, n;
     obj_p res;
-    mpmc_data_t data;
+    task_data_t data;
 
     n = pool->executors_count;
 
@@ -193,8 +358,9 @@ obj_p pool_run(pool_p pool, u64_t tasks_count)
             break;
 
         // execute task
-        res = data.in.fn(data.in.arg);
-        mpmc_push(pool->result_queue, (mpmc_data_t){data.id, .out = {data.in.drop, data.in.arg, res}});
+        res = pool_call_task_fn(data.fn, data.argc, data.argv);
+        data.result = res;
+        mpmc_push(pool->result_queue, data);
     }
 
     mutex_lock(&pool->mutex);
@@ -217,10 +383,7 @@ obj_p pool_run(pool_p pool, u64_t tasks_count)
     {
         data = mpmc_pop(pool->result_queue);
         debug_assert(data.id != -1, "Pool run: invalid data id!!!!");
-        // call destructor (if any)
-        if (data.out.drop != NULL)
-            data.out.drop(data.out.arg);
-        ins_obj(&res, data.id, data.out.result);
+        ins_obj(&res, data.id, data.result);
     }
 
     mutex_unlock(&pool->mutex);

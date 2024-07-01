@@ -28,7 +28,47 @@
 #include "thread.h"
 #include "heap.h"
 #include "eval.h"
-#include "mpmc.h"
+
+#define CACHELINE_SIZE 64
+
+typedef c8_t cachepad_t[CACHELINE_SIZE];
+
+typedef obj_p (*fn0)(nil_t);
+typedef obj_p (*fn1)(raw_p);
+typedef obj_p (*fn2)(raw_p, raw_p);
+typedef obj_p (*fn3)(raw_p, raw_p, raw_p);
+typedef obj_p (*fn4)(raw_p, raw_p, raw_p, raw_p);
+typedef obj_p (*fn5)(raw_p, raw_p, raw_p, raw_p, raw_p);
+typedef obj_p (*fn6)(raw_p, raw_p, raw_p, raw_p, raw_p, raw_p);
+typedef obj_p (*fn7)(raw_p, raw_p, raw_p, raw_p, raw_p, raw_p, raw_p);
+typedef obj_p (*fn8)(raw_p, raw_p, raw_p, raw_p, raw_p, raw_p, raw_p, raw_p);
+
+typedef struct
+{
+    i64_t id;
+    raw_p fn;
+    u64_t argc;
+    raw_p argv[8];
+    obj_p result;
+} task_data_t;
+
+typedef struct cell_t
+{
+    u64_t seq;
+    task_data_t data;
+} *cell_p;
+
+typedef struct mpmc_t
+{
+    cachepad_t pad0;
+    cell_p buf;
+    i64_t mask;
+    cachepad_t pad1;
+    i64_t tail;
+    cachepad_t pad2;
+    i64_t head;
+    cachepad_t pad3;
+} *mpmc_p;
 
 typedef struct pool_t *pool_p;
 
@@ -65,7 +105,8 @@ nil_t pool_destroy(pool_p pool);
 pool_p pool_get(nil_t);
 u64_t pool_executors_count(pool_p pool);
 nil_t pool_prepare(pool_p pool, u64_t tasks_count);
-nil_t pool_add_task(pool_p pool, u64_t id, task_fn fn, drop_fn drop, raw_p arg);
+nil_t pool_add_task(pool_p pool, raw_p fn, u64_t argc, ...);
+obj_p pool_call_task_fn(raw_p fn, u64_t argc, raw_p argv[]);
 obj_p pool_run(pool_p pool, u64_t tasks_count);
 
 #endif // POOL_H

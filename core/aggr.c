@@ -35,11 +35,12 @@
 #include "runtime.h"
 #include "pool.h"
 
-obj_p aggr_map(task_fn aggr, obj_p val, obj_p bins, obj_p filter)
+obj_p aggr_map(raw_p aggr, obj_p val, obj_p bins, obj_p filter)
 {
     pool_p pool = runtime_get()->pool;
-    u64_t i, j, l, n, chunk, buckets;
-    obj_p res, part, parts;
+    u64_t i, l, n, chunk, buckets;
+    obj_p res, parts;
+    raw_p argv[6];
 
     buckets = (u64_t)as_list(bins)[0]->i64;
     n = pool_executors_count(pool);
@@ -47,65 +48,50 @@ obj_p aggr_map(task_fn aggr, obj_p val, obj_p bins, obj_p filter)
     if (n == 1)
     {
         res = vector(val->type, buckets);
-        struct aggr_partial_t partial = {val->len, 0, val, bins, res};
-        (aggr)(&partial);
+        argv[0] = (raw_p)val->len;
+        argv[1] = (raw_p)0;
+        argv[2] = val;
+        argv[3] = bins;
+        argv[4] = res;
+        pool_call_task_fn(aggr, 5, argv);
         return vn_list(1, res);
     }
 
     pool_prepare(pool, n);
-    struct aggr_partial_t partial[n];
 
     l = val->len;
     chunk = l / n;
 
     for (i = 0; i < n - 1; i++)
-    {
-        partial[i].len = chunk;
-        partial[i].offset = i * chunk;
-        partial[i].val = val;
-        partial[i].bins = bins;
-        partial[i].out = vector(val->type, buckets);
-        pool_add_task(pool, i, aggr, NULL, &partial[i]);
-    }
+        pool_add_task(pool, aggr, 5, chunk, i * chunk, val, bins, vector(val->type, buckets));
 
-    partial[i].len = l - i * chunk;
-    partial[i].offset = i * chunk;
-    partial[i].val = val;
-    partial[i].bins = bins;
-    partial[i].out = vector(val->type, buckets);
-    pool_add_task(pool, i, aggr, NULL, &partial[i]);
+    pool_add_task(pool, aggr, 5, l - i * chunk, i * chunk, val, bins, vector(val->type, buckets));
 
     parts = pool_run(pool, n);
 
     return parts;
 }
 
-obj_p aggr_sum_partial(raw_p arg)
+obj_p aggr_sum_partial(u64_t len, u64_t offset, obj_p val, obj_p bins, obj_p res)
 {
-    aggr_partial_p partial = (aggr_partial_p)arg;
-    u64_t i, l, n;
-    i64_t *xi, *xm, *xk, *xo, *ids, shift;
+    u64_t i, n;
+    i64_t *xi, *xm, *xk, *xo, shift;
     f64_t *xf, *fo;
-    obj_p val, bins, res;
 
-    val = partial->val;
-    bins = partial->bins;
-    l = partial->len;
     n = as_list(bins)[0]->i64;
-    shift = as_list(partial->bins)[1]->i64;
+    shift = as_list(bins)[1]->i64;
 
     switch (val->type)
     {
     case TYPE_I64:
-        xi = as_i64(val) + partial->offset;
+        xi = as_i64(val) + offset;
         xm = as_i64(as_list(bins)[2]);
-        xk = as_i64(as_list(bins)[3]) + partial->offset;
-        res = partial->out;
+        xk = as_i64(as_list(bins)[3]) + offset;
         xo = as_i64(res);
 
         memset(xo, 0, n * sizeof(i64_t));
 
-        for (i = 0; i < l; i++)
+        for (i = 0; i < len; i++)
         {
             n = xk[i] - shift;
             xo[xm[n]] = addi64(xo[xm[n]], xi[i]);
@@ -114,15 +100,14 @@ obj_p aggr_sum_partial(raw_p arg)
         return res;
 
     case TYPE_F64:
-        xf = as_f64(val) + partial->offset;
+        xf = as_f64(val) + offset;
         xm = as_i64(as_list(bins)[2]);
-        xk = as_i64(as_list(bins)[3]) + partial->offset;
-        res = partial->out;
+        xk = as_i64(as_list(bins)[3]) + offset;
         fo = as_f64(res);
 
         memset(fo, 0, n * sizeof(f64_t));
 
-        for (i = 0; i < l; i++)
+        for (i = 0; i < len; i++)
         {
             n = xk[i] - shift;
             fo[xm[n]] = addf64(fo[xm[n]], xf[i]);
@@ -176,17 +161,12 @@ obj_p aggr_sum(obj_p val, obj_p bins, obj_p filter)
     }
 }
 
-obj_p aggr_first_partial(raw_p arg)
+obj_p aggr_first_partial(u64_t len, u64_t offset, obj_p val, obj_p bins, obj_p res)
 {
-    aggr_partial_p partial = (aggr_partial_p)arg;
-    u64_t i, l, n;
+    u64_t i, n;
     i64_t *xi, *xm, *xk, *xo, *ids, min;
     f64_t *xf, *fo;
-    obj_p val, bins, res;
 
-    val = partial->val;
-    bins = partial->bins;
-    l = partial->len;
     n = as_list(bins)[0]->i64;
     min = as_list(bins)[1]->i64;
 
@@ -194,16 +174,15 @@ obj_p aggr_first_partial(raw_p arg)
     {
     case TYPE_I64:
     case TYPE_SYMBOL:
-        xi = as_i64(val) + partial->offset;
+        xi = as_i64(val) + offset;
         xm = as_i64(as_list(bins)[2]);
-        xk = as_i64(as_list(bins)[3]) + partial->offset;
-        res = partial->out;
+        xk = as_i64(as_list(bins)[3]) + offset;
         xo = as_i64(res);
 
         for (i = 0; i < n; i++)
             xo[i] = NULL_I64;
 
-        for (i = 0; i < l; i++)
+        for (i = 0; i < len; i++)
         {
             n = xk[i] - min;
             if (xo[xm[n]] == NULL_I64)
@@ -651,32 +630,26 @@ obj_p aggr_min(obj_p val, obj_p bins, obj_p filter)
     }
 }
 
-obj_p aggr_count_partial(raw_p arg)
+obj_p aggr_count_partial(u64_t len, u64_t offset, obj_p val, obj_p bins, obj_p res)
 {
-    aggr_partial_p partial = (aggr_partial_p)arg;
-    u64_t i, l, n;
+    u64_t i, n;
     i64_t *xi, *xm, *xk, *xo, *ids, min;
     f64_t *xf, *fo;
-    obj_p val, bins, res;
 
-    val = partial->val;
-    bins = partial->bins;
-    l = partial->len;
     n = as_list(bins)[0]->i64;
-    min = as_list(partial->bins)[1]->i64;
+    min = as_list(bins)[1]->i64;
 
     switch (val->type)
     {
     case TYPE_I64:
-        xi = as_i64(val) + partial->offset;
+        xi = as_i64(val) + offset;
         xm = as_i64(as_list(bins)[2]);
-        xk = as_i64(as_list(bins)[3]) + partial->offset;
-        res = partial->out;
+        xk = as_i64(as_list(bins)[3]) + offset;
         xo = as_i64(res);
 
         memset(xo, 0, n * sizeof(i64_t));
 
-        for (i = 0; i < l; i++)
+        for (i = 0; i < len; i++)
         {
             n = xk[i] - min;
             xo[xm[n]]++;
@@ -685,15 +658,14 @@ obj_p aggr_count_partial(raw_p arg)
         return res;
 
     case TYPE_F64:
-        xf = as_f64(val) + partial->offset;
+        xf = as_f64(val) + offset;
         xm = as_i64(as_list(bins)[2]);
-        xk = as_i64(as_list(bins)[3]) + partial->offset;
-        res = partial->out;
+        xk = as_i64(as_list(bins)[3]) + offset;
         fo = as_f64(res);
 
         memset(fo, 0, n * sizeof(f64_t));
 
-        for (i = 0; i < l; i++)
+        for (i = 0; i < len; i++)
         {
             n = xk[i] - min;
             fo[xm[n]] = addf64(fo[xm[n]], xf[i]);
