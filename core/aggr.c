@@ -35,6 +35,17 @@
 #include "runtime.h"
 #include "pool.h"
 
+i64_t group_index_next(u64_t i, obj_p bins, u64_t offset)
+{
+    i64_t *xm, *xk, shift;
+
+    shift = as_list(bins)[1]->i64;
+    xm = as_i64(as_list(bins)[2]);
+    xk = as_i64(as_list(bins)[3]) + offset;
+
+    return xm[xk[i] - shift];
+}
+
 obj_p aggr_map(raw_p aggr, obj_p val, obj_p bins, obj_p filter)
 {
     pool_p pool = runtime_get()->pool;
@@ -79,22 +90,19 @@ obj_p aggr_sum_partial(u64_t len, u64_t offset, obj_p val, obj_p bins, obj_p res
     f64_t *xf, *fo;
 
     n = as_list(bins)[0]->i64;
-    shift = as_list(bins)[1]->i64;
 
     switch (val->type)
     {
     case TYPE_I64:
         xi = as_i64(val) + offset;
-        xm = as_i64(as_list(bins)[2]);
-        xk = as_i64(as_list(bins)[3]) + offset;
         xo = as_i64(res);
 
         memset(xo, 0, n * sizeof(i64_t));
 
         for (i = 0; i < len; i++)
         {
-            n = xk[i] - shift;
-            xo[xm[n]] = addi64(xo[xm[n]], xi[i]);
+            n = group_index_next(i, bins, offset);
+            xo[n] = addi64(xo[n], xi[i]);
         }
 
         return res;
