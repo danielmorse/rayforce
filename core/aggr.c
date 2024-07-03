@@ -35,7 +35,14 @@
 #include "runtime.h"
 #include "pool.h"
 
-i64_t group_index_next(u64_t i, obj_p bins, u64_t offset)
+typedef i64_t (*group_index_next_fn)(u64_t i, obj_p bins, u64_t offset);
+
+i64_t group_index_next(u64_t i, obj_p bins, u64_t offset, group_index_next_fn fn)
+{
+    return fn(i, bins, offset);
+}
+
+i64_t group_index_next_simple(u64_t i, obj_p bins, u64_t offset)
 {
     i64_t *xm, *xk, shift;
 
@@ -101,7 +108,7 @@ obj_p aggr_sum_partial(u64_t len, u64_t offset, obj_p val, obj_p bins, obj_p res
 
         for (i = 0; i < len; i++)
         {
-            n = group_index_next(i, bins, offset);
+            n = group_index_next(i, bins, offset, group_index_next_simple);
             xo[n] = addi64(xo[n], xi[i]);
         }
 
@@ -172,19 +179,16 @@ obj_p aggr_sum(obj_p val, obj_p bins, obj_p filter)
 obj_p aggr_first_partial(u64_t len, u64_t offset, obj_p val, obj_p bins, obj_p res)
 {
     u64_t i, n;
-    i64_t *xi, *xm, *xk, *xo, *ids, min;
+    i64_t *xi, *xo, *ids;
     f64_t *xf, *fo;
 
     n = as_list(bins)[0]->i64;
-    min = as_list(bins)[1]->i64;
 
     switch (val->type)
     {
     case TYPE_I64:
     case TYPE_SYMBOL:
         xi = as_i64(val) + offset;
-        xm = as_i64(as_list(bins)[2]);
-        xk = as_i64(as_list(bins)[3]) + offset;
         xo = as_i64(res);
 
         for (i = 0; i < n; i++)
@@ -192,9 +196,9 @@ obj_p aggr_first_partial(u64_t len, u64_t offset, obj_p val, obj_p bins, obj_p r
 
         for (i = 0; i < len; i++)
         {
-            n = xk[i] - min;
-            if (xo[xm[n]] == NULL_I64)
-                xo[xm[n]] = xi[i];
+            n = group_index_next(i, bins, offset, group_index_next_simple);
+            if (xo[n] == NULL_I64)
+                xo[n] = xi[i];
         }
 
         return res;
