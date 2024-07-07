@@ -53,6 +53,7 @@ typedef i64_t (*index_group_get_id_f)(obj_p, u64_t);
 
 i64_t index_group_get_id(obj_p index, u64_t i);
 u64_t index_group_count(obj_p index);
+u64_t index_group_len(obj_p index);
 obj_p index_distinct_i8(i8_t values[], u64_t len, b8_t term);
 obj_p index_distinct_i64(i64_t values[], u64_t len);
 obj_p index_distinct_guid(guid_t values[], u64_t len);

@@ -69,6 +69,7 @@ obj_p remap_group(obj_p *gvals, obj_p cols, obj_p tab, obj_p filter, obj_p gkeys
         if (is_error(index))
             return index;
 
+        debug_obj(index);
         res = group_map(tab, index, filter);
         v = (gcols == NULL_OBJ) ? aggr_first(cols, index) : aggr_first(gcols, index);
         if (is_error(v))

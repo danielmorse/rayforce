@@ -511,6 +511,14 @@ u64_t index_group_count(obj_p index)
     return (u64_t)as_list(index)[0]->i64;
 }
 
+u64_t index_group_len(obj_p index)
+{
+    if (!is_null(as_list(index)[5])) // filter
+        return as_list(index)[5]->len;
+
+    return as_list(index)[4]->len; // source
+}
+
 i64_t index_group_get_simple(obj_p index, u64_t i)
 {
     i64_t *group_ids, *source, shift;

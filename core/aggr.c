@@ -39,35 +39,36 @@
 obj_p aggr_map(raw_p aggr, obj_p val, obj_p index)
 {
     pool_p pool = runtime_get()->pool;
-    u64_t i, l, n, group_count, chunk, buckets;
+    u64_t i, l, n, group_count, group_len, chunk;
     obj_p res, parts;
     raw_p argv[6];
 
-    buckets = (u64_t)as_list(index)[0]->i64;
     n = pool_executors_count(pool);
     group_count = index_group_count(index);
+    group_len = index_group_len(index);
 
     if (n == 1 || group_count < 2)
     {
-        res = vector(val->type, buckets);
-        argv[0] = (raw_p)group_count;
+        res = vector(val->type, group_count);
+        argv[0] = (raw_p)group_len;
         argv[1] = (raw_p)0;
         argv[2] = val;
         argv[3] = index;
         argv[4] = res;
         pool_call_task_fn(aggr, 5, argv);
+
         return vn_list(1, res);
     }
 
     pool_prepare(pool, n);
 
-    l = val->len;
+    l = group_len;
     chunk = l / n;
 
     for (i = 0; i < n - 1; i++)
-        pool_add_task(pool, aggr, 5, chunk, i * chunk, val, index, vector(val->type, buckets));
+        pool_add_task(pool, aggr, 5, chunk, i * chunk, val, index, vector(val->type, group_count));
 
-    pool_add_task(pool, aggr, 5, l - i * chunk, i * chunk, val, index, vector(val->type, buckets));
+    pool_add_task(pool, aggr, 5, l - i * chunk, i * chunk, val, index, vector(val->type, group_count));
 
     parts = pool_run(pool, n);
 
