@@ -369,11 +369,13 @@ i64_t f64_fmt_into(obj_p *dst, f64_t val)
 
 i64_t ts_fmt_into(obj_p *dst, i64_t val)
 {
+    timestamp_t ts;
+    i64_t n;
+
     if (val == NULL_I64)
         return str_fmt_into(dst, 3, "0t");
 
-    timestamp_t ts = timestamp_from_i64(val);
-    i64_t n;
+    ts = timestamp_from_i64(val);
 
     if (!ts.hours && !ts.mins && !ts.secs && !ts.nanos)
         n = str_fmt_into(dst, NO_LIMIT, "%.4d.%.2d.%.2d", ts.year, ts.month, ts.day);
@@ -386,16 +388,16 @@ i64_t ts_fmt_into(obj_p *dst, i64_t val)
 
 i64_t guid_fmt_into(obj_p *dst, guid_t *val)
 {
-    u8_t *guid = val->buf, NULL_GUID[16] = {0};
+    i64_t n;
 
-    if (memcmp(guid, NULL_GUID, 16) == 0)
+    if (memcmp(*val, NULL_GUID, 16) == 0)
         return str_fmt_into(dst, 3, "0g");
 
-    i64_t n = str_fmt_into(dst, 37, "%02hhx%02hhx%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-                           guid[0], guid[1], guid[2], guid[3],
-                           guid[4], guid[5], guid[6], guid[7],
-                           guid[8], guid[9], guid[10], guid[11],
-                           guid[12], guid[13], guid[14], guid[15]);
+    n = str_fmt_into(dst, 37, "%02hhx%02hhx%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+                     (*val)[0], (*val)[1], (*val)[2], (*val)[3],
+                     (*val)[4], (*val)[5], (*val)[6], (*val)[7],
+                     (*val)[8], (*val)[9], (*val)[10], (*val)[11],
+                     (*val)[12], (*val)[13], (*val)[14], (*val)[15]);
 
     return n;
 }

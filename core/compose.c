@@ -446,7 +446,7 @@ obj_p ray_concat(obj_p x, obj_p y)
         xl = x->len;
         vec = vector_guid(xl + 1);
         for (i = 0; i < xl; i++)
-            as_guid(vec)[i] = as_guid(x)[i];
+            memcpy(as_guid(vec)[i], as_guid(x)[i], sizeof(guid_t));
 
         memcpy(&as_guid(vec)[xl], as_guid(y), sizeof(guid_t));
         return vec;
@@ -456,7 +456,7 @@ obj_p ray_concat(obj_p x, obj_p y)
         vec = vector_guid(yl);
         memcpy(&as_guid(vec)[0], as_guid(x), sizeof(guid_t));
         for (i = 1; i < yl; i++)
-            as_guid(vec)[i] = as_guid(y)[i];
+            memcpy(as_guid(vec)[i], as_guid(y)[i], sizeof(guid_t));
 
         return vec;
 
@@ -497,9 +497,9 @@ obj_p ray_concat(obj_p x, obj_p y)
         yl = y->len;
         vec = vector_guid(xl + yl);
         for (i = 0; i < xl; i++)
-            memcpy(as_guid(vec)[i].buf, as_guid(x)[i].buf, sizeof(guid_t));
+            memcpy(as_guid(vec)[i], as_guid(x)[i], sizeof(guid_t));
         for (i = 0; i < yl; i++)
-            memcpy(as_guid(vec)[i + xl].buf, as_guid(y)[i].buf, sizeof(guid_t));
+            memcpy(as_guid(vec)[i + xl], as_guid(y)[i], sizeof(guid_t));
         return vec;
 
     case mtype2(TYPE_C8, TYPE_C8):

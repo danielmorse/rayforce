@@ -140,7 +140,7 @@ obj_p nullv(i8_t type, u64_t len)
         break;
     case TYPE_GUID:
         for (i = 0; i < len; i++)
-            memset(as_guid(vec)[i].buf, 0, 16);
+            memset(as_guid(vec)[i], 0, sizeof(guid_t));
         break;
     case TYPE_LIST:
         for (i = 0; i < len; i++)
@@ -199,15 +199,15 @@ obj_p symboli64(i64_t id)
     return a;
 }
 
-obj_p guid(u8_t buf[16])
+obj_p guid(guid_t buf)
 {
     obj_p guid = vector(TYPE_I64, 2);
     guid->type = -TYPE_GUID;
 
     if (buf == NULL)
-        memset(as_guid(guid), 0, 16);
+        memset(*as_guid(guid), 0, sizeof(guid_t));
     else
-        memcpy(as_guid(guid)[0].buf, buf, 16);
+        memcpy(as_guid(guid)[0], buf, sizeof(guid_t));
 
     return guid;
 }
@@ -648,7 +648,7 @@ obj_p at_idx(obj_p obj, i64_t idx)
         if (idx < 0)
             idx = obj->len + idx + 1;
         if (idx >= 0 && idx < (i64_t)obj->len)
-            return guid(as_guid(obj)[idx].buf);
+            return guid(as_guid(obj)[idx]);
         return NULL_OBJ;
     case TYPE_ENUM:
         if (idx < 0)
@@ -747,7 +747,7 @@ obj_p at_ids(obj_p obj, i64_t ids[], u64_t len)
     case TYPE_GUID:
         res = vector(TYPE_GUID, len);
         for (i = 0; i < len; i++)
-            as_guid(res)[i] = as_guid(obj)[ids[i]];
+            memcpy(as_guid(res)[i], as_guid(obj)[ids[i]], sizeof(guid_t));
 
         return res;
     case TYPE_LIST:
@@ -901,7 +901,7 @@ obj_p set_idx(obj_p *obj, i64_t idx, obj_p val)
         drop_obj(val);
         return *obj;
     case mtype2(TYPE_GUID, -TYPE_GUID):
-        as_guid(*obj)[idx] = as_guid(val)[0];
+        memcpy(as_guid(*obj)[idx], as_guid(val), sizeof(guid_t));
         drop_obj(val);
         return *obj;
     default:
@@ -941,7 +941,7 @@ obj_p set_ids(obj_p *obj, i64_t ids[], u64_t len, obj_p vals)
         return *obj;
     case mtype2(TYPE_GUID, -TYPE_GUID):
         for (i = 0; i < len; i++)
-            as_guid(*obj)[ids[i]] = as_guid(vals)[i];
+            memcpy(as_guid(*obj)[ids[i]], as_guid(vals), sizeof(guid_t));
         drop_obj(vals);
         return *obj;
     case mtype2(TYPE_I64, TYPE_I64):
@@ -963,7 +963,7 @@ obj_p set_ids(obj_p *obj, i64_t ids[], u64_t len, obj_p vals)
         return *obj;
     case mtype2(TYPE_GUID, TYPE_GUID):
         for (i = 0; i < len; i++)
-            as_guid(*obj)[ids[i]] = as_guid(vals)[i];
+            memcpy(as_guid(*obj)[ids[i]], as_guid(vals)[i], sizeof(guid_t));
         drop_obj(vals);
         return *obj;
     case mtype2(TYPE_LIST, TYPE_C8):
@@ -1041,7 +1041,7 @@ obj_p __expand(obj_p obj, u64_t len)
     case -TYPE_GUID:
         res = vector(TYPE_GUID, len);
         for (i = 0; i < len; i++)
-            memcpy(&as_guid(res)[i], as_guid(obj)->buf, sizeof(struct guid_t));
+            memcpy(as_guid(res)[i], *as_guid(obj), sizeof(guid_t));
 
         drop_obj(obj);
 
@@ -1471,15 +1471,15 @@ obj_p cast_obj(i8_t type, obj_p obj)
 
         i = sscanf(as_string(obj),
                    "%02hhx%02hhx%02hhx%02hhx-%02hhx%02hhx-%02hhx%02hhx-%02hhx%02hhx-%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx",
-                   &as_guid(res)->buf[0], &as_guid(res)->buf[1], &as_guid(res)->buf[2], &as_guid(res)->buf[3],
-                   &as_guid(res)->buf[4], &as_guid(res)->buf[5],
-                   &as_guid(res)->buf[6], &as_guid(res)->buf[7],
-                   &as_guid(res)->buf[8], &as_guid(res)->buf[9],
-                   &as_guid(res)->buf[10], &as_guid(res)->buf[11], &as_guid(res)->buf[12],
-                   &as_guid(res)->buf[13], &as_guid(res)->buf[14], &as_guid(res)->buf[15]);
+                   &as_guid(res)[0][0], &as_guid(res)[0][1], &as_guid(res)[0][2], &as_guid(res)[0][3],
+                   &as_guid(res)[0][4], &as_guid(res)[0][5],
+                   &as_guid(res)[0][6], &as_guid(res)[0][7],
+                   &as_guid(res)[0][8], &as_guid(res)[0][9],
+                   &as_guid(res)[0][10], &as_guid(res)[0][11], &as_guid(res)[0][12],
+                   &as_guid(res)[0][13], &as_guid(res)[0][14], &as_guid(res)[0][15]);
 
-        if (i != 16)
-            memset(as_guid(res)->buf, 0, 16);
+        if (i != sizeof(guid_t))
+            memset(as_guid(res)[0], 0, sizeof(guid_t));
 
         return res;
     case mtype2(TYPE_I64, TYPE_TIMESTAMP):

@@ -109,9 +109,9 @@ obj_p ray_at(obj_p x, obj_p y)
         for (i = 0; i < yl; i++)
         {
             if (as_i64(y)[i] >= (i64_t)xl)
-                as_guid(res)[i] = (guid_t){0};
+                memset(as_guid(res)[i], 0, sizeof(guid_t));
             else
-                as_guid(res)[i] = as_guid(x)[as_i64(y)[i]];
+                memcpy(as_guid(res)[i], as_guid(x)[as_i64(y)[i]], sizeof(guid_t));
         }
 
         return res;
@@ -434,7 +434,7 @@ obj_p ray_filter(obj_p x, obj_p y)
         res = vector_guid(l);
         for (i = 0; i < l; i++)
             if (as_b8(y)[i])
-                memcpy(as_guid(res)[j++].buf, as_guid(x)[i].buf, sizeof(guid_t));
+                memcpy(as_guid(res)[j++], as_guid(x)[i], sizeof(guid_t));
 
         resize_obj(&res, j);
 
@@ -555,7 +555,7 @@ obj_p ray_take(obj_p x, obj_p y)
         l = absi64(x->i64);
         res = vector_guid(l);
         for (i = 0; i < l; i++)
-            memcpy(as_guid(res)[i].buf, as_guid(y), sizeof(guid_t));
+            memcpy(as_guid(res)[i], as_guid(y)[0], sizeof(guid_t));
 
         return res;
 
@@ -736,12 +736,12 @@ obj_p ray_take(obj_p x, obj_p y)
         if (x->i64 >= 0)
         {
             for (i = 0; i < m; i++)
-                memcpy(as_guid(res)[i].buf, as_guid(y)[i % n].buf, sizeof(guid_t));
+                memcpy(as_guid(res)[i], as_guid(y)[i % n], sizeof(guid_t));
         }
         else
         {
             for (i = 0; i < m; i++)
-                memcpy(as_guid(res)[i].buf, as_guid(y)[n - 1 - (i % n)].buf, sizeof(guid_t));
+                memcpy(as_guid(res)[i], as_guid(y)[n - 1 - (i % n)], sizeof(guid_t));
         }
 
         return res;

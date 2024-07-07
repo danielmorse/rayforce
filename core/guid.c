@@ -30,10 +30,10 @@ nil_t guid_generate(guid_t *g)
     i64_t i;
 
     for (i = 0; i < 16; i++)
-        g->buf[i] = ops_rand_u64() % 256;
+        (*g)[i] = ops_rand_u64() % 256;
 
     // Set the version to 4 for a random UUID
-    g->buf[6] = (g->buf[6] & 0x0F) | 0x40;
+    (*g)[6] = ((*g)[6] & 0x0F) | 0x40;
     // Set the two most significant bits of the clock_seq_hi_and_reserved to 01
-    g->buf[8] = (g->buf[8] & 0x3F) | 0x80;
+    (*g)[8] = ((*g)[8] & 0x3F) | 0x80;
 }

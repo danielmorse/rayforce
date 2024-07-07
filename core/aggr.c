@@ -164,8 +164,9 @@ obj_p aggr_sum(obj_p val, obj_p index)
 obj_p aggr_first_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p res)
 {
     u64_t i, n;
-    i64_t *xi, *xo, *ids;
-    f64_t *xf, *fo;
+    i64_t *xi, *yi;
+    f64_t *xf, *yf;
+    guid_t *xg, *yg;
 
     n = index_group_count(index);
 
@@ -173,20 +174,51 @@ obj_p aggr_first_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p 
     {
     case TYPE_I64:
     case TYPE_SYMBOL:
+    case TYPE_TIMESTAMP:
         xi = as_i64(val) + offset;
-        xo = as_i64(res);
+        yi = as_i64(res);
 
         for (i = 0; i < n; i++)
-            xo[i] = NULL_I64;
+            yi[i] = NULL_I64;
 
         for (i = 0; i < len; i++)
         {
             n = index_group_get_id(index, i + offset);
-            if (xo[n] == NULL_I64)
-                xo[n] = xi[i];
+            if (yi[n] == NULL_I64)
+                yi[n] = xi[i];
         }
 
         return res;
+    case TYPE_F64:
+        xf = as_f64(val) + offset;
+        yf = as_f64(res);
+
+        for (i = 0; i < n; i++)
+            yf[i] = NULL_F64;
+
+        for (i = 0; i < len; i++)
+        {
+            n = index_group_get_id(index, i + offset);
+            if (yf[n] == NULL_F64)
+                yf[n] = xf[i];
+        }
+
+        return res;
+    // case TYPE_GUID:
+    //     xg = as_guid(val) + offset;
+    //     yg = as_guid(res);
+
+    //     for (i = 0; i < n; i++)
+    //         yg[i] = (guid_t){0};
+
+    //     for (i = 0; i < len; i++)
+    //     {
+    //         n = index_group_get_id(index, i + offset);
+    //         if (yg[n] == NULL_GUID)
+    //             yg[n] = xg[i];
+    //     }
+
+    //     return res;
     default:
         drop_obj(res);
         return error(ERR_TYPE, "first: unsupported type: '%s'", type_name(val->type));

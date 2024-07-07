@@ -89,18 +89,14 @@ typedef void* raw_p;
 typedef unsigned long long u64_t;
 typedef double f64_t;
 typedef void nil_t;
+typedef u8_t guid_t[16];
 
 #define NULL_I64  ((i64_t)0x8000000000000000LL)
 #define NULL_F64  ((f64_t)(0 / 0.0))
+#define NULL_GUID ((guid_t){0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
 #define MAX_I64   ((i64_t)0x7FFFFFFFFFFFFFFFLL)
 #define B8_TRUE   (char)1
 #define B8_FALSE  (char)0
-
-
-// GUID (Globally Unique Identifier)
-typedef struct guid_t {
-    u8_t buf[16];
-} guid_t;
 
 // Object (generic type)
 typedef struct obj_t

@@ -461,8 +461,8 @@ u64_t hash_guid(i64_t a, raw_p seed)
     u64_t upper_part, lower_part;
 
     // Cast the first and second halves of the GUID to u64_t
-    memcpy(&upper_part, g->buf, sizeof(u64_t));
-    memcpy(&lower_part, g->buf + 8, sizeof(u64_t));
+    memcpy(&upper_part, *g, sizeof(u64_t));
+    memcpy(&lower_part, *g + 8, sizeof(u64_t));
 
     // Combine the two parts
     return upper_part ^ lower_part;
@@ -490,5 +490,5 @@ i64_t hash_cmp_guid(i64_t a, i64_t b, raw_p seed)
 {
     unused(seed);
     guid_t *g1 = (guid_t *)a, *g2 = (guid_t *)b;
-    return memcmp(g1->buf, g2->buf, sizeof(guid_t));
+    return memcmp(*g1, *g2, sizeof(guid_t));
 }
