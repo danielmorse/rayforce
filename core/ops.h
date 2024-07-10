@@ -99,10 +99,11 @@ b8_t ops_as_b8(obj_p x);
 b8_t ops_is_nan(f64_t x);
 u64_t ops_rand_u64(nil_t);
 u64_t ops_count(obj_p x);
-u64_t ops_count_ones(obj_p mask);
+u64_t ops_count_ones(b8_t *mask, u64_t len);
 u64_t ops_rank(obj_p *x, u64_t n);
 b8_t ops_eq_idx(obj_p a, i64_t ai, obj_p b, i64_t bi);
 obj_p index_find_i64(i64_t x[], u64_t xl, i64_t y[], u64_t yl);
+obj_p ops_where(b8_t *mask, u64_t n);
 obj_p sys_error(os_ray_error_type_t, lit_p msg);
 
 #endif // OPS_H

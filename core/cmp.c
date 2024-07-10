@@ -49,7 +49,7 @@ obj_p cmp_map(raw_p cmp, obj_p lhs, obj_p rhs)
         argv[4] = res;
         pool_call_task_fn(cmp, 5, argv);
 
-        return vn_list(1, res);
+        return res;
     }
 
     pool_prepare(pool, n);

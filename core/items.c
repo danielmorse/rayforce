@@ -495,6 +495,23 @@ obj_p ray_take(obj_p x, obj_p y)
 
     switch (mtype2(x->type, y->type))
     {
+    case mtype2(-TYPE_I64, TYPE_B8):
+        l = y->len;
+        m = absi64(x->i64);
+        res = vector_b8(m);
+
+        if (x->i64 >= 0)
+        {
+            for (i = 0; i < m; i++)
+                as_b8(res)[i] = as_b8(y)[i % l];
+        }
+        else
+        {
+            for (i = 0; i < m; i++)
+                as_b8(res)[i] = as_b8(y)[l - 1 - (i % l)];
+        }
+
+        return res;
     case mtype2(-TYPE_I64, TYPE_I64):
     case mtype2(-TYPE_I64, TYPE_SYMBOL):
     case mtype2(-TYPE_I64, TYPE_TIMESTAMP):
@@ -1012,28 +1029,10 @@ obj_p ray_value(obj_p x)
 
 obj_p ray_where(obj_p x)
 {
-    u64_t i, j, l, ones;
-    i64_t *cur;
-    b8_t *bcur;
-    obj_p res;
-
     switch (x->type)
     {
     case TYPE_B8:
-        l = x->len;
-        res = vector_i64(l);
-        cur = as_i64(res);
-        bcur = as_b8(x);
-
-        for (i = 0, j = 0; i < l; i++)
-            if (bcur[i])
-                cur[j++] = i;
-
-        resize_obj(&res, j);
-
-        return res;
-    case TYPE_NULL:
-        return vector_i64(0);
+        return ops_where(as_b8(x), x->len);
     default:
         throw(ERR_TYPE, "where: unsupported type: '%s", type_name(x->type));
     }
