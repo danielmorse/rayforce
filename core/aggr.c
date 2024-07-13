@@ -479,49 +479,23 @@ obj_p aggr_min(obj_p val, obj_p index)
 
 obj_p aggr_count_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p res)
 {
+    unused(val);
     u64_t i, n;
-    i64_t *xi, *xm, *xk, *xo, *ids, min;
-    f64_t *xf, *fo;
+    i64_t *yi;
 
     n = index_group_count(index);
-    min = as_list(index)[1]->i64;
+    yi = as_i64(res);
 
-    switch (val->type)
+    for (i = 0; i < n; i++)
+        yi[i] = 0;
+
+    for (i = 0; i < len; i++)
     {
-    // case TYPE_I64:
-    //     xi = as_i64(val) + offset;
-    //     xm = as_i64(as_list(bins)[2]);
-    //     xk = as_i64(as_list(bins)[3]) + offset;
-    //     xo = as_i64(res);
-
-    //     memset(xo, 0, n * sizeof(i64_t));
-
-    //     for (i = 0; i < len; i++)
-    //     {
-    //         n = xk[i] - min;
-    //         xo[xm[n]]++;
-    //     }
-
-    //     return res;
-
-    // case TYPE_F64:
-    //     xf = as_f64(val) + offset;
-    //     xm = as_i64(as_list(bins)[2]);
-    //     xk = as_i64(as_list(bins)[3]) + offset;
-    //     fo = as_f64(res);
-
-    //     memset(fo, 0, n * sizeof(f64_t));
-
-    //     for (i = 0; i < len; i++)
-    //     {
-    //         n = xk[i] - min;
-    //         fo[xm[n]] = addf64(fo[xm[n]], xf[i]);
-    //     }
-
-    //     return res;
-    default:
-        return error(ERR_TYPE, "count: unsupported type: '%s'", type_name(val->type));
+        n = index_group_get_id(index, i + offset);
+        yi[n]++;
     }
+
+    return res;
 }
 
 obj_p aggr_count(obj_p val, obj_p index)
@@ -728,4 +702,209 @@ obj_p aggr_dev(obj_p val, obj_p index)
     // default:
     return error(ERR_TYPE, "stddev: unsupported type: '%s'", type_name(val->type));
     // }
+}
+
+obj_p aggr_collect(obj_p val, obj_p index)
+{
+    u64_t i, l, m, n;
+    i64_t *cnts;
+    obj_p cnt, res;
+
+    cnt = aggr_count(val, index);
+    if (is_error(cnt))
+        return cnt;
+
+    cnts = as_i64(cnt);
+    n = cnt->len;
+    l = ops_count(val);
+
+    switch (val->type)
+    {
+    case TYPE_I64:
+    case TYPE_SYMBOL:
+    case TYPE_TIMESTAMP:
+        res = list(n);
+        // allo vectors for each group
+        for (i = 0; i < n; i++)
+        {
+            m = cnts[i];
+            as_list(res)[i] = vector(val->type, m);
+            as_list(res)[i]->len = 0;
+        }
+        // fill vectors with values
+        for (i = 0; i < l; i++)
+        {
+            n = index_group_get_id(index, i);
+            as_i64(as_list(res)[n])[as_list(res)[n]->len++] = as_i64(val)[i];
+        }
+
+        drop_obj(cnt);
+
+        return res;
+        // case TYPE_F64:
+        //     res = list(n);
+        //     for (i = 0; i < n; i++)
+        //     {
+        //         m = cnts[i];
+        //         as_list(res)[i] = vector_f64(m);
+        //         as_list(res)[i]->len = 0;
+        //     }
+
+        //     if (filters)
+        //     {
+        //         for (i = 0; i < l; i++)
+        //         {
+        //             n = as_i64(bins)[i];
+        //             as_f64(as_list(res)[n])[as_list(res)[n]->len++] = as_f64(obj)[filters[i]];
+        //         }
+
+        //         return res;
+        //     }
+
+        //     for (i = 0; i < l; i++)
+        //     {
+        //         n = as_i64(bins)[i];
+        //         as_f64(as_list(res)[n])[as_list(res)[n]->len++] = as_f64(obj)[i];
+        //     }
+
+        //     return res;
+        // case TYPE_ENUM:
+        //     k = ray_key(obj);
+        //     if (is_error(k))
+        //         return k;
+
+        //     v = ray_get(k);
+        //     drop_obj(k);
+
+        //     if (is_error(v))
+        //         return v;
+
+        //     if (v->type != TYPE_SYMBOL)
+        //         return error(ERR_TYPE, "enum: '%s' is not a 'Symbol'", type_name(v->type));
+
+        //     res = list(n);
+        //     for (i = 0; i < n; i++)
+        //     {
+        //         m = cnts[i];
+        //         as_list(res)[i] = vector_symbol(m);
+        //         as_list(res)[i]->len = 0;
+        //     }
+
+        //     if (filters)
+        //     {
+        //         for (i = 0; i < l; i++)
+        //         {
+        //             n = as_i64(bins)[i];
+        //             as_i64(as_list(res)[n])[as_list(res)[n]->len++] = as_i64(v)[as_i64(enum_val(obj))[filters[i]]];
+        //         }
+
+        //         drop_obj(v);
+
+        //         return res;
+        //     }
+
+        //     for (i = 0; i < l; i++)
+        //     {
+        //         n = as_i64(bins)[i];
+        //         as_i64(as_list(res)[n])[as_list(res)[n]->len++] = as_i64(v)[as_i64(enum_val(obj))[i]];
+        //     }
+
+        //     drop_obj(v);
+
+        //     return res;
+        // case TYPE_LIST:
+        //     res = list(n);
+        //     for (i = 0; i < n; i++)
+        //     {
+        //         m = cnts[i];
+        //         as_list(res)[i] = list(m);
+        //         as_list(res)[i]->len = 0;
+        //     }
+
+        //     if (filters)
+        //     {
+        //         for (i = 0; i < l; i++)
+        //         {
+        //             n = as_i64(bins)[i];
+        //             as_list(as_list(res)[n])[as_list(res)[n]->len++] = clone_obj(as_list(obj)[filters[i]]);
+        //         }
+
+        //         return res;
+        //     }
+
+        //     for (i = 0; i < l; i++)
+        //     {
+        //         n = as_i64(bins)[i];
+        //         as_list(as_list(res)[n])[as_list(res)[n]->len++] = clone_obj(as_list(obj)[i]);
+        //     }
+
+        //     return res;
+        // case TYPE_ANYMAP:
+        //     res = list(n);
+        //     for (i = 0; i < n; i++)
+        //     {
+        //         m = cnts[i];
+        //         as_list(res)[i] = list(m);
+        //         as_list(res)[i]->len = 0;
+        //     }
+
+        //     if (filters)
+        //     {
+        //         for (i = 0; i < l; i++)
+        //         {
+        //             n = as_i64(bins)[i];
+        //             as_list(as_list(res)[n])[as_list(res)[n]->len++] = at_idx(obj, filters[i]);
+        //         }
+
+        //         return res;
+        //     }
+
+        //     for (i = 0; i < l; i++)
+        //     {
+        //         n = as_i64(bins)[i];
+        //         as_list(as_list(res)[n])[as_list(res)[n]->len++] = at_idx(obj, i);
+        //     }
+
+        //     return res;
+
+    default:
+        drop_obj(cnt);
+        throw(ERR_TYPE, "aggr collect: unsupported type: '%s", type_name(val->type));
+    }
+}
+
+obj_p aggr_indices(obj_p val, obj_p index)
+{
+    u64_t i, l, m, n;
+    i64_t *cnts;
+    obj_p cnt, res;
+
+    cnt = aggr_count(val, index);
+    if (is_error(cnt))
+        return cnt;
+
+    cnts = as_i64(cnt);
+    n = cnt->len;
+    l = ops_count(val);
+
+    res = list(n);
+
+    // alloc vectors for each group
+    for (i = 0; i < n; i++)
+    {
+        m = cnts[i];
+        as_list(res)[i] = vector_i64(m);
+        as_list(res)[i]->len = 0;
+    }
+
+    // fill vectors with indices
+    for (i = 0; i < l; i++)
+    {
+        n = index_group_get_id(index, i);
+        as_i64(as_list(res)[n])[as_list(res)[n]->len++] = i;
+    }
+
+    drop_obj(cnt);
+
+    return res;
 }

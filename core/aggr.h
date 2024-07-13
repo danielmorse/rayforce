@@ -35,5 +35,7 @@ obj_p aggr_min(obj_p val, obj_p index);
 obj_p aggr_count(obj_p val, obj_p index);
 obj_p aggr_med(obj_p val, obj_p index);
 obj_p aggr_dev(obj_p val, obj_p index);
+obj_p aggr_collect(obj_p val, obj_p index);
+obj_p aggr_indices(obj_p val, obj_p index);
 
 #endif // AGGR_H

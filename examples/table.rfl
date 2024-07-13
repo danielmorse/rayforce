@@ -1,6 +1,4 @@
 (set n 10000000)
-;; (set l (rand 10000000 1000000000000))
-;; (set t (table [a b c] (list [1 2 3] [AAPL MSFT IBM] (list "aa" "bb" "cc"))))
 
 (set t (table [OrderId Symbol Price Size Tape Timestamp] 
     (list (take n (guid 1000000))

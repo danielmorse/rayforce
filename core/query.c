@@ -69,7 +69,6 @@ obj_p remap_group(obj_p *gvals, obj_p cols, obj_p tab, obj_p filter, obj_p gkeys
         if (is_error(index))
             return index;
 
-        debug_obj(index);
         res = group_map(tab, index, filter);
         v = (gcols == NULL_OBJ) ? aggr_first(cols, index) : aggr_first(gcols, index);
         if (is_error(v))
@@ -393,7 +392,7 @@ obj_p select_apply_mappings(obj_p obj, query_ctx_p ctx)
             // Materialize fields
             if (val->type == TYPE_GROUPMAP)
             {
-                prm = group_collect(val);
+                prm = aggr_collect(as_list(val)[0], as_list(val)[1]);
                 drop_obj(val);
                 val = prm;
             }

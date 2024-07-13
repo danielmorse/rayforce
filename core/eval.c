@@ -33,6 +33,7 @@
 #include "filter.h"
 #include "group.h"
 #include "string.h"
+#include "aggr.h"
 
 __thread interpreter_p __INTERPRETER = NULL;
 
@@ -200,7 +201,7 @@ __attribute__((hot)) obj_p eval(obj_p obj)
 
                 if (!(car->attrs & FN_AGGR) && x->type == TYPE_GROUPMAP)
                 {
-                    y = group_collect(x);
+                    y = aggr_collect(as_list(x)[0], as_list(x)[1]);
                     drop_obj(x);
                     x = y;
                 }
@@ -229,7 +230,7 @@ __attribute__((hot)) obj_p eval(obj_p obj)
 
                 if (!(car->attrs & FN_AGGR) && x->type == TYPE_GROUPMAP)
                 {
-                    y = group_collect(x);
+                    y = aggr_collect(as_list(x)[0], as_list(x)[1]);
                     drop_obj(x);
                     x = y;
                 }
@@ -249,7 +250,7 @@ __attribute__((hot)) obj_p eval(obj_p obj)
 
                 if (!(car->attrs & FN_AGGR) && y->type == TYPE_GROUPMAP)
                 {
-                    z = group_collect(y);
+                    z = aggr_collect(as_list(x)[0], as_list(x)[1]);
                     drop_obj(y);
                     y = z;
                 }
@@ -284,7 +285,7 @@ __attribute__((hot)) obj_p eval(obj_p obj)
                     if (!(car->attrs & FN_AGGR) && x->type == TYPE_GROUPMAP)
                     {
                         attrs = FN_GROUP_MAP;
-                        y = group_collect(x);
+                        y = aggr_collect(as_list(x)[0], as_list(x)[1]);
                         drop_obj(x);
                         x = y;
                     }
@@ -324,7 +325,7 @@ __attribute__((hot)) obj_p eval(obj_p obj)
                 if (x->type == TYPE_GROUPMAP)
                 {
                     attrs = FN_GROUP_MAP;
-                    y = group_collect(x);
+                    y = aggr_collect(as_list(x)[0], as_list(x)[1]);
                     drop_obj(x);
                     x = y;
                 }

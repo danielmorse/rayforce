@@ -37,6 +37,7 @@
 #include "group.h"
 #include "filter.h"
 #include "query.h"
+#include "aggr.h"
 
 #define uncow_obj(o, v, r)            \
     {                                 \
@@ -559,8 +560,7 @@ obj_p __update_table(obj_p tab, obj_p keys, obj_p vals, obj_p filters, obj_p gro
 
         l = keys->len;
 
-        ids = (filters != NULL_OBJ) ? as_i64(filters) : NULL;
-        gids = group_ids(groupby, ids);
+        // gids = aggr_indices(groupby, ids);
         drop_obj(groupby);
         n = gids->len;
 
@@ -884,7 +884,7 @@ obj_p ray_update(obj_p obj)
         // Materialize fields
         if (val->type == TYPE_GROUPMAP)
         {
-            prm = group_collect(val);
+            prm = aggr_collect(as_list(val)[0], as_list(val)[1]);
             drop_obj(val);
             val = prm;
         }
