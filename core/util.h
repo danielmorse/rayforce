@@ -78,7 +78,7 @@ nil_t dump_stack(nil_t);
 
 #define debug_obj(o)                                  \
     {                                                 \
-        obj_p _f = obj_fmt((o));                      \
+        obj_p _f = obj_fmt((o), B8_TRUE);             \
         debug("%.*s", (i32_t)_f->len, as_string(_f)); \
         drop_obj(_f);                                 \
     }

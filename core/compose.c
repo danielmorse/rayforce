@@ -48,7 +48,7 @@ obj_p ray_cast_obj(obj_p x, obj_p y)
 
     if (type == TYPE_ERROR)
     {
-        fmt = obj_fmt(x);
+        fmt = obj_fmt(x, B8_TRUE);
         msg = str_fmt(-1, "as: not a type: '%s", fmt);
         err = error_obj(ERR_TYPE, msg);
         heap_free(fmt);

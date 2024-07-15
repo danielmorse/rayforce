@@ -165,7 +165,7 @@ i32_t runtime_create(i32_t argc, str_p argv[])
 
             if (res)
             {
-                fmt = obj_fmt(res);
+                fmt = obj_fmt(res, B8_TRUE);
                 printf("%.*s\n", (i32_t)fmt->len, as_string(fmt));
                 drop_obj(fmt);
                 drop_obj(res);

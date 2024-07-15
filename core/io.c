@@ -139,12 +139,12 @@ obj_p io_write(i64_t fd, u8_t msg_type, obj_p obj)
         else
             return eval_obj(obj);
     case 1:
-        fmt = obj_fmt(obj);
+        fmt = obj_fmt(obj, B8_TRUE);
         fprintf(stdout, "%.*s\n", (i32_t)fmt->len, as_string(fmt));
         drop_obj(fmt);
         return NULL_OBJ;
     case 2:
-        fmt = obj_fmt(obj);
+        fmt = obj_fmt(obj, B8_TRUE);
         fprintf(stderr, "%.*s\n", (i32_t)fmt->len, as_string(fmt));
         drop_obj(fmt);
         return NULL_OBJ;

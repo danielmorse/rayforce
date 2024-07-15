@@ -125,7 +125,7 @@ nil_t exit_werror()
     obj_p fmt, err;
 
     err = sys_error(ERROR_TYPE_SOCK, "poll_init");
-    fmt = obj_fmt(err);
+    fmt = obj_fmt(err, B8_TRUE);
     printf("%s\n", as_string(fmt));
     drop_obj(fmt);
     drop_obj(err);
@@ -597,8 +597,8 @@ i64_t poll_run(poll_p poll)
                             timeit_print();
                         }
 
-                        term_prompt(poll-
-                        >term);
+                        term_prompt(poll -
+                                    > term);
                     }
 
                     break;
@@ -684,7 +684,7 @@ i64_t poll_run(poll_p poll)
         else
         {
             res = sys_error(ERROR_TYPE_SOCK, "poll_init");
-            fmt = obj_fmt(res);
+            fmt = obj_fmt(res, B8_TRUE);
             printf("%s\n", as_string(fmt));
             drop_obj(fmt);
             drop_obj(res);

@@ -60,7 +60,7 @@ obj_p str_fmt(i64_t limit, lit_p fmt, ...);
 obj_p str_vfmt(i64_t limit, lit_p fmt, va_list args);
 obj_p obj_stringify(obj_p obj);
 i64_t prompt_fmt_into(obj_p *dst);
-obj_p obj_fmt(obj_p obj);
+obj_p obj_fmt(obj_p obj, b8_t full);
 i64_t obj_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj);
 obj_p obj_fmt_n(obj_p *obj, u64_t n);
 obj_p timeit_fmt(nil_t);

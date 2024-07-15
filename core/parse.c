@@ -102,7 +102,7 @@ b8_t is_alphanum(c8_t c)
 
 b8_t is_op(c8_t c)
 {
-    return strchr("+-*/%&|^~<>!=._", c) != NULL;
+    return c && strchr("+-*/%&|^~<>!=._", c) != NULL;
 }
 
 b8_t at_eof(c8_t c)
@@ -112,7 +112,7 @@ b8_t at_eof(c8_t c)
 
 b8_t at_term(c8_t c)
 {
-    return c == ')' || c == ']' || c == '}' || c == ':' || c == '\n';
+    return c == ')' || c == ']' || c == '}' || c == ':' || c == ' ' || c == '\r' || c == '\n';
 }
 
 b8_t is_at(obj_p token, c8_t c)
@@ -148,6 +148,86 @@ obj_p to_token(parser_t *parser)
     return tok;
 }
 
+obj_p parse_0x(parser_t *parser)
+{
+    str_p end, current = parser->current;
+    span_t span;
+    u64_t num_u64;
+    u8_t NULL_GUID[16] = {0}, num_u8;
+    obj_p res;
+
+    if (*current == '0')
+    {
+        span = span_start(parser);
+
+        if (*(current + 1) == 't')
+        {
+            res = timestamp(NULL_I64);
+            shift(parser, 2);
+            nfo_insert(parser->nfo, (i64_t)res, span);
+
+            return res;
+        }
+
+        if (*(parser->current + 1) == 'i')
+        {
+            res = i64(NULL_I64);
+            shift(parser, 2);
+            nfo_insert(parser->nfo, (i64_t)res, span);
+
+            return res;
+        }
+
+        if (*(parser->current + 1) == 'f')
+        {
+            res = f64(NULL_F64);
+            shift(parser, 2);
+            nfo_insert(parser->nfo, (i64_t)res, span);
+
+            return res;
+        }
+
+        if (*(parser->current + 1) == 'g')
+        {
+            res = guid(NULL_GUID);
+            shift(parser, 2);
+            nfo_insert(parser->nfo, (i64_t)res, span);
+
+            return res;
+        }
+
+        if (*(parser->current + 1) == 's')
+        {
+            shift(parser, 2);
+            res = null(TYPE_SYMBOL);
+            res->attrs = ATTR_QUOTED;
+            nfo_insert(parser->nfo, (i64_t)res, span);
+
+            return res;
+        }
+
+        if (*(parser->current + 1) == 'x')
+        {
+            num_u64 = strtoul(parser->current, &end, 16);
+            if (num_u64 > 255)
+            {
+                span.end_column += (end - parser->current);
+                nfo_insert(parser->nfo, parser->count, span);
+                return parse_error(parser, parser->count++, str_fmt(-1, "Number is out of range"));
+            }
+            num_u8 = (u8_t)num_u64;
+            shift(parser, end - parser->current);
+            span_extend(parser, &span);
+            res = u8(num_u8);
+            nfo_insert(parser->nfo, (i64_t)res, span);
+
+            return res;
+        }
+    }
+
+    return NULL_OBJ;
+}
+
 obj_p parse_timestamp(parser_t *parser)
 {
     str_p end, current = parser->current;
@@ -155,19 +235,6 @@ obj_p parse_timestamp(parser_t *parser)
     timestamp_t ts = {.null = B8_FALSE, .year = 0, .month = 0, .day = 0, .hours = 0, .mins = 0, .secs = 0, .nanos = 0};
     obj_p res;
     span_t span = span_start(parser);
-
-    // check if null
-    if (*current == '0')
-    {
-        if (*(current + 1) == 't')
-        {
-            shift(parser, 2);
-            res = timestamp(NULL_I64);
-            nfo_insert(parser->nfo, (i64_t)res, span);
-
-            return res;
-        }
-    }
 
     // parse year
     if (is_digit(*current) &&
@@ -348,69 +415,9 @@ obj_p parse_number(parser_t *parser)
 {
     str_p end;
     i64_t num_i64;
-    u64_t num_u64;
     f64_t num_f64;
     obj_p num;
     span_t span = span_start(parser);
-    u8_t NULL_GUID[16] = {0}, num_u8;
-
-    // check if null or byte literal
-    if (*parser->current == '0')
-    {
-        if (*(parser->current + 1) == 'i')
-        {
-            shift(parser, 2);
-            num = i64(NULL_I64);
-            nfo_insert(parser->nfo, (i64_t)num, span);
-
-            return num;
-        }
-
-        if (*(parser->current + 1) == 'f')
-        {
-            shift(parser, 2);
-            num = f64(NULL_F64);
-            nfo_insert(parser->nfo, (i64_t)num, span);
-
-            return num;
-        }
-
-        if (*(parser->current + 1) == 't')
-        {
-            shift(parser, 2);
-            num = timestamp(NULL_I64);
-            nfo_insert(parser->nfo, (i64_t)num, span);
-
-            return num;
-        }
-
-        if (*(parser->current + 1) == 'g')
-        {
-            shift(parser, 2);
-            num = guid(NULL_GUID);
-            nfo_insert(parser->nfo, (i64_t)num, span);
-
-            return num;
-        }
-
-        if (*(parser->current + 1) == 'x')
-        {
-            num_u64 = strtoul(parser->current, &end, 16);
-            if (num_u64 > 255)
-            {
-                span.end_column += (end - parser->current);
-                nfo_insert(parser->nfo, parser->count, span);
-                return parse_error(parser, parser->count++, str_fmt(-1, "Number is out of range"));
-            }
-            num_u8 = (u8_t)num_u64;
-            shift(parser, end - parser->current);
-            span_extend(parser, &span);
-            num = u8(num_u8);
-            nfo_insert(parser->nfo, (i64_t)num, span);
-
-            return num;
-        }
-    }
 
     errno = 0;
 
@@ -458,7 +465,7 @@ obj_p parse_char(parser_t *parser)
     i64_t id;
     c8_t ch;
 
-    if (at_eof(*pos) || *pos == '\n')
+    if (at_eof(*pos) || at_term(*pos))
     {
         shift(parser, pos - parser->current);
         span_extend(parser, &span);
@@ -470,12 +477,10 @@ obj_p parse_char(parser_t *parser)
         return res;
     }
 
-    ch = *pos++;
-
     if (*pos != '\'')
     {
         // continue parsing a symbol
-        while (!at_eof(*pos) && *pos != '\n' && (is_alphanum(*pos) || is_op(*pos)))
+        while (is_alphanum(*pos) || is_op(*pos))
             pos++;
 
         if (*pos == '\'')
@@ -496,6 +501,7 @@ obj_p parse_char(parser_t *parser)
         return res;
     }
 
+    ch = *pos++;
     res = c8(ch);
 
     shift(parser, 3);
@@ -1045,8 +1051,12 @@ obj_p parser_advance(parser_t *parser)
 
     if (is_digit(*parser->current))
     {
+        tok = parse_0x(parser);
+        if (tok != NULL_OBJ)
+            return tok;
+
         tok = parse_timestamp(parser);
-        if (!is_null(tok))
+        if (tok != NULL_OBJ)
             return tok;
 
         drop_obj(tok);

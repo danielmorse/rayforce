@@ -24,7 +24,7 @@
 #define TEST_ASSERT_EQ(lhs, rhs)                                                                                               \
     {                                                                                                                          \
         obj_p le = eval_str(lhs);                                                                                              \
-        obj_p lns = obj_fmt(le);                                                                                               \
+        obj_p lns = obj_fmt(le, B8_TRUE);                                                                                      \
         if (is_error(le))                                                                                                      \
         {                                                                                                                      \
             obj_p fmt = str_fmt(-1, "Input error: %s\n -- at: %s:%d", as_string(lns), __FILE__, __LINE__);                     \
@@ -35,7 +35,7 @@
         else                                                                                                                   \
         {                                                                                                                      \
             obj_p re = eval_str(rhs);                                                                                          \
-            obj_p rns = obj_fmt(re);                                                                                           \
+            obj_p rns = obj_fmt(re, B8_TRUE);                                                                                  \
             obj_p fmt = str_fmt(-1, "Expected %s, got %s\n -- at: %s:%d", as_string(rns), as_string(lns), __FILE__, __LINE__); \
             TEST_ASSERT(str_cmp(as_string(lns), lns->len, as_string(rns), rns->len) == 0, as_string(fmt));                     \
             drop_obj(fmt);                                                                                                     \
@@ -57,6 +57,9 @@ test_result_t test_lang_basic()
     TEST_ASSERT_EQ("1.1", "1.10");
     TEST_ASSERT_EQ("\"\"", "\"\"");
     TEST_ASSERT_EQ("'asd", "'asd");
+    TEST_ASSERT_EQ("'", "0s");
+    TEST_ASSERT_EQ("(as 'String ')", "\"\"");
+    TEST_ASSERT_EQ("(as 'String ' )", "\"\"");
     TEST_ASSERT_EQ("\"asd\"", "\"asd\"");
     TEST_ASSERT_EQ("{a: \"asd\" b: 1 c: [1 2 3]}", "{a: \"asd\" b: 1 c: [1 2 3]}");
     TEST_ASSERT_EQ("{a: \"asd\" b: 1 c: [1 2 3] d: {e: 1 f: 2}}", "{a: \"asd\" b: 1 c: [1 2 3] d: {e: 1 f: 2}}");
