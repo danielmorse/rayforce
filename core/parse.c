@@ -61,12 +61,14 @@ nil_t span_extend(parser_t *parser, span_t *span)
 obj_p parse_error(parser_t *parser, i64_t id, obj_p msg)
 {
     span_t span;
-    obj_p obj = error_obj(ERR_PARSE, msg);
+    obj_p err;
 
-    if (parser->nfo)
+    err = error_obj(ERR_PARSE, msg);
+
+    if (parser->nfo != NULL_OBJ)
     {
         span = nfo_get(parser->nfo, id);
-        as_error(obj)->locs = vn_list(1,
+        as_error(err)->locs = vn_list(1,
                                       vn_list(4,
                                               i64(span.id),                       // span
                                               clone_obj(as_list(parser->nfo)[0]), // file
@@ -75,7 +77,7 @@ obj_p parse_error(parser_t *parser, i64_t id, obj_p msg)
                                               ));
     }
 
-    return obj;
+    return err;
 }
 
 b8_t is_whitespace(c8_t c)

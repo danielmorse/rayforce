@@ -49,7 +49,7 @@ span_t nfo_get(obj_p nfo, i64_t index)
     i64_t i;
     span_t span = {0};
 
-    if (!nfo)
+    if (nfo == NULL_OBJ)
         return span;
 
     i = ht_oa_tab_next(&as_list(nfo)[2], index);
