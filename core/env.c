@@ -160,6 +160,7 @@ nil_t init_functions(obj_p functions)
     regf(functions,  "use-unicode-format",  TYPE_UNARY,    FN_NONE,                   ray_unicode_format);
     regf(functions,  "set-fpr",             TYPE_UNARY,    FN_NONE,                   ray_set_fpr);
     regf(functions,  "set-display-width",   TYPE_UNARY,    FN_NONE,                   ray_set_display_width);
+    regf(functions,  "nil?",                TYPE_UNARY,    FN_NONE,                   ray_is_null);
     
     // Binary           
     regf(functions,  "try",                 TYPE_BINARY,   FN_NONE | FN_SPECIAL_FORM, try_obj);

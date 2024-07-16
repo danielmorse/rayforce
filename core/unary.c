@@ -292,6 +292,16 @@ obj_p ray_get(obj_p x)
     }
 }
 
+obj_p ray_resolve(obj_p x)
+{
+    if (x->type != -TYPE_SYMBOL)
+        return error(ERR_TYPE, "resolve: expected symbol, got: '%s'", type_name(x->type));
+
+    obj_p *res = resolve(x->i64);
+
+    return (res == NULL) ? NULL_OBJ : clone_obj(*res);
+}
+
 obj_p ray_bins(obj_p x)
 {
     obj_p bins, res;
@@ -335,4 +345,9 @@ obj_p ray_unicode_format(obj_p x)
     format_use_unicode(x->b8);
 
     return null(0);
+}
+
+obj_p ray_is_null(obj_p x)
+{
+    return b8(is_null(x));
 }

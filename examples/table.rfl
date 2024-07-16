@@ -1,4 +1,4 @@
-(set n 10000000)
+(if (nil? (resolve 'n)) (set n 10000000))
 
 (set t (table [OrderId Symbol Price Size Tape Timestamp] 
     (list (take n (guid 1000000))
