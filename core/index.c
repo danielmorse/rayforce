@@ -501,13 +501,6 @@ obj_p index_find_obj(obj_p x[], u64_t xl, obj_p y[], u64_t yl)
     return res;
 }
 
-nil_t index_group_next(obj_p index, u64_t i, u64_t *$x, u64_t *$y)
-{
-    index_group_next_f fn = (index_group_next_f)as_list(index)[3]->i64;
-
-    fn(index, i, $x, $y);
-}
-
 u64_t index_group_count(obj_p index)
 {
     return (u64_t)as_list(index)[0]->i64;
@@ -515,74 +508,15 @@ u64_t index_group_count(obj_p index)
 
 u64_t index_group_len(obj_p index)
 {
-    if (!is_null(as_list(index)[5])) // filter
-        return as_list(index)[5]->len;
+    if (!is_null(as_list(index)[4])) // filter
+        return as_list(index)[4]->len;
 
-    return as_list(index)[4]->len; // source
+    return as_list(index)[3]->len; // source
 }
 
-nil_t index_group_get_simple(obj_p index, u64_t i, u64_t *$x, u64_t *$y)
+obj_p index_group_build(u64_t groups_count, obj_p group_ids, i64_t index_min, obj_p source, obj_p filter)
 {
-    i64_t *group_ids, *source, shift;
-
-    group_ids = as_i64(as_list(index)[1]);
-    shift = as_list(index)[2]->i64;
-    source = as_i64(as_list(index)[4]);
-    *$x = i;
-    *$y = group_ids[source[i] - shift];
-}
-
-nil_t index_group_get_simple_w_filter(obj_p index, u64_t i, u64_t *$x, u64_t *$y)
-{
-    i64_t *group_ids, *source, *filter, shift;
-
-    group_ids = as_i64(as_list(index)[1]);
-    shift = as_list(index)[2]->i64;
-    source = as_i64(as_list(index)[4]);
-    filter = as_i64(as_list(index)[5]);
-    *$x = filter[i];
-    *$y = group_ids[source[filter[i]] - shift];
-}
-
-nil_t index_group_get_indexed(obj_p index, u64_t i, u64_t *$x, u64_t *$y)
-{
-    i64_t *group_ids;
-
-    group_ids = as_i64(as_list(index)[1]);
-    *$x = i;
-    *$y = group_ids[i];
-}
-
-nil_t index_group_get_indexed_w_filter(obj_p index, u64_t i, u64_t *$x, u64_t *$y)
-{
-    i64_t *group_ids, *filter;
-
-    group_ids = as_i64(as_list(index)[1]);
-    filter = as_i64(as_list(index)[5]);
-    *$x = filter[i];
-    *$y = group_ids[filter[i]];
-}
-
-obj_p index_group_build(u64_t groups_count, obj_p group_ids, i64_t index_min, index_group_next_f fn, obj_p source, obj_p filter)
-{
-    index_group_next_f real_fn;
-
-    if (fn == index_group_get_simple)
-    {
-        if (filter == NULL_OBJ)
-            real_fn = index_group_get_simple;
-        else
-            real_fn = index_group_get_simple_w_filter;
-    }
-    else
-    {
-        if (filter == NULL_OBJ)
-            real_fn = index_group_get_indexed;
-        else
-            real_fn = index_group_get_indexed_w_filter;
-    }
-
-    return vn_list(6, i64(groups_count), group_ids, i64(index_min), i64((i64_t)real_fn), source, filter);
+    return vn_list(5, i64(groups_count), group_ids, i64(index_min), source, filter);
 }
 
 obj_p index_group_i8(obj_p obj, obj_p filter)
@@ -633,7 +567,7 @@ obj_p index_group_i8(obj_p obj, obj_p filter)
 
     drop_obj(keys);
 
-    return index_group_build(j, vals, NULL_I64, index_group_get_indexed, NULL_OBJ, clone_obj(filter));
+    return index_group_build(j, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
 }
 
 obj_p index_group_i64_scoped(obj_p obj, obj_p filter, const index_scope_t scope)
@@ -673,7 +607,7 @@ obj_p index_group_i64_scoped(obj_p obj, obj_p filter, const index_scope_t scope)
             }
         }
 
-        return index_group_build(j, keys, scope.min, index_group_get_simple, clone_obj(obj), clone_obj(filter));
+        return index_group_build(j, keys, scope.min, clone_obj(obj), clone_obj(filter));
     }
 
     // use hash table if range is large
@@ -719,7 +653,7 @@ obj_p index_group_i64_scoped(obj_p obj, obj_p filter, const index_scope_t scope)
 
     drop_obj(ht);
 
-    return index_group_build(j, vals, NULL_I64, index_group_get_indexed, NULL_OBJ, clone_obj(filter));
+    return index_group_build(j, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
 }
 
 obj_p index_group_i64(obj_p obj, obj_p filter)
@@ -804,7 +738,7 @@ obj_p index_group_guid(obj_p obj, obj_p filter)
 
     drop_obj(ht);
 
-    return index_group_build(j, vals, NULL_I64, index_group_get_indexed, NULL_OBJ, clone_obj(filter));
+    return index_group_build(j, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
 }
 
 obj_p index_group_obj(obj_p obj, obj_p filter)
@@ -852,7 +786,7 @@ obj_p index_group_obj(obj_p obj, obj_p filter)
 
     ht_bk_destroy(hash);
 
-    return index_group_build(j, vals, NULL_I64, index_group_get_indexed, NULL_OBJ, clone_obj(filter));
+    return index_group_build(j, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
 }
 
 obj_p index_group(obj_p val, obj_p filter)
@@ -1096,7 +1030,7 @@ obj_p index_group_list(obj_p obj, obj_p filter)
 
     drop_obj(ht);
 
-    return index_group_build(g, res, NULL_I64, index_group_get_indexed, NULL_OBJ, clone_obj(filter));
+    return index_group_build(g, res, NULL_I64, NULL_OBJ, clone_obj(filter));
 }
 
 nil_t index_hash_obj(obj_p obj, u64_t out[], i64_t filter[], u64_t len, b8_t resolve)

@@ -36,15 +36,59 @@
 #include "index.h"
 #include "pool.h"
 
-#define group_iter_map(index, len, offset, expr)                \
-    do                                                          \
-    {                                                           \
-        u64_t $i, $x, $y;                                       \
-        for ($i = 0; $i < (len); ++$i)                          \
-        {                                                       \
-            index_group_next((index), $i + (offset), &$x, &$y); \
-            expr;                                               \
-        }                                                       \
+#define aggr_iter(index, len, offset, aggr)             \
+    do                                                  \
+    {                                                   \
+        u64_t $x, $y;                                   \
+        i64_t *group_ids, *source, *filter, shift;      \
+        group_ids = as_i64(as_list(index)[1]);          \
+                                                        \
+        if (as_list(index)[3] != NULL_OBJ)              \
+        {                                               \
+            source = as_i64(as_list(index)[3]);         \
+            shift = as_list(index)[2]->i64;             \
+            if (as_list(index)[4] != NULL_OBJ)          \
+            {                                           \
+                filter = as_i64(as_list(index)[4]);     \
+                for (i = 0; i < len; i++)               \
+                {                                       \
+                    $x = filter[i + offset];            \
+                    $y = group_ids[source[$x] - shift]; \
+                    aggr;                               \
+                }                                       \
+            }                                           \
+            else                                        \
+            {                                           \
+                for (i = 0; i < len; i++)               \
+                {                                       \
+                    $x = i + offset;                    \
+                    $y = group_ids[source[$x] - shift]; \
+                    aggr;                               \
+                }                                       \
+            }                                           \
+        }                                               \
+        else                                            \
+        {                                               \
+            if (as_list(index)[4] != NULL_OBJ)          \
+            {                                           \
+                filter = as_i64(as_list(index)[4]);     \
+                for (i = 0; i < len; i++)               \
+                {                                       \
+                    $x = filter[i + offset];            \
+                    $y = group_ids[$x];                 \
+                    aggr;                               \
+                }                                       \
+            }                                           \
+            else                                        \
+            {                                           \
+                for (i = 0; i < len; i++)               \
+                {                                       \
+                    $x = i + offset;                    \
+                    $y = group_ids[$x];                 \
+                    aggr;                               \
+                }                                       \
+            }                                           \
+        }                                               \
     } while (0)
 
 obj_p aggr_map(raw_p aggr, obj_p val, obj_p index)
@@ -86,61 +130,6 @@ obj_p aggr_map(raw_p aggr, obj_p val, obj_p index)
     return parts;
 }
 
-#define aggr_iter(index, offset, aggr)                  \
-    do                                                  \
-    {                                                   \
-        u64_t $x, $y;                                   \
-        i64_t *group_ids, *source, *filter, shift;      \
-        group_ids = as_i64(as_list(index)[1]);          \
-                                                        \
-        if (as_list(index)[4] != NULL_OBJ)              \
-        {                                               \
-            source = as_i64(as_list(index)[4]);         \
-            shift = as_list(index)[2]->i64;             \
-            if (as_list(index)[5] != NULL_OBJ)          \
-            {                                           \
-                filter = as_i64(as_list(index)[5]);     \
-                for (i = 0; i < len; i++)               \
-                {                                       \
-                    $x = filter[i + offset];            \
-                    $y = group_ids[source[$x] - shift]; \
-                    aggr;                               \
-                }                                       \
-            }                                           \
-            else                                        \
-            {                                           \
-                for (i = 0; i < len; i++)               \
-                {                                       \
-                    $x = i + offset;                    \
-                    $y = group_ids[source[$x] - shift]; \
-                    aggr;                               \
-                }                                       \
-            }                                           \
-        }                                               \
-        else                                            \
-        {                                               \
-            if (as_list(index)[5] != NULL_OBJ)          \
-            {                                           \
-                filter = as_i64(as_list(index)[5]);     \
-                for (i = 0; i < len; i++)               \
-                {                                       \
-                    $x = filter[i + offset];            \
-                    $y = group_ids[$x];                 \
-                    aggr;                               \
-                }                                       \
-            }                                           \
-            else                                        \
-            {                                           \
-                for (i = 0; i < len; i++)               \
-                {                                       \
-                    $x = i + offset;                    \
-                    $y = group_ids[$x];                 \
-                    aggr;                               \
-                }                                       \
-            }                                           \
-        }                                               \
-    } while (0)
-
 obj_p aggr_sum_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p res)
 {
     u64_t i, n;
@@ -155,7 +144,7 @@ obj_p aggr_sum_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p re
         xi = as_i64(val);
         xo = as_i64(res);
         memset(xo, 0, n * sizeof(i64_t));
-        aggr_iter(index, offset, xo[$y] = addi64(xo[$y], xi[$x]));
+        aggr_iter(index, len, offset, xo[$y] = addi64(xo[$y], xi[$x]));
         return res;
     default:
         return error(ERR_TYPE, "sum: unsupported type: '%s'", type_name(val->type));
@@ -226,7 +215,7 @@ obj_p aggr_first_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p 
         for (i = 0; i < n; i++)
             yi[i] = NULL_I64;
 
-        aggr_iter(index, offset, if (yi[$y] == NULL_I64) yi[$y] = xi[$x]);
+        aggr_iter(index, len, offset, if (yi[$y] == NULL_I64) yi[$y] = xi[$x]);
 
         return res;
     case TYPE_F64:
@@ -236,9 +225,7 @@ obj_p aggr_first_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p 
         for (i = 0; i < n; i++)
             yf[i] = NULL_F64;
 
-        group_iter_map(index, len, offset,
-                       if (ops_is_nan(yf[$y]))
-                           yf[$y] = xf[$x]);
+        aggr_iter(index, len, offset, if (ops_is_nan(yf[$y])) yf[$y] = xf[$x]);
 
         return res;
     case TYPE_GUID:
@@ -247,9 +234,9 @@ obj_p aggr_first_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p 
 
         memset(yg, 0, n * sizeof(guid_t));
 
-        group_iter_map(index, len, offset,
-                       if (memcmp(yg[$y], NULL_GUID, sizeof(guid_t)) == 0)
-                           memcpy(yg[$y], xg[$x], sizeof(guid_t)));
+        aggr_iter(index, len, offset,
+                  if (memcmp(yg[$y], NULL_GUID, sizeof(guid_t)) == 0)
+                      memcpy(yg[$y], xg[$x], sizeof(guid_t)));
 
         return res;
     case TYPE_LIST:
@@ -259,9 +246,7 @@ obj_p aggr_first_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p 
         for (i = 0; i < n; i++)
             yo[i] = NULL_OBJ;
 
-        group_iter_map(index, len, offset,
-                       if (yo[$y] == NULL_OBJ)
-                           yo[$y] = clone_obj(xo[$x]));
+        aggr_iter(index, len, offset, if (yo[$y] == NULL_OBJ) yo[$y] = clone_obj(xo[$x]));
 
         return res;
     default:
@@ -548,7 +533,7 @@ obj_p aggr_count_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p 
     for (i = 0; i < n; i++)
         yi[i] = 0;
 
-    group_iter_map(index, len, offset, yi[$y]++);
+    aggr_iter(index, len, offset, yi[$y]++);
 
     return res;
 }
@@ -598,7 +583,8 @@ obj_p aggr_avg(obj_p val, obj_p index)
         res = vector_f64(l);
         fo = as_f64(res);
 
-        group_iter_map(index, l, 0, fo[$y] = fdivi64(xi[$x], ci[$y]));
+        for (i = 0; i < l; i++)
+            fo[i] = fdivi64(xi[i], ci[i]);
 
         drop_obj(sums);
         drop_obj(cnts);
@@ -787,7 +773,7 @@ obj_p aggr_collect(obj_p val, obj_p index)
         }
 
         // fill vectors with values
-        group_iter_map(index, l, 0, as_i64(as_list(res)[$y])[as_list(res)[$y]->len++] = as_i64(val)[$x]);
+        aggr_iter(index, l, 0, as_i64(as_list(res)[$y])[as_list(res)[$y]->len++] = as_i64(val)[$x]);
 
         drop_obj(cnt);
 
@@ -949,7 +935,7 @@ obj_p aggr_indices(obj_p val, obj_p index)
     }
 
     // fill vectors with indices
-    group_iter_map(index, l, 0, as_i64(as_list(res)[$y])[as_list(res)[$y]->len++] = $x);
+    aggr_iter(index, l, 0, as_i64(as_list(res)[$y])[as_list(res)[$y]->len++] = $x);
 
     drop_obj(cnt);
 

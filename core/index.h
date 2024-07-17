@@ -49,9 +49,6 @@ typedef struct index_scope_t
     u64_t range;
 } index_scope_t;
 
-typedef nil_t (*index_group_next_f)(obj_p, u64_t, u64_t *, u64_t *);
-
-nil_t index_group_next(obj_p index, u64_t i, u64_t *$x, u64_t *$y);
 u64_t index_group_count(obj_p index);
 u64_t index_group_len(obj_p index);
 obj_p index_distinct_i8(i8_t values[], u64_t len, b8_t term);
