@@ -31,7 +31,7 @@
 #include "heap.h"
 #include "string.h"
 
-#define MPMC_SIZE 1024
+#define MPMC_SIZE 256
 
 mpmc_p mpmc_create(u64_t size)
 {
@@ -295,10 +295,10 @@ nil_t pool_prepare(pool_p pool, u64_t tasks_count)
     if (!pool)
         return;
 
-    rc_sync(B8_TRUE);
-
     u64_t i, n;
     obj_p env = interpreter_env_get();
+
+    mutex_lock(&pool->mutex);
 
     n = pool->executors_count;
 
@@ -319,6 +319,8 @@ nil_t pool_prepare(pool_p pool, u64_t tasks_count)
     }
 
     pool->tasks_count = tasks_count;
+
+    mutex_unlock(&pool->mutex);
 }
 
 nil_t pool_add_task(pool_p pool, raw_p fn, u64_t argc, ...)
@@ -347,13 +349,16 @@ obj_p pool_run(pool_p pool)
     obj_p res;
     task_data_t data;
 
-    tasks_count = pool->tasks_count;
+    mutex_lock(&pool->mutex);
+
+    rc_sync(B8_TRUE);
     n = pool->executors_count;
+    tasks_count = pool->tasks_count;
     pool->done_count = 0;
 
     // wake up all executors
-    mutex_lock(&pool->mutex);
     cond_broadcast(&pool->run);
+
     mutex_unlock(&pool->mutex);
 
     // process tasks on self too
@@ -372,18 +377,12 @@ obj_p pool_run(pool_p pool)
     }
 
     mutex_lock(&pool->mutex);
+
     pool->done_count += i;
 
     // wait for all tasks to be done
     while (pool->done_count < tasks_count)
         cond_wait(&pool->done, &pool->mutex);
-
-    // merge heaps
-    for (i = 0; i < n; i++)
-    {
-        heap_merge(pool->executors[i].heap);
-        interpreter_env_unset(pool->executors[i].interpreter);
-    }
 
     // collect results
     res = list(tasks_count);
@@ -394,13 +393,19 @@ obj_p pool_run(pool_p pool)
         if (data.id < 0 || data.id >= (i64_t)tasks_count)
             panic("Pool run: corrupted data: %lld\n", data.id);
 
-        debug_obj(data.result);
-
         ins_obj(&res, data.id, data.result);
     }
 
-    mutex_unlock(&pool->mutex);
+    // merge heaps
+    for (i = 0; i < n; i++)
+    {
+        heap_merge(pool->executors[i].heap);
+        interpreter_env_unset(pool->executors[i].interpreter);
+    }
+
     rc_sync(B8_FALSE);
+
+    mutex_unlock(&pool->mutex);
 
     return res;
 }

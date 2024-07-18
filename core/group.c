@@ -41,7 +41,7 @@ obj_p group_map(obj_p val, obj_p index)
     {
     case TYPE_TABLE:
         l = as_list(val)[1]->len;
-        res = vector(TYPE_LIST, l);
+        res = list(l);
         for (i = 0; i < l; i++)
         {
             v = as_list(as_list(val)[1])[i];
