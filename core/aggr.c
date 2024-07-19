@@ -450,73 +450,137 @@ obj_p aggr_last(obj_p val, obj_p index)
     }
 }
 
-obj_p aggr_max(obj_p val, obj_p index)
+obj_p aggr_max_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p res)
 {
-    u64_t i, l, n;
-    i64_t *xi, *xm, *xo, *ids;
-    f64_t *xf, *fo;
-    obj_p res;
+    u64_t i, n;
+    i64_t *xi, *yi;
+    f64_t *xf, *yf;
+    obj_p *xo, *yo;
+    guid_t *xg, *yg;
 
     n = index_group_count(index);
-    l = as_list(index)[1]->len;
 
     switch (val->type)
     {
-    // case TYPE_I64:
-    // case TYPE_TIMESTAMP:
-    // case TYPE_SYMBOL:
-    //     xi = as_i64(val);
-    //     xm = as_i64(as_list(index)[1]);
-    //     res = vector(val->type, n);
-    //     xo = as_i64(res);
-    //     for (i = 0; i < n; i++)
-    //         xo[i] = NULL_I64;
+    case TYPE_I64:
+    case TYPE_SYMBOL:
+    case TYPE_ENUM:
+    case TYPE_TIMESTAMP:
+        xi = as_i64(val);
+        yi = as_i64(res);
 
-    //     if (filter != NULL_OBJ)
-    //     {
-    //         ids = as_i64(filter);
-    //         for (i = 0; i < l; i++)
-    //         {
-    //             n = xm[i];
-    //             xo[n] = maxi64(xo[n], xi[ids[i]]);
-    //         }
-    //     }
-    //     else
-    //     {
-    //         for (i = 0; i < l; i++)
-    //         {
-    //             n = xm[i];
-    //             xo[n] = maxi64(xo[n], xi[i]);
-    //         }
-    //     }
-    //     return res;
-    // case TYPE_F64:
-    //     xf = as_f64(val);
-    //     xm = as_i64(as_list(bins)[1]);
-    //     res = vector_f64(n);
-    //     fo = as_f64(res);
-    //     for (i = 0; i < n; i++)
-    //         fo[i] = NULL_F64;
+        for (i = 0; i < n; i++)
+            yi[i] = NULL_I64;
 
-    //     if (filter != NULL_OBJ)
-    //     {
-    //         ids = as_i64(filter);
-    //         for (i = 0; i < l; i++)
-    //         {
-    //             n = xm[i];
-    //             fo[n] = maxf64(fo[n], xf[ids[i]]);
-    //         }
-    //     }
-    //     else
-    //     {
-    //         for (i = 0; i < l; i++)
-    //         {
-    //             n = xm[i];
-    //             fo[n] = maxf64(fo[n], xf[i]);
-    //         }
-    //     }
-    //     return res;
+        aggr_iter(index, len, offset, yi[$y] = maxi64(yi[$y], xi[$x]));
+
+        return res;
+    case TYPE_F64:
+        xf = as_f64(val);
+        yf = as_f64(res);
+
+        for (i = 0; i < n; i++)
+            yf[i] = NULL_F64;
+
+        aggr_iter(index, len, offset, yf[$y] = maxf64(yf[$y], xf[$x]));
+
+        return res;
+    case TYPE_GUID:
+        xg = as_guid(val);
+        yg = as_guid(res);
+
+        memset(yg, 0, n * sizeof(guid_t));
+
+        aggr_iter(index, len, offset,
+                  if (memcmp(xg[$y], yg[$x], sizeof(guid_t)) > 0)
+                      memcpy(yg[$y], xg[$x], sizeof(guid_t)));
+
+        return res;
+    case TYPE_LIST:
+        xo = as_list(val);
+        yo = as_list(res);
+
+        for (i = 0; i < n; i++)
+            yo[i] = NULL_OBJ;
+
+        aggr_iter(index, len, offset, if (ray_gt(xo[$x], yo[$y])) {
+            drop_obj(yo[$y]);
+            yo[$y] = clone_obj(xo[$x]); });
+
+        return res;
     default:
+        drop_obj(res);
+        return error(ERR_TYPE, "max: unsupported type: '%s'", type_name(val->type));
+    }
+}
+
+obj_p aggr_max(obj_p val, obj_p index)
+{
+    u64_t i, j, l, n;
+    i64_t *xi, *yi;
+    f64_t *xf, *yf;
+    guid_t *xg, *yg;
+    obj_p res, parts, *xo, *yo;
+
+    parts = aggr_map(aggr_max_partial, val, index);
+    unwrap_list(parts);
+    n = index_group_count(index);
+    l = parts->len;
+    res = clone_obj(as_list(parts)[0]);
+
+    switch (val->type)
+    {
+    case TYPE_I64:
+    case TYPE_SYMBOL:
+    case TYPE_TIMESTAMP:
+        yi = as_i64(res);
+        for (i = 1; i < l; i++)
+        {
+            xi = as_i64(as_list(parts)[i]);
+            for (j = 0; j < n; j++)
+                yi[j] = maxi64(yi[j], xi[j]);
+        }
+
+        drop_obj(parts);
+        return res;
+    case TYPE_F64:
+        yf = as_f64(res);
+        for (i = 1; i < l; i++)
+        {
+            xf = as_f64(as_list(parts)[i]);
+            for (j = 0; j < n; j++)
+                yf[j] = maxf64(yf[j], xf[j]);
+        }
+        drop_obj(parts);
+        return res;
+    case TYPE_GUID:
+        yg = as_guid(res);
+        for (i = 1; i < l; i++)
+        {
+            xg = as_guid(as_list(parts)[i]);
+            for (j = 0; j < n; j++)
+                if (memcmp(xg[j], yg[j], sizeof(guid_t)) > 0)
+                    memcpy(yg[j], xg[j], sizeof(guid_t));
+        }
+        drop_obj(parts);
+        return res;
+    case TYPE_LIST:
+        yo = as_list(res);
+        for (i = 1; i < l; i++)
+        {
+            xo = as_list(as_list(parts)[i]);
+            for (j = 0; j < n; j++)
+                if (ray_gt(xo[j], yo[j]))
+                {
+                    drop_obj(yo[j]);
+                    yo[j] = clone_obj(xo[j]);
+                }
+        }
+        drop_obj(parts);
+        return res;
+    default:
+        drop_obj(res);
+        drop_obj(parts);
         return error(ERR_TYPE, "max: unsupported type: '%s'", type_name(val->type));
     }
 }
