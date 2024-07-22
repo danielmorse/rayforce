@@ -510,7 +510,6 @@ obj_p ray_concat(obj_p x, obj_p y)
             as_string(vec)[i] = as_string(x)[i];
         for (i = 0; i < yl; i++)
             as_string(vec)[i + xl] = as_string(y)[i];
-        as_string(vec)[xl + yl] = '\0';
         return vec;
 
     case mtype2(TYPE_LIST, TYPE_LIST):
