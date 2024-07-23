@@ -235,6 +235,7 @@ raw_p __attribute__((hot)) heap_alloc(u64_t size)
                 return NULL;
 
             block->order = order;
+            block->used = 1;
 
             __HEAP->memstat.system += size;
 
@@ -254,8 +255,6 @@ raw_p __attribute__((hot)) heap_alloc(u64_t size)
 
     // remove the block out of list
     block = __HEAP->freelist[i];
-    block->order = order;
-    block->used = 1;
 
     __HEAP->freelist[i] = block->next;
     if (__HEAP->freelist[i] != NULL)
@@ -264,6 +263,9 @@ raw_p __attribute__((hot)) heap_alloc(u64_t size)
         __HEAP->avail &= ~bsizeof(i);
 
     heap_split_block(block, order, i);
+
+    block->order = order;
+    block->used = 1;
 
     return block2raw(block);
 }
