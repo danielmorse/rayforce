@@ -337,7 +337,6 @@ __attribute__((hot)) raw_p heap_realloc(raw_p ptr, u64_t new_size)
     // shrink
     i = block->order;
     block->order = order;
-
     heap_split_block(block, order, i);
 
     return ptr;
