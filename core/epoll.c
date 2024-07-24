@@ -402,6 +402,7 @@ i64_t poll_run(poll_p poll)
           n, nfds, sock, timeout = TIMEOUT_INFINITY;
     obj_p str, res;
     poll_result_t poll_result;
+    b8_t error;
     selector_p selector;
     struct epoll_event ev, events[MAX_EVENTS];
 
@@ -436,8 +437,10 @@ i64_t poll_run(poll_p poll)
                         res = ray_eval_str(str, poll->replfile);
                         drop_obj(str);
                         io_write(STDOUT_FILENO, MSG_TYPE_RESP, res);
+                        error = is_error(res);
                         drop_obj(res);
-                        timeit_print();
+                        if (!error)
+                            timeit_print();
                     }
 
                     term_prompt(poll->term);

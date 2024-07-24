@@ -396,6 +396,7 @@ i64_t poll_run(poll_p poll)
     i64_t kq_fd = poll->poll_fd, listen_fd = poll->ipc_fd,
           nfds, poll_result, sock, next_tm;
     i32_t n;
+    b8_t error;
     selector_p selector;
     obj_p str, res;
     struct kevent ev, events[MAX_EVENTS];
@@ -433,8 +434,10 @@ i64_t poll_run(poll_p poll)
                         res = ray_eval_str(str, poll->replfile);
                         drop_obj(str);
                         io_write(STDOUT_FILENO, MSG_TYPE_RESP, res);
+                        error = is_error(res);
                         drop_obj(res);
-                        timeit_print();
+                        if (!error)
+                            timeit_print();
                     }
 
                     term_prompt(poll->term);

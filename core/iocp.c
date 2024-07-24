@@ -537,7 +537,7 @@ i64_t poll_run(poll_p poll)
     HANDLE hPollFd = (HANDLE)poll->poll_fd;
     SOCKET hAccepted;
     OVERLAPPED_ENTRY events[MAX_EVENTS];
-    b8_t success;
+    b8_t success, error;
     i64_t key, poll_result, idx;
     obj_p str, fmt, res;
     selector_p selector;
@@ -582,8 +582,10 @@ i64_t poll_run(poll_p poll)
                             res = ray_eval_str(str, poll->replfile);
                             drop_obj(str);
                             io_write(STDOUT_FILENO, MSG_TYPE_RESP, res);
+                            error = is_error(res);
                             drop_obj(res);
-                            timeit_print();
+                            if (!error)
+                                timeit_print();
                         }
 
                         term_prompt(poll->term);
