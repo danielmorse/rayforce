@@ -835,6 +835,7 @@ obj_p index_group_i64_scoped(obj_p obj, obj_p filter, const index_scope_t scope)
     indices = is_null(filter) ? NULL : as_i64(filter);
     len = indices ? filter->len : obj->len;
 
+    // perfect hash
     if (scope.range <= len)
     {
         keys = vector_i64(scope.range);
@@ -862,6 +863,7 @@ obj_p index_group_i64_scoped(obj_p obj, obj_p filter, const index_scope_t scope)
             }
         }
 
+        //  do not compute group indices as they can be obtained from the keys
         if (scope.range <= INDEX_SCOPE_LIMIT)
             return index_group_build(groups, keys, scope.min, clone_obj(obj), clone_obj(filter));
 
@@ -970,57 +972,48 @@ obj_p index_group_guid(obj_p obj, obj_p filter)
 
 obj_p index_group_obj(obj_p obj, obj_p filter)
 {
-    u64_t i, j, n, len;
-    i64_t idx, *hk, *hv, *hp, *indices;
-    obj_p vals, *values, ht;
+    u64_t i, g, n, v, len;
+    i64_t *out, *indices;
+    obj_p vals, *values;
+    ht_bk_p hash;
 
     values = as_list(obj);
     indices = is_null(filter) ? NULL : as_i64(filter);
     len = indices ? filter->len : obj->len;
 
-    ht = ht_oa_create(len, TYPE_I64);
+    hash = ht_bk_create(len);
     vals = vector_i64(len);
-    hp = as_i64(vals);
+    out = as_i64(vals);
 
     // distribute bins
     if (indices)
     {
-        for (i = 0, j = 0; i < len; i++)
+        for (i = 0, g = 0; i < len; i++)
         {
             n = (i64_t)values[indices[i]];
-            idx = ht_oa_tab_next_with(&ht, n, &hash_obj, &hash_cmp_obj, NULL);
-            hk = as_i64(as_list(ht)[0]);
-            hv = as_i64(as_list(ht)[1]);
-            if (hk[idx] == NULL_I64)
-            {
-                hk[idx] = n;
-                hv[idx] = j++;
-            }
+            v = ht_bk_insert_with(hash, n, g, &hash_obj, &hash_cmp_obj, NULL);
+            if (v == g)
+                g++;
 
-            hp[i] = hv[idx];
+            out[i] = v;
         }
     }
     else
     {
-        for (i = 0, j = 0; i < len; i++)
+        for (i = 0, g = 0; i < len; i++)
         {
             n = (i64_t)values[i];
-            idx = ht_oa_tab_next_with(&ht, n, &hash_obj, &hash_cmp_obj, NULL);
-            hk = as_i64(as_list(ht)[0]);
-            hv = as_i64(as_list(ht)[1]);
-            if (hk[idx] == NULL_I64)
-            {
-                hk[idx] = n;
-                hv[idx] = j++;
-            }
+            v = ht_bk_insert_with(hash, n, g, &hash_obj, &hash_cmp_obj, NULL);
+            if (v == g)
+                g++;
 
-            hp[i] = hv[idx];
+            out[i] = v;
         }
     }
 
-    drop_obj(ht);
+    ht_bk_destroy(hash);
 
-    return index_group_build(j, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
+    return index_group_build(g, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
 }
 
 obj_p index_group(obj_p val, obj_p filter)
@@ -1055,7 +1048,7 @@ obj_p index_group(obj_p val, obj_p filter)
     }
 }
 
-obj_p index_group_list_direct(obj_p obj, obj_p filter)
+obj_p index_group_list_perfect(obj_p obj, obj_p filter)
 {
     u8_t *xb;
     u64_t i, j, l, len, product;
@@ -1073,7 +1066,7 @@ obj_p index_group_list_direct(obj_p obj, obj_p filter)
     indices = is_null(filter) ? NULL : as_i64(filter);
     len = indices ? filter->len : values[0]->len;
 
-    // First, check if columns types are suitable for direct hashing
+    // First, check if columns types are suitable for perfect hashing
     for (i = 0; i < l; i++)
     {
         switch (values[i]->type)
@@ -1085,7 +1078,6 @@ obj_p index_group_list_direct(obj_p obj, obj_p filter)
         case TYPE_SYMBOL:
         case TYPE_TIMESTAMP:
         case TYPE_ENUM:
-        case TYPE_F64:
             break;
         default:
             return NULL_OBJ;
@@ -1111,11 +1103,6 @@ obj_p index_group_list_direct(obj_p obj, obj_p filter)
         case TYPE_TIMESTAMP:
         case TYPE_ENUM:
             scopes[i] = index_scope(as_i64(values[i]), indices, len);
-            printf("ISCOPES: %lld %lld %lld\n", scopes[i].min, scopes[i].max, scopes[i].range);
-            break;
-        case TYPE_F64:
-            scopes[i] = index_scope((i64_t *)as_f64(values[i]), indices, len);
-            printf("FSCOPES: %lld %lld %lld\n", scopes[i].min, scopes[i].max, scopes[i].range);
             break;
         default:
             // because we already checked the types, this should never happen
@@ -1229,8 +1216,8 @@ obj_p index_group_list(obj_p obj, obj_p filter)
     if (ops_count(obj) == 0)
         return error(ERR_LENGTH, "group index list: empty source");
 
-    // If the list values are small, use direct hashing
-    res = index_group_list_direct(obj, filter);
+    // If the list values are small, use perfect hashing
+    res = index_group_list_perfect(obj, filter);
     if (!is_null(res))
     {
         timeit_tick("group index list");
