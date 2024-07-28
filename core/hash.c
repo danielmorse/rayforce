@@ -33,6 +33,7 @@
 #include "eval.h"
 #include "error.h"
 #include "atomic.h"
+#include "pool.h"
 
 obj_p ht_oa_create(u64_t size, i8_t vals)
 {
@@ -148,6 +149,38 @@ next:
     goto next;
 }
 
+i64_t ht_oa_tab_insert(obj_p *obj, i64_t key, i64_t val)
+{
+    u64_t i, size;
+    i64_t *keys, *vals;
+
+    size = as_list(*obj)[0]->len;
+    keys = as_i64(as_list(*obj)[0]);
+    vals = as_i64(as_list(*obj)[1]);
+
+next:
+    for (i = (u64_t)key & (size - 1); i < size; i++)
+    {
+        if (keys[i] == NULL_I64)
+        {
+            keys[i] = key;
+            vals[i] = val;
+            return val;
+        }
+
+        if (keys[i] == key)
+            return vals[i];
+    }
+
+    ht_oa_rehash(obj, NULL, NULL);
+
+    size = as_list(*obj)[0]->len;
+    keys = as_i64(as_list(*obj)[0]);
+    vals = as_i64(as_list(*obj)[1]);
+
+    goto next;
+}
+
 i64_t ht_oa_tab_insert_with(obj_p *obj, i64_t key, i64_t val, hash_f hash, cmp_f cmp, raw_p seed)
 {
     u64_t i, size;
@@ -215,6 +248,122 @@ i64_t ht_oa_tab_get_with(obj_p obj, i64_t key, hash_f hash, cmp_f cmp, raw_p see
     }
 
     return NULL_I64;
+}
+
+obj_p ht_parted_create(u64_t size, u64_t parts)
+{
+    u64_t i, l;
+    obj_p tables, partitions;
+
+    l = size / parts;
+    partitions = list(parts);
+    tables = list(parts);
+
+    for (i = 0; i < parts; i++)
+    {
+        as_list(partitions)[i] = vector_i64(0);
+        as_list(tables)[i] = ht_oa_create(l, TYPE_I64);
+    }
+
+    return vn_list(2, tables, partitions);
+}
+
+obj_p ht_parted_build_partial(obj_p *partition, obj_p *ht)
+{
+    u64_t i, l;
+    i64_t *keys;
+
+    l = (*partition)->len;
+    keys = as_i64(*partition);
+
+    for (i = 0; i < l; i++)
+        ht_oa_tab_insert(ht, keys[i], keys[i]);
+
+    return NULL_OBJ;
+}
+
+obj_p ht_parted_build_partial_with(obj_p *partition, obj_p *ht, hash_f hash, cmp_f cmp, raw_p seed)
+{
+    u64_t i, l;
+    i64_t *keys;
+
+    l = (*partition)->len;
+    keys = as_i64(*partition);
+
+    for (i = 0; i < l; i++)
+        ht_oa_tab_insert_with(ht, keys[i], keys[i], hash, cmp, seed);
+
+    return NULL_OBJ;
+}
+
+nil_t ht_parted_build(obj_p ht, i64_t keys[], u64_t len)
+{
+    u64_t i, l, partition;
+    obj_p partitions, v;
+    pool_p pool;
+
+    // distribute keys among partitions
+    partitions = as_list(ht)[0];
+    for (i = 0; i < len; i++)
+    {
+        partition = keys[i] % partitions->len;
+        push_raw(&as_list(partitions)[partition], &keys[i]);
+    }
+
+    // build hash tables in parallel
+    pool = pool_get();
+    pool_prepare(pool);
+    l = partitions->len;
+
+    for (i = 0; i < l; i++)
+        pool_add_task(pool, ht_parted_build_partial, 2, &as_list(partitions)[i], &as_list(as_list(ht)[1])[i]);
+
+    v = pool_run(pool);
+    drop_obj(v);
+}
+
+nil_t ht_parted_build_with(obj_p ht, i64_t keys[], u64_t len, hash_f hash, cmp_f cmp, raw_p seed)
+{
+    u64_t i, l, partition;
+    obj_p partitions, v;
+    pool_p pool;
+
+    // distribute keys among partitions
+    partitions = as_list(ht)[0];
+    for (i = 0; i < len; i++)
+    {
+        partition = hash(keys[i], seed) % partitions->len;
+        push_raw(&as_list(partitions)[partition], &keys[i]);
+    }
+
+    // build hash tables in parallel
+    pool = pool_get();
+    pool_prepare(pool);
+    l = partitions->len;
+
+    for (i = 0; i < l; i++)
+        pool_add_task(pool, ht_parted_build_partial_with, 2, &as_list(partitions)[i], &as_list(as_list(ht)[1])[i]);
+
+    v = pool_run(pool);
+    drop_obj(v);
+}
+
+i64_t ht_parted_insert(obj_p ht, i64_t key, i64_t val)
+{
+    i64_t partition;
+
+    partition = key % as_list(ht)[0]->len;
+
+    return ht_oa_tab_insert(&as_list(ht)[partition], key, val);
+}
+
+i64_t ht_parted_insert_with(obj_p ht, i64_t key, i64_t val, hash_f hash, cmp_f cmp, raw_p seed)
+{
+    i64_t partition;
+
+    partition = hash(key, seed) % as_list(ht)[0]->len;
+
+    return ht_oa_tab_insert_with(&as_list(ht)[partition], key, val, hash, cmp, seed);
 }
 
 u64_t hash_index_obj(obj_p obj)

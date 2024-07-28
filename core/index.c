@@ -229,7 +229,7 @@ nil_t __index_list_precalc_hash(obj_p cols, u64_t out[], u64_t ncols, u64_t nrow
 
     // init hashes
     for (i = 0; i < nrows; i++)
-        out[i] = 0x9ddfea08eb382d69ull;
+        out[i] = U64_HASH_SEED;
 
     // calculate hashes
     if (chunks == 1)

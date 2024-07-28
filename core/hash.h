@@ -27,14 +27,25 @@
 #include "rayforce.h"
 #include "ops.h"
 
+#define U64_HASH_SEED 0x9ddfea08eb382d69ull
+
 // Single threaded open addressing hash table
 obj_p ht_oa_create(u64_t size, i8_t vals);
 i64_t ht_oa_tab_next(obj_p *obj, i64_t key);
 i64_t ht_oa_tab_next_with(obj_p *obj, i64_t key, hash_f hash, cmp_f cmp, raw_p seed);
+i64_t ht_oa_tab_insert(obj_p *obj, i64_t key, i64_t val);
 i64_t ht_oa_tab_insert_with(obj_p *obj, i64_t key, i64_t val, hash_f hash, cmp_f cmp, raw_p seed);
 i64_t ht_oa_tab_get(obj_p obj, i64_t key);
 i64_t ht_oa_tab_get_with(obj_p obj, i64_t key, hash_f hash, cmp_f cmp, raw_p seed);
 nil_t ht_oa_rehash(obj_p *obj, hash_f hash, raw_p seed);
+
+// Radix partitioned hash table
+obj_p ht_parted_create(u64_t size, u64_t parts);
+nil_t ht_parted_build(obj_p ht, i64_t keys[], u64_t len);
+nil_t ht_parted_build_with(obj_p ht, i64_t keys[], u64_t len, hash_f hash, cmp_f cmp, raw_p seed);
+i64_t ht_parted_insert(obj_p ht, i64_t key, i64_t val);
+i64_t ht_parted_insert_with(obj_p ht, i64_t key, i64_t val,
+                            hash_f hash, cmp_f cmp, raw_p seed);
 
 // Multithreaded lockfree hash table
 typedef struct bucket_t
@@ -80,7 +91,7 @@ i64_t hash_cmp_i64(i64_t a, i64_t b, raw_p seed);
 u64_t hash_index_obj(obj_p obj);
 inline __attribute__((always_inline)) u64_t hash_index_u64(u64_t h, u64_t k)
 {
-    const u64_t s = 0x9ddfea08eb382d69ull;
+    const u64_t s = U64_HASH_SEED;
     u64_t a, b;
 
     a = (h ^ k) * s;

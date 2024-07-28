@@ -452,8 +452,8 @@ u64_t pool_split_by(pool_p pool, u64_t input_len, u64_t groups_len)
         return 1;
     else if (input_len <= pool->executors_count + 1)
         return 1;
-    else if (groups_len >= POOL_SPLIT_THRESHOLD)
-        return 2;
+    // else if (groups_len >= POOL_SPLIT_THRESHOLD)
+    //     return 2;
     else
         return pool->executors_count + 1;
 }
