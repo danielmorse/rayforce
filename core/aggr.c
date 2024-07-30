@@ -962,7 +962,7 @@ obj_p aggr_collect(obj_p val, obj_p index)
 
     cnts = as_i64(cnt);
     n = cnt->len;
-    l = ops_count(val);
+    l = index_group_len(index);
 
     switch (val->type)
     {
@@ -970,7 +970,8 @@ obj_p aggr_collect(obj_p val, obj_p index)
     case TYPE_SYMBOL:
     case TYPE_TIMESTAMP:
         res = list(n);
-        // allo vectors for each group
+
+        // alloc vectors for each group
         for (i = 0; i < n; i++)
         {
             m = cnts[i];
