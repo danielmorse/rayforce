@@ -1289,9 +1289,9 @@ obj_p index_group_list_perfect(obj_p obj, obj_p filter)
 
 obj_p index_group_list(obj_p obj, obj_p filter)
 {
-    u64_t i, len;
+    u64_t i, len, *hashes;
     i64_t g, v, *xo, *indices;
-    obj_p res, *values, ht;
+    obj_p res, *values, ht, hv;
     __index_list_ctx_t ctx;
 
     if (ops_count(obj) == 0)
@@ -1311,13 +1311,16 @@ obj_p index_group_list(obj_p obj, obj_p filter)
 
     ht = ht_oa_create(len, TYPE_I64);
 
-    res = vector_i64(len);
-    xo = as_i64(res);
+    hv = vector_i64(len);
+    hashes = (u64_t *)as_i64(hv);
 
-    __index_list_precalc_hash(obj, (u64_t *)xo, obj->len, len, indices, B8_FALSE);
+    __index_list_precalc_hash(obj, hashes, obj->len, len, indices, B8_FALSE);
     timeit_tick("group index precalc hash");
 
-    ctx = (__index_list_ctx_t){.lcols = obj, .rcols = obj, .hashes = (u64_t *)xo, .filter = indices};
+    ctx = (__index_list_ctx_t){.lcols = obj, .rcols = obj, .hashes = hashes, .filter = indices};
+
+    res = vector_i64(len);
+    xo = as_i64(res);
 
     // distribute bins
     for (i = 0, g = 0; i < len; i++)
@@ -1329,6 +1332,7 @@ obj_p index_group_list(obj_p obj, obj_p filter)
         xo[i] = v;
     }
 
+    drop_obj(hv);
     drop_obj(ht);
 
     timeit_tick("group index list");

@@ -63,9 +63,9 @@ obj_p ht_oa_create(u64_t size, i8_t vals)
 nil_t ht_oa_rehash(obj_p *obj, hash_f hash, raw_p seed)
 {
     u64_t i, j, size, key, new_size;
-    obj_p new_obj;
     i8_t type;
     i64_t *orig_keys, *new_keys, *orig_vals = NULL, *new_vals = NULL;
+    obj_p new_obj;
 
     size = as_list(*obj)[0]->len;
     orig_keys = as_i64(as_list(*obj)[0]);
@@ -203,7 +203,7 @@ i64_t ht_oa_tab_insert_with(obj_p *obj, i64_t key, i64_t val, hash_f hash, cmp_f
                 return vals[i];
         }
 
-        ht_oa_rehash(obj, hash, cmp);
+        ht_oa_rehash(obj, hash, seed);
     }
 }
 
