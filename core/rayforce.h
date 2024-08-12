@@ -121,6 +121,8 @@ typedef struct obj_t
     };
 } *obj_p;
 
+typedef obj_p list_t;
+
 // Version
 extern u8_t version(nil_t); // get version as u8_t (major - 5 bits, minor - 3 bits)
 
