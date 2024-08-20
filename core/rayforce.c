@@ -1408,7 +1408,7 @@ i64_t find_sym(obj_p obj, lit_p str)
 
 obj_p cast_obj(i8_t type, obj_p obj)
 {
-    obj_p res, err, msg;
+    obj_p v, res, err, msg;
     u64_t i, l;
 
     // Do nothing if the type is the same
@@ -1425,6 +1425,16 @@ obj_p cast_obj(i8_t type, obj_p obj)
         return i64(obj->i64);
     case mtype2(-TYPE_TIMESTAMP, -TYPE_I64):
         return timestamp(obj->i64);
+    case mtype2(-TYPE_SYMBOL, -TYPE_I64):
+        v = str_fmt(-1, "%lld", obj->i64);
+        res = symbol(as_string(v), strlen(as_string(v)));
+        drop_obj(v);
+        return res;
+    case mtype2(-TYPE_SYMBOL, -TYPE_F64):
+        v = str_fmt(-1, "%f", obj->f64);
+        res = symbol(as_string(v), strlen(as_string(v)));
+        drop_obj(v);
+        return res;
     case mtype2(-TYPE_SYMBOL, TYPE_C8):
         return symbol(as_string(obj), obj->len);
     case mtype2(-TYPE_I64, TYPE_C8):
@@ -1487,6 +1497,35 @@ obj_p cast_obj(i8_t type, obj_p obj)
     default:
         if (type == TYPE_C8)
             return obj_fmt(obj, B8_FALSE);
+
+        if (obj->type == TYPE_LIST)
+        {
+            l = obj->len;
+            if (l == 0)
+                return vector(type, 0);
+
+            v = cast_obj(-type, as_list(obj)[0]);
+            if (is_error(v))
+                return v;
+
+            res = vector(type, l);
+            ins_obj(&res, 0, v);
+
+            for (i = 1; i < l; i++)
+            {
+                v = cast_obj(-type, as_list(obj)[i]);
+                if (is_error(v))
+                {
+                    res->len = i;
+                    drop_obj(res);
+                    return v;
+                }
+
+                ins_obj(&res, i, v);
+            }
+
+            return res;
+        }
 
         msg = str_fmt(-1, "invalid conversion from '%s to '%s", type_name(obj->type), type_name(type));
         err = error_obj(ERR_TYPE, msg);
