@@ -100,7 +100,7 @@ date_t date_from_days(i64_t v)
         mid = 0;
 
     i64_t mm = (1 + mid % 12);
-    i64_t dd = (1 + days - MONTHDAYS_FWD[leap][mid]);
+    i64_t dd = (1 + days - MONTHDAYS_FWD[leap][(i32_t)mid]);
 
     return (date_t){
         .year = (u16_t)yy,
