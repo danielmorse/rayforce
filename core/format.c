@@ -141,6 +141,11 @@ nil_t debug_str(obj_p str)
     printf("\n");
 }
 
+b8_t limit_reached(i64_t limit, i64_t n)
+{
+    return limit != NO_LIMIT && n >= limit;
+}
+
 /*
  * return n:
  * n > limit - truncated
@@ -401,7 +406,7 @@ i64_t symbol_fmt_into(obj_p *dst, i64_t limit, b8_t full, i64_t val)
         return full ? str_fmt_into(dst, 3, "0s") : str_fmt_into(dst, 1, "");
 
     i64_t n = str_fmt_into(dst, limit, "%s", str_from_symbol(val));
-    if (n > limit)
+    if (limit_reached(limit, n))
         n += str_fmt_into(dst, 3, "..");
 
     return n;
@@ -420,11 +425,11 @@ i64_t string_fmt_into(obj_p *dst, i64_t limit, obj_p obj)
     for (i = 0; i < l; i++)
     {
         n += c8_fmt_into(dst, B8_FALSE, s[i]);
-        if (n > limit)
+        if (limit_reached(limit, n))
             break;
     }
 
-    if (n > limit)
+    if (limit_reached(limit, n))
         n += str_fmt_into(dst, 3, "..");
 
     n += str_fmt_into(dst, 2, "\"");
@@ -718,7 +723,7 @@ i64_t vector_fmt_into(obj_p *dst, i64_t limit, obj_p obj)
     i64_t i, n = str_fmt_into(dst, limit, "["), indent = 0;
     i64_t l;
 
-    if (n > limit)
+    if (limit_reached(limit, n))
         return n;
 
     l = obj->len;
@@ -726,17 +731,17 @@ i64_t vector_fmt_into(obj_p *dst, i64_t limit, obj_p obj)
     for (i = 0; i < l; i++)
     {
         n += raw_fmt_into(dst, indent, limit, obj, i);
-        if (n > limit)
+        if (limit_reached(limit, n))
             break;
 
         if (i + 1 < l)
             n += str_fmt_into(dst, 2, " ");
 
-        if (n > limit)
+        if (limit_reached(limit, n))
             break;
     }
 
-    if (n > limit)
+    if (limit_reached(limit, n))
         n += str_fmt_into(dst, 4, "..]");
     else
         n += str_fmt_into(dst, 2, "]");
