@@ -1267,7 +1267,7 @@ obj_p obj_fmt_n(obj_p *x, u64_t n)
         sz -= (end + 1 - start);
         start = end + 1;
 
-        obj_fmt_into(&res, 0, NO_LIMIT, B8_TRUE, *b);
+        obj_fmt_into(&res, 0, MAX_ROW_WIDTH, B8_FALSE, *b);
     }
 
     if (sz > 0 && memchr(start, '%', sz))
