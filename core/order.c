@@ -36,6 +36,9 @@ obj_p ray_iasc(obj_p x)
     case TYPE_I64:
         return ray_sort_asc(x);
 
+    case TYPE_F64:
+        return ray_sort_asc(x);
+
     default:
         throw(ERR_TYPE, "iasc: unsupported type: '%s", type_name(x->type));
     }
@@ -46,6 +49,9 @@ obj_p ray_idesc(obj_p x)
     switch (x->type)
     {
     case TYPE_I64:
+        return ray_sort_desc(x);
+
+    case TYPE_F64:
         return ray_sort_desc(x);
 
     default:
@@ -70,6 +76,16 @@ obj_p ray_asc(obj_p x)
 
         return idx;
 
+    case TYPE_F64:
+        idx = ray_sort_asc(x);
+        l = x->len;
+        for (i = 0; i < l; i++)
+            as_f64(idx)[i] = as_f64(x)[as_i64(idx)[i]];
+
+        idx->attrs |= ATTR_ASC;
+
+        return idx;
+
     default:
         throw(ERR_TYPE, "asc: unsupported type: '%s", type_name(x->type));
     }
@@ -87,6 +103,16 @@ obj_p ray_desc(obj_p x)
         l = x->len;
         for (i = 0; i < l; i++)
             as_i64(idx)[i] = as_i64(x)[as_i64(idx)[i]];
+
+        idx->attrs |= ATTR_DESC;
+
+        return idx;
+
+    case TYPE_F64:
+        idx = ray_sort_desc(x);
+        l = x->len;
+        for (i = 0; i < l; i++)
+            as_f64(idx)[i] = as_f64(x)[as_i64(idx)[i]];
 
         idx->attrs |= ATTR_DESC;
 

@@ -30,6 +30,8 @@
 #include "error.h"
 #include "aggr.h"
 #include "pool.h"
+#include "sort.h"
+#include "order.h"
 
 obj_p ray_add(obj_p x, obj_p y)
 {
@@ -1131,38 +1133,40 @@ obj_p ray_dev(obj_p x)
 
 obj_p ray_med(obj_p x)
 {
-    // u64_t i, l = 0;
-    // i64_t *xivals = NULL;
-    // f64_t *xfvals = NULL;
-    // obj_p res;
+    u64_t i, l;
+    i64_t *xivals, *xisort;
+    f64_t *xfvals, *xfsort, med;
+    obj_p sort, res;
 
     switch (x->type)
     {
-        // case TYPE_I64:
-        // case TYPE_TIMESTAMP:
-        //     l = x->len;
+    case TYPE_I64:
+        l = x->len;
 
-        //     if (!l)
-        //         return i64(NULL_I64);
+        if (l == 0)
+            return null(NULL_F64);
 
-        //     xivals = as_i64(x);
-        //     qsort(xivals, l, sizeof(i64_t), cmp_i64);
+        xivals = as_i64(x);
+        sort = ray_asc(x);
+        xisort = as_i64(sort);
+        med = (l % 2 == 0) ? (xisort[l / 2 - 1] + xisort[l / 2]) / 2.0 : xisort[l / 2];
+        drop_obj(sort);
 
-        //     res = i64(xivals[l / 2]);
-        //     res->type = -x->type;
+        return f64(med);
 
-        //     return res;
+    case TYPE_F64:
+        l = x->len;
 
-        // case TYPE_F64:
-        //     l = x->len;
+        if (l == 0)
+            return null(NULL_F64);
 
-        //     if (!l)
-        //         return f64(NULL_F64);
+        xfvals = as_f64(x);
+        sort = ray_asc(x);
+        xfsort = as_f64(sort);
+        med = (l % 2 == 0) ? (xfsort[l / 2 - 1] + xfsort[l / 2]) / 2.0 : xfsort[l / 2];
+        drop_obj(sort);
 
-        //     xfvals = as_f64(x);
-        //     qsort(xfvals, l, sizeof(f64_t), cmp_f64);
-
-        //     return f64(xfvals[l / 2]);
+        return f64(med);
 
     case TYPE_GROUPMAP:
         return aggr_med(as_list(x)[0], as_list(x)[1]);
