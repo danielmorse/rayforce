@@ -550,134 +550,28 @@ obj_p aggr_avg(obj_p val, obj_p index)
     }
 }
 
-obj_p aggr_med_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p res)
-{
-    // unused(val);
-    // u64_t i, n;
-    // i64_t *xi, *xm, *ids;
-    // f64_t *xf, *fo;
-
-    // n = index_group_count(index);
-
-    // switch (val->type)
-    // {
-    // case TYPE_I64:
-    //     xi = as_i64(val);
-    //     xm = as_i64(as_list(index)[1]);
-    //     fo = as_f64(res);
-    //     memset(fo, 0, n * sizeof(i64_t));
-    //     AGGR_ITER(index, len, offset, fo[$y] = addi64(fo[$y], xi[$x]));
-    //     for (i = 0; i < n; i++)
-    //         fo[i] = divi64(fo[i], 2);
-    //     return res;
-    // case TYPE_F64:
-    //     xf = as_f64(val);
-    //     xm = as_i64(as_list(index)[1]);
-    //     fo = as_f64(res);
-    //     memset(fo, 0, n * sizeof(i64_t));
-    //     AGGR_ITER(index, len, offset, fo[$y] = addf64(fo[$y], xf[$x]));
-    //     for (i = 0; i < n; i++)
-    //         fo[i] = fdivf64(fo[i], 2);
-    //     return res;
-    // default:
-    //     drop_obj(res);
-    //     return error(ERR_TYPE, "median: unsupported type: '%s'", type_name(val->type));
-    // }
-
-    return NULL_OBJ;
-}
-
 obj_p aggr_med(obj_p val, obj_p index)
 {
-    u64_t i, l, n;
-    i64_t *xi, *xm, *ids;
-    f64_t *xf, *fo;
-    obj_p res;
+    obj_p v, res;
 
-    switch (val->type)
-    {
-    // case TYPE_I64:
-    //     res = vector_f64(n);
-    //     fo = as_f64(res);
-    //     memset(fo, 0, n * sizeof(i64_t));
-    //     AGGR_ITER(index, len, offset, fo[$y] = addi64(fo[$y], xi[$x]));
-    //     for (i = 0; i < n; i++)
-    //         fo[i] = divi64(fo[i], 2);
-    //     return res;
-    // case TYPE_F64:
-    //     res = vector_f64(n);
-    //     fo = as_f64(res);
-    //     memset(fo, 0, n * sizeof(i64_t));
-    //     AGGR_ITER(index, len, offset, fo[$y] = addf64(fo[$y], xf[$x]));
-    //     for (i = 0; i < n; i++)
-    //         fo[i] = fdivf64(fo[i], 2);
-    //     return res;
-    default:
-        return error(ERR_TYPE, "median: unsupported type: '%s'", type_name(val->type));
-    }
+    // TODO: implement incremental median
+    val = aggr_collect(val, index);
+    res = unary_call(FN_ATOMIC, ray_med, val);
+    drop_obj(val);
+
+    return res;
 }
 
 obj_p aggr_dev(obj_p val, obj_p index)
 {
-    u64_t i, l, n;
-    i64_t *xi, *xm, *ids;
-    f64_t *xf, *fo;
-    obj_p res;
+    obj_p v, res;
 
-    // n = as_list(bins)[0]->i64;
-    // l = as_list(bins)[1]->len;
+    // TODO: implement incremental stddev
+    val = aggr_collect(val, index);
+    res = unary_call(FN_ATOMIC, ray_dev, val);
+    drop_obj(val);
 
-    // switch (val->type)
-    // {
-    // case TYPE_I64:
-    //     xi = as_i64(val);
-    //     xm = as_i64(as_list(bins)[1]);
-    //     res = vector_f64(n);
-    //     fo = as_f64(res);
-    //     memset(fo, 0, n * sizeof(i64_t));
-    //     if (filter != NULL_OBJ)
-    //     {
-    //         ids = as_i64(filter);
-    //         for (i = 0; i < l; i++)
-    //             fo[xm[i]] = addi64(fo[xm[i]], xi[ids[i]]);
-    //     }
-    //     else
-    //     {
-    //         for (i = 0; i < l; i++)
-    //             fo[xm[i]] = addi64(fo[xm[i]], xi[i]);
-    //     }
-
-    //     // calc stddev
-    //     for (i = 0; i < n; i++)
-    //         fo[i] = sqrt(fo[i]);
-
-    //     return res;
-    // case TYPE_F64:
-    //     xf = as_f64(val);
-    //     xm = as_i64(as_list(bins)[1]);
-    //     res = vector_f64(n);
-    //     fo = as_f64(res);
-    //     memset(fo, 0, n * sizeof(i64_t));
-    //     if (filter != NULL_OBJ)
-    //     {
-    //         ids = as_i64(filter);
-    //         for (i = 0; i < l; i++)
-    //             fo[xm[i]] = addf64(fo[xm[i]], xf[ids[i]]);
-    //     }
-    //     else
-    //     {
-    //         for (i = 0; i < l; i++)
-    //             fo[xm[i]] = addf64(fo[xm[i]], xf[i]);
-    //     }
-
-    //     // calc stddev
-    //     for (i = 0; i < n; i++)
-    //         fo[i] = sqrt(fo[i]);
-
-    //     return res;
-    // default:
-    return error(ERR_TYPE, "stddev: unsupported type: '%s'", type_name(val->type));
-    // }
+    return res;
 }
 
 obj_p aggr_collect(obj_p val, obj_p index)
