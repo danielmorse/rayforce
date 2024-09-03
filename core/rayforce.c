@@ -1582,7 +1582,7 @@ nil_t __attribute__((hot)) drop_obj(obj_p obj)
         return;
     case TYPE_ENUM:
         if (is_external_compound(obj))
-            mmap_free((str_p)obj - PAGE_SIZE, size_of(obj) + PAGE_SIZE);
+            mmap_free((str_p)obj - RAY_PAGE_SIZE, size_of(obj) + RAY_PAGE_SIZE);
         else
         {
             drop_obj(as_list(obj)[0]);
@@ -1592,7 +1592,7 @@ nil_t __attribute__((hot)) drop_obj(obj_p obj)
         return;
     case TYPE_ANYMAP:
         mmap_free(anymap_key(obj), size_of(obj));
-        mmap_free((str_p)obj - PAGE_SIZE, size_of(obj) + PAGE_SIZE);
+        mmap_free((str_p)obj - RAY_PAGE_SIZE, size_of(obj) + RAY_PAGE_SIZE);
         return;
     case TYPE_TABLE:
     case TYPE_DICT:

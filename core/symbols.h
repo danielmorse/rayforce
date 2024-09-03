@@ -27,9 +27,9 @@
 #include "rayforce.h"
 #include "hash.h"
 
-#define SYMBOLS_HT_SIZE PAGE_SIZE * 1024
-#define STRING_NODE_SIZE PAGE_SIZE
-#define STRING_POOL_SIZE (PAGE_SIZE * 1024ull * 1024ull)
+#define SYMBOLS_HT_SIZE RAY_PAGE_SIZE * 1024
+#define STRING_NODE_SIZE RAY_PAGE_SIZE
+#define STRING_POOL_SIZE (RAY_PAGE_SIZE * 1024ull * 1024ull)
 
 typedef struct symbol_t
 {

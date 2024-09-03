@@ -385,7 +385,7 @@ obj_p __ray_set(obj_p x, obj_p y)
     u64_t i, l, sz, size;
     u8_t *b, mmod;
     obj_p res, col, s, p, k, v, e, cols, sym, path, buf;
-    c8_t objbuf[4096] = {0};
+    c8_t objbuf[RAY_PAGE_SIZE] = {0};
 
     switch (x->type)
     {
@@ -549,9 +549,9 @@ obj_p __ray_set(obj_p x, obj_p y)
 
             if (is_external_compound(y))
             {
-                size = PAGE_SIZE + sizeof(struct obj_t) + y->len * sizeof(i64_t);
+                size = RAY_PAGE_SIZE + sizeof(struct obj_t) + y->len * sizeof(i64_t);
 
-                c = fs_fwrite(fd, (str_p)y - PAGE_SIZE, size);
+                c = fs_fwrite(fd, (str_p)y - RAY_PAGE_SIZE, size);
                 fs_fclose(fd);
 
                 if (c == -1)
@@ -566,12 +566,12 @@ obj_p __ray_set(obj_p x, obj_p y)
                 return clone_obj(x);
             }
 
-            memset(objbuf, 0, PAGE_SIZE);
+            memset(objbuf, 0, RAY_PAGE_SIZE);
             p = (obj_p)objbuf;
-            strncpy(as_string(p), str_from_symbol(as_list(y)[0]->i64), PAGE_SIZE - sizeof(struct obj_t));
+            strncpy(as_string(p), str_from_symbol(as_list(y)[0]->i64), RAY_PAGE_SIZE - sizeof(struct obj_t));
             p->mmod = MMOD_EXTERNAL_COMPOUND;
 
-            c = fs_fwrite(fd, objbuf, PAGE_SIZE);
+            c = fs_fwrite(fd, objbuf, RAY_PAGE_SIZE);
             if (c == -1)
             {
                 res = sys_error(ERROR_TYPE_SYS, as_string(path));
@@ -660,12 +660,12 @@ obj_p __ray_set(obj_p x, obj_p y)
                 return res;
             }
 
-            memset(objbuf, 0, PAGE_SIZE);
+            memset(objbuf, 0, RAY_PAGE_SIZE);
             p = (obj_p)objbuf;
 
             p->mmod = MMOD_EXTERNAL_COMPOUND;
 
-            c = fs_fwrite(fd, objbuf, PAGE_SIZE);
+            c = fs_fwrite(fd, objbuf, RAY_PAGE_SIZE);
             if (c == -1)
             {
                 res = sys_error(ERROR_TYPE_SYS, as_string(path));

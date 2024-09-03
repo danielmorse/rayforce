@@ -157,7 +157,7 @@ symbols_p symbols_create(nil_t)
     }
 
     // Allocate the string pool as close to the start of the address space as possible
-    pooladdr = (raw_p)(PAGE_SIZE);
+    pooladdr = (raw_p)(RAY_PAGE_SIZE);
     symbols->size = SYMBOLS_HT_SIZE;
     symbols->count = 0;
     symbols->syms = (symbol_p *)heap_mmap(SYMBOLS_HT_SIZE * sizeof(symbol_p));

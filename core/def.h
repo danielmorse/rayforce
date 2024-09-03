@@ -36,7 +36,7 @@
 #include <windows.h>
 #include <direct.h>
 #define MSG_NOSIGNAL 0
-#define PAGE_SIZE 4096
+#define RAY_PAGE_SIZE 4096
 #define MAP_FAILED (raw_p)(-1)
 #define getcwd _getcwd
 #elif defined(__linux__)
@@ -47,7 +47,7 @@
 #define __USE_MISC
 #define _DEFAULT_SOURCE
 #endif
-#define PAGE_SIZE 4096
+#define RAY_PAGE_SIZE 4096
 #define _GNU_SOURCE
 #include <stdint.h>
 #include <stdlib.h>
@@ -67,7 +67,7 @@
 #define __USE_MISC
 #define _DEFAULT_SOURCE
 #endif
-#define PAGE_SIZE 4096
+#define RAY_PAGE_SIZE 4096
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #include <sys/mman.h>
@@ -83,7 +83,7 @@
 #include <mach/thread_policy.h>
 #elif defined(__EMSCRIPTEN__)
 #define OS_WASM
-#define PAGE_SIZE 65536
+#define RAY_PAGE_SIZE 65536
 #include <unistd.h>
 #include <emscripten.h>
 #else

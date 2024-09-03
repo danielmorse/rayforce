@@ -280,7 +280,7 @@ obj_p ray_get(obj_p x)
             }
 
             if (is_external_compound(res))
-                res = (obj_p)((str_p)res + PAGE_SIZE);
+                res = (obj_p)((str_p)res + RAY_PAGE_SIZE);
 
             // anymap needs additional nested mapping of dependencies
             if (res->type == TYPE_ANYMAP)
@@ -298,7 +298,7 @@ obj_p ray_get(obj_p x)
                     throw(ERR_TYPE, "get: expected anymap schema as a byte vector, got: '%s", type_name(keys->type));
                 }
 
-                ((obj_p)((str_p)res - PAGE_SIZE))->obj = keys;
+                ((obj_p)((str_p)res - RAY_PAGE_SIZE))->obj = keys;
             }
 
             res->rc = 1;
