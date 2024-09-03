@@ -117,9 +117,9 @@ test_result_t test_lang_query()
     TEST_ASSERT_EQ("(at t 'volume)", "[500 400 900]");
     TEST_ASSERT_EQ("(at t 'tape)", "(list \"A\"\"B\"\"C\")");
     TEST_ASSERT_EQ("(set n 10)"
-                   "(set ids (take n (guid 3)))"
+                   "(set gds (take n (guid 3)))"
                    "(set t (table [OrderId Symbol Price Size Tape Timestamp]"
-                   "(list ids"
+                   "(list gds"
                    "(take n [apll good msfk ibmd amznt fbad baba])"
                    "(as 'F64 (til n))"
                    "(take n (+ 1 (til 3)))"
@@ -130,12 +130,12 @@ test_result_t test_lang_query()
     TEST_ASSERT_EQ("(select {from: t by: Symbol})",
                    "(table [Symbol OrderId Price Size Tape Timestamp]"
                    "(list [apll good msfk ibmd amznt fbad baba]"
-                   "(at ids (til 7)) [0 1 2 3 4 5 6.0] [1 2 3 1 2 3 1]"
+                   "(at gds (til 7)) [0 1 2 3 4 5 6.0] [1 2 3 1 2 3 1]"
                    "(list \"0\"\"1\"\"2\"\"3\"\"4\"\"5\"\"6\")"
                    "(at (at t 'Timestamp) (til 7))))");
     TEST_ASSERT_EQ("(select {from: t by: Symbol where: (== Price 3)})",
                    "(table [Symbol OrderId Price Size Tape Timestamp]"
-                   "(list [ibmd] (at ids 3) [3.00] [1] (list \"3\") [2000.01.01D00:00:00.000000003]))");
+                   "(list [ibmd] (at gds 3) [3.00] [1] (list \"3\") [2000.01.01D00:00:00.000000003]))");
     TEST_ASSERT_EQ("(select {from: t by: Symbol where: (== Price 99)})",
                    "(table [Symbol OrderId Price Size Tape Timestamp]"
                    "(list [] [] [] [] (list) []))");
