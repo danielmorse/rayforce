@@ -591,7 +591,7 @@ obj_p ray_distinct(obj_p x)
 
 obj_p ray_group(obj_p x)
 {
-    obj_p k, v, index, res;
+    obj_p k, v, index;
 
     index = index_group(x, NULL_OBJ);
     v = aggr_ids(x, index);

@@ -128,5 +128,7 @@ cleanup:
 
 obj_p lambda_call(u8_t attrs, obj_p f, obj_p *x, u64_t n)
 {
+    unused(attrs);
+    unused(x);
     return call(f, n);
 }

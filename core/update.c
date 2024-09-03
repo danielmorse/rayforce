@@ -531,8 +531,8 @@ upsert:
 obj_p __update_table(obj_p tab, obj_p keys, obj_p vals, obj_p filters, obj_p groupby)
 {
     u64_t i, j, l, m, n;
-    obj_p prm, obj, *val = NULL, gids, v, col, res;
     i64_t *ids;
+    obj_p prm, obj, *val = NULL, gids, v, col, index, res;
 
     // No filters nor groupings
     if (filters == NULL_OBJ && groupby == NULL_OBJ)
@@ -560,7 +560,9 @@ obj_p __update_table(obj_p tab, obj_p keys, obj_p vals, obj_p filters, obj_p gro
 
         l = keys->len;
 
-        gids = aggr_ids(groupby, ids);
+        index = index_group(groupby, filters);
+        gids = aggr_ids(groupby, index);
+        drop_obj(index);
         drop_obj(groupby);
         n = gids->len;
 

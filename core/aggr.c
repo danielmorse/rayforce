@@ -501,8 +501,8 @@ obj_p aggr_count(obj_p val, obj_p index)
 
 obj_p aggr_avg(obj_p val, obj_p index)
 {
-    u64_t i, l, n;
-    i64_t *xi, *xm, *ci, *ids;
+    u64_t i, l;
+    i64_t *xi, *ci;
     f64_t *xf, *fo;
     obj_p res, sums, cnts;
 
@@ -552,7 +552,7 @@ obj_p aggr_avg(obj_p val, obj_p index)
 
 obj_p aggr_med(obj_p val, obj_p index)
 {
-    obj_p v, res;
+    obj_p res;
 
     // TODO: implement incremental median
     val = aggr_collect(val, index);
@@ -564,7 +564,7 @@ obj_p aggr_med(obj_p val, obj_p index)
 
 obj_p aggr_dev(obj_p val, obj_p index)
 {
-    obj_p v, res;
+    obj_p res;
 
     // TODO: implement incremental stddev
     val = aggr_collect(val, index);
@@ -576,7 +576,7 @@ obj_p aggr_dev(obj_p val, obj_p index)
 
 obj_p aggr_collect(obj_p val, obj_p index)
 {
-    u64_t i, l, m, n;
+    u64_t l, m, n;
     i64_t *cnts;
     obj_p cnt, k, v, res;
 
@@ -655,9 +655,9 @@ obj_p aggr_collect(obj_p val, obj_p index)
 
 obj_p aggr_ids(obj_p val, obj_p index)
 {
-    u64_t i, l, m, n;
+    u64_t l, m, n;
     i64_t *cnts;
-    obj_p cnt, k, v, res;
+    obj_p cnt, res;
 
     cnt = aggr_count(val, index);
     if (is_error(cnt))
@@ -675,6 +675,7 @@ obj_p aggr_ids(obj_p val, obj_p index)
     case TYPE_ENUM:
         res = list(n);
         AGGR_ITER(index, l, 0, val, res, i64, list, {
+            unused($in);
             m = cnts[$y];
             $out[$y] = vector_i64( m);
             $out[$y]->len = 0; }, as_i64($out[$y])[$out[$y]->len++] = $x);
@@ -684,6 +685,7 @@ obj_p aggr_ids(obj_p val, obj_p index)
     case TYPE_F64:
         res = list(n);
         AGGR_ITER(index, l, 0, val, res, f64, list, {
+            unused($in);
             m = cnts[$y];
             $out[$y] = vector_i64( m);
             $out[$y]->len = 0; }, as_i64($out[$y])[$out[$y]->len++] = $x);
@@ -693,6 +695,7 @@ obj_p aggr_ids(obj_p val, obj_p index)
     case TYPE_LIST:
         res = list(n);
         AGGR_ITER(index, l, 0, val, res, list, list, {
+            unused($in);
             m = cnts[$y];
             $out[$y] = vector_i64(m);
             $out[$y]->len = 0; }, as_i64($out[$y])[$out[$y]->len++] = $x);

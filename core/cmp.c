@@ -69,8 +69,8 @@ obj_p cmp_map(raw_p cmp, obj_p lhs, obj_p rhs)
 
 obj_p ray_eq_partial(u64_t len, u64_t offset, obj_p lhs, obj_p rhs, obj_p res)
 {
-    u64_t i, l;
-    i64_t *xi, *yi, *ei, si;
+    u64_t i;
+    i64_t *xi, *ei, si;
     b8_t *out;
     obj_p k, sym, e;
 
@@ -92,7 +92,6 @@ obj_p ray_eq_partial(u64_t len, u64_t offset, obj_p lhs, obj_p rhs, obj_p res)
         drop_obj(k);
 
         e = enum_val(lhs);
-        l = e->len;
 
         if (is_null(sym) || sym->type != TYPE_SYMBOL)
         {
@@ -119,7 +118,7 @@ obj_p ray_eq_partial(u64_t len, u64_t offset, obj_p lhs, obj_p rhs, obj_p res)
 obj_p ray_eq(obj_p x, obj_p y)
 {
     i64_t i, l;
-    obj_p vec, parts;
+    obj_p vec;
 
     switch (mtype2(x->type, y->type))
     {

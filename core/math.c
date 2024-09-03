@@ -1133,10 +1133,10 @@ obj_p ray_dev(obj_p x)
 
 obj_p ray_med(obj_p x)
 {
-    u64_t i, l;
-    i64_t *xivals, *xisort;
-    f64_t *xfvals, *xfsort, med;
-    obj_p sort, res;
+    u64_t l;
+    i64_t *xisort;
+    f64_t *xfsort, med;
+    obj_p sort;
 
     switch (x->type)
     {
@@ -1146,7 +1146,6 @@ obj_p ray_med(obj_p x)
         if (l == 0)
             return null(NULL_F64);
 
-        xivals = as_i64(x);
         sort = ray_asc(x);
         xisort = as_i64(sort);
         med = (l % 2 == 0) ? (xisort[l / 2 - 1] + xisort[l / 2]) / 2.0 : xisort[l / 2];
@@ -1160,7 +1159,6 @@ obj_p ray_med(obj_p x)
         if (l == 0)
             return null(NULL_F64);
 
-        xfvals = as_f64(x);
         sort = ray_asc(x);
         xfsort = as_f64(sort);
         med = (l % 2 == 0) ? (xfsort[l / 2 - 1] + xfsort[l / 2]) / 2.0 : xfsort[l / 2];

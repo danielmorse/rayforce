@@ -89,7 +89,6 @@ i64_t __index_list_cmp_row(i64_t row1, i64_t row2, raw_p seed)
 obj_p index_hash_obj_partial(obj_p obj, u64_t out[], i64_t filter[], u64_t len, u64_t offset, b8_t resolve)
 {
     u8_t *u8v;
-    f64_t *f64v;
     guid_t *g64v;
     u64_t i, *u64v;
     obj_p k, v, *l64v;
@@ -220,7 +219,7 @@ obj_p index_hash_obj_partial(obj_p obj, u64_t out[], i64_t filter[], u64_t len, 
 
 nil_t __index_list_precalc_hash(obj_p cols, u64_t out[], u64_t ncols, u64_t nrows, i64_t filter[], b8_t resolve)
 {
-    u64_t i, j, l, n, chunks, chunk;
+    u64_t i, j, chunks, chunk;
     pool_p pool;
     obj_p v;
 
@@ -707,7 +706,7 @@ typedef struct __group_radix_part_ctx_t
 
 obj_p index_group_distribute_partial(group_radix_part_ctx_p ctx, u64_t *groups, i64_t keys[], i64_t filter[], i64_t out[], u64_t len, hash_f hash, cmp_f cmp)
 {
-    u64_t i, j, partition_id, partitions, size, partition;
+    u64_t i, partition_id, partitions, size, partition;
     i64_t *k, *v, n, idx;
     obj_p ht;
 
@@ -897,9 +896,9 @@ obj_p index_group_i8(obj_p obj, obj_p filter)
 
 obj_p index_group_i64_unscoped(obj_p obj, obj_p filter)
 {
-    u64_t i, n, len;
-    i64_t *out, *values, *indices, v, g;
-    obj_p keys, vals;
+    u64_t len;
+    i64_t *out, *values, *indices, g;
+    obj_p vals;
 
     values = as_i64(obj);
     indices = is_null(filter) ? NULL : as_i64(filter);
@@ -939,8 +938,8 @@ obj_p index_group_i64_scoped_partial(i64_t input[], i64_t filter[], i64_t group_
 obj_p index_group_i64_scoped(obj_p obj, obj_p filter, const index_scope_t scope)
 {
     u64_t i, n, len, groups, chunks, chunk;
-    i64_t idx, *hk, *hv, *hp, *values, *indices;
-    obj_p keys, vals, v, ht;
+    i64_t *hk, *hv, *values, *indices;
+    obj_p keys, vals, v;
     pool_p pool;
 
     values = as_i64(obj);
@@ -1089,7 +1088,7 @@ obj_p index_group_guid(obj_p obj, obj_p filter)
 
 obj_p index_group_obj(obj_p obj, obj_p filter)
 {
-    u64_t i, g, n, v, len;
+    u64_t g, len;
     i64_t *out, *indices, *values;
     obj_p vals;
 
