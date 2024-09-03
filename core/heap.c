@@ -36,12 +36,12 @@ CASSERT(sizeof(struct block_t) == (2 * sizeof(struct obj_t)), heap_h);
 
 __thread heap_p __HEAP = NULL;
 
-#define blocksize(s) (sizeof(struct obj_t) + (s))
-#define bsizeof(o) (1ull << (u64_t)(o))
-#define buddyof(b, o) ((block_p)((u64_t)(b)->pool + (((u64_t)(b) - (u64_t)(b)->pool) ^ bsizeof(o))))
-#define orderof(s) (64ull - __builtin_clzll((s) - 1))
-#define block2raw(b) ((raw_p)((u64_t)(b) + sizeof(struct obj_t)))
-#define raw2block(r) ((block_p)((u64_t)(r) - sizeof(struct obj_t)))
+#define BLOCKSIZE(s) (sizeof(struct obj_t) + (s))
+#define BSIZEOF(o) (1ull << (u64_t)(o))
+#define BUDDYOF(b, o) ((block_p)((u64_t)(b)->pool + (((u64_t)(b) - (u64_t)(b)->pool) ^ BSIZEOF(o))))
+#define ORDEROF(s) (64ull - __builtin_clzll((s) - 1))
+#define BLOCK2RAW(b) ((raw_p)((u64_t)(b) + sizeof(struct obj_t)))
+#define RAW2BLOCK(r) ((block_p)((u64_t)(r) - sizeof(struct obj_t)))
 
 heap_p heap_create(u64_t id)
 {
@@ -80,7 +80,7 @@ nil_t heap_destroy(nil_t)
                 return;
             }
 
-            mmap_free(block, bsizeof(i));
+            mmap_free(block, BSIZEOF(i));
             block = next;
         }
     }
@@ -119,7 +119,7 @@ block_p heap_add_pool(u64_t size)
         return NULL;
 
     block->pool = block;
-    block->pool_order = orderof(size);
+    block->pool_order = ORDEROF(size);
 
     __HEAP->memstat.system += size;
     __HEAP->memstat.heap += size;
@@ -138,7 +138,7 @@ nil_t heap_remove_pool(block_p block, u64_t size)
 // inline __attribute__((always_inline))
 nil_t heap_insert_block(block_p block, u64_t order)
 {
-    u64_t size = bsizeof(order);
+    u64_t size = BSIZEOF(order);
 
     block->prev = NULL;
     block->next = __HEAP->freelist[order];
@@ -165,7 +165,7 @@ nil_t heap_remove_block(block_p block, u64_t order)
         __HEAP->freelist[order] = block->next;
 
     if (__HEAP->freelist[order] == NULL)
-        __HEAP->avail &= ~bsizeof(order);
+        __HEAP->avail &= ~BSIZEOF(order);
 }
 
 // inline __attribute__((always_inline))
@@ -175,7 +175,7 @@ nil_t heap_split_block(block_p block, u64_t block_order, u64_t order)
 
     while ((order--) > block_order)
     {
-        buddy = (block_p)((u64_t)block + bsizeof(order));
+        buddy = (block_p)((u64_t)block + BSIZEOF(order));
         buddy->pool = block->pool;
         buddy->pool_order = block->pool_order;
         heap_insert_block(buddy, order);
@@ -211,13 +211,13 @@ raw_p __attribute__((hot)) heap_alloc(u64_t size)
     u64_t i, order, block_size;
     block_p block;
 
-    if (size == 0 || size > bsizeof(MAX_POOL_ORDER))
+    if (size == 0 || size > BSIZEOF(MAX_POOL_ORDER))
         return NULL;
 
-    block_size = blocksize(size);
+    block_size = BLOCKSIZE(size);
 
     // calculate minimal order for this size
-    order = orderof(block_size);
+    order = ORDEROF(block_size);
 
     // find least order block that fits
     i = (AVAIL_MASK << order) & __HEAP->avail;
@@ -228,7 +228,7 @@ raw_p __attribute__((hot)) heap_alloc(u64_t size)
     {
         if (order >= MAX_BLOCK_ORDER)
         {
-            size = bsizeof(order);
+            size = BSIZEOF(order);
             block = heap_add_pool(size);
 
             if (block == NULL)
@@ -239,10 +239,10 @@ raw_p __attribute__((hot)) heap_alloc(u64_t size)
 
             __HEAP->memstat.system += size;
 
-            return block2raw(block);
+            return BLOCK2RAW(block);
         }
 
-        block = heap_add_pool(bsizeof(MAX_BLOCK_ORDER));
+        block = heap_add_pool(BSIZEOF(MAX_BLOCK_ORDER));
 
         if (block == NULL)
             return NULL;
@@ -260,14 +260,14 @@ raw_p __attribute__((hot)) heap_alloc(u64_t size)
     if (__HEAP->freelist[i] != NULL)
         __HEAP->freelist[i]->prev = NULL;
     else
-        __HEAP->avail &= ~bsizeof(i);
+        __HEAP->avail &= ~BSIZEOF(i);
 
     heap_split_block(block, order, i);
 
     block->order = order;
     block->used = 1;
 
-    return block2raw(block);
+    return BLOCK2RAW(block);
 }
 
 __attribute__((hot)) nil_t heap_free(raw_p ptr)
@@ -278,7 +278,7 @@ __attribute__((hot)) nil_t heap_free(raw_p ptr)
     if (ptr == NULL)
         return;
 
-    block = raw2block(ptr);
+    block = RAW2BLOCK(ptr);
     order = block->order;
 
     for (;; order++)
@@ -288,7 +288,7 @@ __attribute__((hot)) nil_t heap_free(raw_p ptr)
             return heap_insert_block(block, order);
 
         // calculate buddy
-        buddy = buddyof(block, order);
+        buddy = BUDDYOF(block, order);
 
         // buddy is used, or buddy is of different order, so we can't merge
         if (buddy->used || buddy->order != order)
@@ -311,10 +311,10 @@ __attribute__((hot)) raw_p heap_realloc(raw_p ptr, u64_t new_size)
     if (ptr == NULL)
         return heap_alloc(new_size);
 
-    block = raw2block(ptr);
-    old_size = bsizeof(block->order);
-    cap = blocksize(new_size);
-    order = orderof(cap);
+    block = RAW2BLOCK(ptr);
+    old_size = BSIZEOF(block->order);
+    cap = BLOCKSIZE(new_size);
+    order = ORDEROF(cap);
 
     if (block->order == order)
         return ptr;
@@ -358,7 +358,7 @@ i64_t heap_gc(nil_t)
     for (i = MAX_BLOCK_ORDER; i <= MAX_POOL_ORDER; i++)
     {
         block = __HEAP->freelist[i];
-        size = bsizeof(i);
+        size = BSIZEOF(i);
 
         while (block)
         {
@@ -394,7 +394,7 @@ nil_t heap_borrow(heap_p heap)
 
         heap->freelist[i]->next = NULL;
         heap->freelist[i]->prev = NULL;
-        heap->avail |= bsizeof(i);
+        heap->avail |= BSIZEOF(i);
     }
 }
 
@@ -444,7 +444,7 @@ memstat_t heap_memstat(nil_t)
         block = __HEAP->freelist[i];
         while (block)
         {
-            __HEAP->memstat.free += blocksize(i);
+            __HEAP->memstat.free += BLOCKSIZE(i);
             block = block->next;
         }
     }
