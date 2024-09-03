@@ -198,24 +198,24 @@ nil_t hist_add(hist_p hist, c8_t buf[], u64_t len)
     u64_t pos, size, index, last_len;
 
     pos = hist->pos;
-    hist->index = pos - 1;
+    hist->index = (pos > 0) ? pos - 1 : 0;
     size = hist->size;
     index = hist->index;
     last_len = 0;
 
     // Find the previous line
-    // while (index > 0)
-    // {
-    //     if (hist->lines[--index] == '\n')
-    //     {
-    //         last_len = hist->index - index - 1;
-    //         // Check if the line is already in the history buffer
-    //         if (last_len == len && strncmp(hist->lines + index + 1, buf, len) == 0)
-    //             return;
+    while (index > 0)
+    {
+        if (hist->lines[--index] == '\n')
+        {
+            last_len = hist->index - index - 1;
+            // Check if the line is already in the history buffer
+            if (last_len == len && strncmp(hist->lines + index + 1, buf, len) == 0)
+                return;
 
-    //         break;
-    //     }
-    // }
+            break;
+        }
+    }
 
     if (index == 0)
     {
