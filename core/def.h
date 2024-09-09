@@ -48,7 +48,9 @@
 #define _DEFAULT_SOURCE
 #endif
 #define RAY_PAGE_SIZE 4096
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <stdint.h>
 #include <stdlib.h>
 #include <arpa/inet.h>
