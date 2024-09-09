@@ -1177,7 +1177,7 @@ obj_p ray_med(obj_p x) {
             l = x->len;
 
             if (l == 0)
-                return null(NULL_F64);
+                return null(TYPE_F64);
 
             sort = ray_asc(x);
             xisort = AS_I64(sort);
@@ -1190,7 +1190,7 @@ obj_p ray_med(obj_p x) {
             l = x->len;
 
             if (l == 0)
-                return null(NULL_F64);
+                return null(TYPE_F64);
 
             sort = ray_asc(x);
             xfsort = AS_F64(sort);

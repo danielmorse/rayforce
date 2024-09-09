@@ -64,7 +64,7 @@ obj_p ray_quote(obj_p x) { return clone_obj(x); }
 obj_p ray_ids(obj_p x) {
     switch (x->type) {
         case TYPE_GROUPMAP:
-            return (AS_LIST(x)[0], AS_LIST(x)[1]);
+            return aggr_ids(AS_LIST(x)[0], AS_LIST(x)[1]);
         default:
             return ray_til(x);
     }
