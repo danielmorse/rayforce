@@ -24,4 +24,5 @@
 #include "fd.h"
 #include "ops.h"
 
-obj_p fd_map(obj_p flist) { return NULL_OBJ; }
+obj_p file_map(obj_p flist) { return NULL_OBJ; }
+obj_p fd_map(obj_p filemap, obj_p ids) { return NULL_OBJ; }

@@ -1437,6 +1437,7 @@ nil_t __attribute__((hot)) drop_obj(obj_p obj) {
 
     u32_t rc;
     u64_t i, l;
+    i64_t *fds;
     obj_p id, k;
 
     if (!__RC_SYNC) {
@@ -1460,6 +1461,12 @@ nil_t __attribute__((hot)) drop_obj(obj_p obj) {
                 mmap_free(obj, size_of(obj));
             else
                 heap_free(obj);
+            return;
+        case TYPE_FILEMAP:
+            l = obj->len;
+            return;
+        case TYPE_FDMAP:
+            l = AS_LIST(obj)[0]->len;
             return;
         case TYPE_ENUM:
             if (IS_EXTERNAL_COMPOUND(obj))

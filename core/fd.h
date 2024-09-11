@@ -26,6 +26,7 @@
 
 #include "rayforce.h"
 
-obj_p fd_map(obj_p flist);
+obj_p file_map(obj_p flist);
+obj_p fd_map(obj_p filemap, obj_p ids);
 
 #endif  // FD_H
