@@ -35,5 +35,7 @@ obj_p ray_print(obj_p *x, u64_t n);
 obj_p ray_println(obj_p *x, u64_t n);
 obj_p ray_args(obj_p *x, u64_t n);
 obj_p ray_exit(obj_p *x, u64_t n);
+obj_p ray_set_splayed(obj_p *x, u64_t n);
+obj_p ray_set_parted(obj_p *x, u64_t n);
 
 #endif  // VARY_H

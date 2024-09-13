@@ -29,6 +29,7 @@
 #include "rayforce.h"
 
 obj_p binary_call(u8_t attrs, binary_f f, obj_p x, obj_p y);
+obj_p binary_set(obj_p x, obj_p y);
 obj_p ray_set(obj_p x, obj_p y);
 obj_p ray_let(obj_p x, obj_p y);
 

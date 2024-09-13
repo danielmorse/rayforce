@@ -34,6 +34,7 @@
 #include "error.h"
 #include "group.h"
 #include "ops.h"
+#include "io.h"
 
 obj_p vary_call_atomic(vary_f f, obj_p *x, u64_t n) {
     u64_t i, j, l;
@@ -151,4 +152,24 @@ obj_p ray_exit(obj_p *x, u64_t n) {
     poll_exit(runtime_get()->poll, code);
 
     return NULL_OBJ;
+}
+
+obj_p ray_set_splayed(obj_p *x, u64_t n) {
+    switch (n) {
+        case 2:
+            return ray_set(x[0], x[1]);
+        case 3:
+            return io_set_table_splayed(x[0], x[1], x[2]);
+        default:
+            THROW(ERR_LENGTH, "set splayed: expected 2, 3 arguments, got %d", n);
+    }
+}
+
+obj_p ray_set_parted(obj_p *x, u64_t n) {
+    switch (n) {
+        case 2:
+            return ray_set(x[0], x[1]);
+        default:
+            THROW(ERR_LENGTH, "set parted: expected 2, 3 arguments, got %d", n);
+    }
 }

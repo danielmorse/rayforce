@@ -38,6 +38,7 @@
 #include "string.h"
 #include "unary.h"
 #include "binary.h"
+#include "compose.h"
 
 obj_p ray_hopen(obj_p x) {
     i64_t fd;
@@ -582,4 +583,156 @@ obj_p ray_load(obj_p x) {
     drop_obj(file);
 
     return res;
+}
+
+obj_p distinct_syms(obj_p *x, u64_t n) {
+    i64_t p;
+    u64_t i, j, h, l;
+    obj_p vec, set, a;
+
+    if (n == 0 || (*x)->len == 0)
+        return SYMBOL(0);
+
+    l = (*x)->len;
+
+    set = ht_oa_create(l, -1);
+
+    for (i = 0, h = 0; i < n; i++) {
+        a = *(x + i);
+        for (j = 0; j < l; j++) {
+            p = ht_oa_tab_next(&set, AS_SYMBOL(a)[j]);
+            if (AS_SYMBOL(AS_LIST(set)[0])[p] == NULL_I64) {
+                AS_SYMBOL(AS_LIST(set)[0])
+                [p] = AS_SYMBOL(a)[j];
+                h++;
+            }
+        }
+    }
+
+    vec = SYMBOL(h);
+    l = AS_LIST(set)[0]->len;
+
+    for (i = 0, j = 0; i < l; i++) {
+        if (AS_SYMBOL(AS_LIST(set)[0])[i] != NULL_I64)
+            AS_SYMBOL(vec)[j++] = AS_SYMBOL(AS_LIST(set)[0])[i];
+    }
+
+    vec->attrs |= ATTR_DISTINCT;
+
+    drop_obj(set);
+
+    return vec;
+}
+
+obj_p io_set_table_splayed(obj_p path, obj_p table, obj_p symfile) {
+    i64_t c = 0;
+    u64_t i, l;
+    obj_p res, col, s, p, v, e, cols, sym;
+
+    if (path->type != TYPE_C8)
+        THROW(ERR_TYPE, "set: table path must be a string");
+
+    if (table->type != TYPE_TABLE)
+        THROW(ERR_TYPE, "set: table must be a table");
+
+    if (path->len < 2 || AS_C8(path)[path->len - 1] != '/')
+        THROW(ERR_TYPE, "set: table path must be a directory");
+
+    // save columns schema
+    s = cstring_from_str(".d", 2);
+    col = ray_concat(path, s);
+    res = binary_set(col, AS_LIST(table)[0]);
+
+    drop_obj(s);
+    drop_obj(col);
+
+    if (IS_ERROR(res))
+        return res;
+
+    drop_obj(res);
+
+    l = AS_LIST(table)[0]->len;
+
+    cols = LIST(0);
+
+    // find symbol columns
+    for (i = 0, c = 0; i < l; i++) {
+        if (AS_LIST(AS_LIST(table)[1])[i]->type == TYPE_SYMBOL)
+            push_obj(&cols, clone_obj(AS_LIST(AS_LIST(table)[1])[i]));
+    }
+
+    sym = distinct_syms(AS_LIST(cols), cols->len);
+
+    if (sym->len > 0) {
+        switch (symfile->type) {
+            case TYPE_NULL:
+                s = cstring_from_str("sym", 3);
+                col = ray_concat(path, s);
+                res = binary_set(col, sym);
+                drop_obj(s);
+                drop_obj(col);
+                break;
+            case TYPE_C8:
+                res = binary_set(symfile, sym);
+                break;
+            default:
+                drop_obj(cols);
+                drop_obj(sym);
+                THROW(ERR_TYPE, "set: symfile must be a string");
+        }
+
+        if (IS_ERROR(res))
+            return res;
+
+        drop_obj(res);
+
+        s = symbol("sym", 3);
+        res = binary_set(s, sym);
+
+        drop_obj(s);
+
+        if (IS_ERROR(res))
+            return res;
+
+        drop_obj(res);
+    }
+
+    drop_obj(cols);
+    drop_obj(sym);
+    // --
+
+    // save columns data
+    for (i = 0; i < l; i++) {
+        v = at_idx(AS_LIST(table)[1], i);
+
+        // symbol column need to be converted to enum
+        if (v->type == TYPE_SYMBOL) {
+            s = symbol("sym", 3);
+            e = ray_enum(s, v);
+            drop_obj(s);
+            drop_obj(v);
+
+            if (IS_ERROR(e))
+                return e;
+
+            v = e;
+        }
+
+        p = at_idx(AS_LIST(table)[0], i);
+        s = cast_obj(TYPE_C8, p);
+        col = ray_concat(path, s);
+        res = binary_set(col, v);
+
+        drop_obj(p);
+        drop_obj(v);
+        drop_obj(s);
+        drop_obj(col);
+
+        if (IS_ERROR(res))
+            return res;
+
+        drop_obj(res);
+    }
+
+    return clone_obj(path);
 }
