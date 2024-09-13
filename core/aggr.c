@@ -150,7 +150,10 @@ obj_p aggr_map(raw_p aggr, obj_p val, i8_t outype, obj_p index) {
     return pool_run(pool);
 }
 
-obj_p aggr_first_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p res) {
+obj_p aggr_first_partial(raw_p arg1, raw_p arg2, raw_p arg3, raw_p arg4, raw_p arg5) {
+    u64_t len = (u64_t)arg1, offset = (u64_t)arg2;
+    obj_p val = (obj_p)arg3, index = (obj_p)arg4, res = (obj_p)arg5;
+
     switch (val->type) {
         case TYPE_I64:
         case TYPE_SYMBOL:
@@ -172,7 +175,6 @@ obj_p aggr_first_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p 
                       if ($out[$y] == NULL_OBJ) $out[$y] = clone_obj($in[$x]));
             return res;
         default:
-            drop_obj(res);
             return error(ERR_TYPE, "first: unsupported type: '%s'", type_name(val->type));
     }
 }
@@ -238,7 +240,10 @@ obj_p aggr_first(obj_p val, obj_p index) {
     }
 }
 
-obj_p aggr_last_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p res) {
+obj_p aggr_last_partial(raw_p arg1, raw_p arg2, raw_p arg3, raw_p arg4, raw_p arg5) {
+    u64_t len = (u64_t)arg1, offset = (u64_t)arg2;
+    obj_p val = (obj_p)arg3, index = (obj_p)arg4, res = (obj_p)arg5;
+
     switch (val->type) {
         case TYPE_I64:
         case TYPE_SYMBOL:
@@ -263,7 +268,6 @@ obj_p aggr_last_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p r
                 });
             return res;
         default:
-            drop_obj(res);
             return error(ERR_TYPE, "last: unsupported type: '%s'", type_name(val->type));
     }
 }
@@ -329,7 +333,10 @@ obj_p aggr_last(obj_p val, obj_p index) {
     }
 }
 
-obj_p aggr_sum_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p res) {
+obj_p aggr_sum_partial(raw_p arg1, raw_p arg2, raw_p arg3, raw_p arg4, raw_p arg5) {
+    u64_t len = (u64_t)arg1, offset = (u64_t)arg2;
+    obj_p val = (obj_p)arg3, index = (obj_p)arg4, res = (obj_p)arg5;
+
     switch (val->type) {
         case TYPE_I64:
             AGGR_ITER(index, len, offset, val, res, i64, i64, $out[$y] = 0, $out[$y] = ADDI64($out[$y], $in[$x]));
@@ -366,7 +373,10 @@ obj_p aggr_sum(obj_p val, obj_p index) {
     }
 }
 
-obj_p aggr_max_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p res) {
+obj_p aggr_max_partial(raw_p arg1, raw_p arg2, raw_p arg3, raw_p arg4, raw_p arg5) {
+    u64_t len = (u64_t)arg1, offset = (u64_t)arg2;
+    obj_p val = (obj_p)arg3, index = (obj_p)arg4, res = (obj_p)arg5;
+
     switch (val->type) {
         case TYPE_I64:
         case TYPE_TIMESTAMP:
@@ -376,7 +386,6 @@ obj_p aggr_max_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p re
             AGGR_ITER(index, len, offset, val, res, f64, f64, $out[$y] = 0.0, $out[$y] = MAXF64($out[$y], $in[$x]));
             return res;
         default:
-            drop_obj(res);
             return error(ERR_TYPE, "max: unsupported type: '%s'", type_name(val->type));
     }
 }
@@ -404,7 +413,10 @@ obj_p aggr_max(obj_p val, obj_p index) {
     }
 }
 
-obj_p aggr_min_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p res) {
+obj_p aggr_min_partial(raw_p arg1, raw_p arg2, raw_p arg3, raw_p arg4, raw_p arg5) {
+    u64_t len = (u64_t)arg1, offset = (u64_t)arg2;
+    obj_p val = (obj_p)arg3, index = (obj_p)arg4, res = (obj_p)arg5;
+
     switch (val->type) {
         case TYPE_I64:
         case TYPE_TIMESTAMP:
@@ -414,7 +426,6 @@ obj_p aggr_min_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p re
             AGGR_ITER(index, len, offset, val, res, f64, f64, $out[$y] = 0.0, $out[$y] = MINF64($out[$y], $in[$x]));
             return res;
         default:
-            drop_obj(res);
             return error(ERR_TYPE, "min: unsupported type: '%s'", type_name(val->type));
     }
 }
@@ -442,7 +453,10 @@ obj_p aggr_min(obj_p val, obj_p index) {
     }
 }
 
-obj_p aggr_count_partial(u64_t len, u64_t offset, obj_p val, obj_p index, obj_p res) {
+obj_p aggr_count_partial(raw_p arg1, raw_p arg2, raw_p arg3, raw_p arg4, raw_p arg5) {
+    u64_t len = (u64_t)arg1, offset = (u64_t)arg2;
+    obj_p val = (obj_p)arg3, index = (obj_p)arg4, res = (obj_p)arg5;
+
     UNUSED(val);
     switch (val->type) {
         case TYPE_I64:

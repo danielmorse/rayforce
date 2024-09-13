@@ -777,8 +777,7 @@ obj_p io_get_table_splayed(obj_p path, obj_p symfile) {
             return val;
         }
 
-        AS_LIST(vals)
-        [i] = val;
+        AS_LIST(vals)[i] = val;
     }
 
     // read symbol data (if any) if sym is not present in current env
@@ -809,7 +808,6 @@ obj_p io_get_table_splayed(obj_p path, obj_p symfile) {
         s = symbol("sym", 3);
         drop_obj(ray_set(s, v));
         drop_obj(s);
-
         drop_obj(v);
     }
 

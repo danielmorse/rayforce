@@ -147,8 +147,8 @@ obj_p unary_call(u8_t attrs, unary_f f, obj_p x) {
 
 obj_p ray_get(obj_p x) {
     i64_t fd;
-    obj_p res, col, keys, vals, val, s, v, id, *sym, path;
-    u64_t i, l, size;
+    obj_p res, col, keys, s, v, id, *sym, path;
+    u64_t size;
 
     switch (x->type) {
         case -TYPE_SYMBOL:
