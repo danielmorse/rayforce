@@ -1153,7 +1153,7 @@ obj_p remove_idx(obj_p *obj, i64_t idx) {
 }
 
 obj_p remove_obj(obj_p *obj, obj_p idx) {
-    u64_t i, n, l;
+    u64_t i;
     obj_p v;
 
     switch ((*obj)->type) {
@@ -1461,8 +1461,7 @@ nil_t __attribute__((hot)) drop_obj(obj_p obj) {
 
     u32_t rc;
     u64_t i, l;
-    i64_t *fds;
-    obj_p fdmap, k;
+    obj_p fdmap;
 
     if (!__RC_SYNC) {
         (obj)->rc -= 1;
