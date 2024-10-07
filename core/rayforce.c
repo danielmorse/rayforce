@@ -43,6 +43,7 @@
 #include "unary.h"
 #include "util.h"
 #include "fdmap.h"
+#include "timestamp.h"
 
 CASSERT(sizeof(struct obj_t) == 16, rayforce_h)
 
@@ -1352,7 +1353,9 @@ obj_p cast_obj(i8_t type, obj_p obj) {
         case MTYPE2(-TYPE_SYMBOL, TYPE_C8):
             return symbol(AS_C8(obj), obj->len);
         case MTYPE2(-TYPE_I64, TYPE_C8):
-            return i64(strtol(AS_C8(obj), NULL, 10));
+            return i64(i64_from_str(AS_C8(obj), obj->len));
+        case MTYPE2(-TYPE_TIMESTAMP, TYPE_C8):
+            return timestamp(timestamp_into_i64(timestamp_from_str(AS_C8(obj), obj->len)));
         case MTYPE2(-TYPE_F64, TYPE_C8):
             return f64(strtod(AS_C8(obj), NULL));
         case MTYPE2(TYPE_TABLE, TYPE_DICT):

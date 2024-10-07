@@ -38,6 +38,7 @@
 #include "index.h"
 #include "string.h"
 #include "pool.h"
+#include "cmp.h"
 
 obj_p ray_at(obj_p x, obj_p y) {
     u64_t i, j, yl, xl, n;
@@ -839,8 +840,7 @@ obj_p ray_except(obj_p x, obj_p y) {
 
             for (i = 0; i < l; i++) {
                 if (AS_I64(x)[i] != y->i64)
-                    AS_I64(res)
-                [j++] = AS_I64(x)[i];
+                    AS_I64(res)[j++] = AS_I64(x)[i];
             }
 
             resize_obj(&res, j);
@@ -855,6 +855,27 @@ obj_p ray_except(obj_p x, obj_p y) {
             drop_obj(nmask);
             return res;
         default:
+            if (x->type == TYPE_LIST) {
+                if (y->type == TYPE_LIST) {
+                    // TODO!!!!
+                } else {
+                    l = x->len;
+                    res = LIST(l);
+
+                    for (i = 0; i < l; i++) {
+                        mask = ray_eq(AS_LIST(x)[i], y);
+                        if (!mask->b8)
+                            AS_LIST(res)[j++] = clone_obj(AS_LIST(x)[i]);
+
+                        drop_obj(mask);
+                    }
+
+                    resize_obj(&res, j);
+
+                    return res;
+                }
+            }
+
             THROW(ERR_TYPE, "except: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }
 }

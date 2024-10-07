@@ -183,18 +183,18 @@ i64_t timestamp_into_i64(timestamp_t ts) {
     return (dss * NSECS_IN_DAY + offs);
 }
 
-timestamp_t timestamp_from_str(str_p src) {
+timestamp_t timestamp_from_str(str_p src, u64_t len) {
     i64_t cnt, val;
     timestamp_t ts = {.null = B8_FALSE, .year = 0, .month = 0, .day = 0, .hours = 0, .mins = 0, .secs = 0, .nanos = 0};
     c8_t *cur, *end;
 
-    if (src == NULL)
+    if (src == NULL || len == 0)
         goto null;
 
     cur = src;
     cnt = 0;
 
-    while (*cur != '\0' && cnt < 7) {
+    while (*cur != '\0' && cnt < 7 && len > 0) {
         errno = 0;                     // reset errno before the call
         val = strtoll(cur, &end, 10);  // base 10 for decimal
 
@@ -251,6 +251,8 @@ timestamp_t timestamp_from_str(str_p src) {
         // skip non-digits
         while (*cur && (*cur < '0' || *cur > '9'))
             cur++;
+
+        len -= end - cur;
     }
 
     if (cnt < 3) {

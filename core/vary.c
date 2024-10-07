@@ -35,6 +35,10 @@
 #include "group.h"
 #include "ops.h"
 #include "io.h"
+#include "fs.h"
+#include "compose.h"
+#include "items.h"
+#include "order.h"
 
 obj_p vary_call_atomic(vary_f f, obj_p *x, u64_t n) {
     u64_t i, j, l;
@@ -182,5 +186,70 @@ obj_p ray_set_parted(obj_p *x, u64_t n) {
             return ray_set(x[0], x[1]);
         default:
             THROW(ERR_LENGTH, "set parted: expected 2, 3 arguments, got %lld", n);
+    }
+}
+
+obj_p ray_get_parted(obj_p *x, u64_t n) {
+    u64_t i, l;
+    obj_p path, dir, sym, dirs, gcol, ord, res;
+
+    switch (n) {
+        case 2:
+            if (x[0]->type != TYPE_C8)
+                THROW(ERR_TYPE, "get parted: expected string as 1st argument, got %s", type_name(x[0]->type));
+
+            if (x[1]->type != -TYPE_SYMBOL)
+                THROW(ERR_TYPE, "get parted: expected symbol as 2nd argument, got %s", type_name(x[1]->type));
+
+            // Try to get symfile
+            res = io_get_symfile(x[0]);
+            if (IS_ERROR(res))
+                return res;
+
+            // Read directories structure
+            path = cstring_from_obj(x[0]);
+            dir = fs_read_dir(AS_C8(path));
+            drop_obj(path);
+
+            if (IS_ERROR(dir))
+                return dir;
+
+            // Get grouping column (parted by)
+            sym = string_from_str("sym", 3);
+            dirs = ray_except(dir, sym);
+            drop_obj(sym);
+            drop_obj(dir);
+
+            if (IS_ERROR(dirs))
+                return dirs;
+
+            // Try to convert dirs to a parted column (one of numeric datatypes)
+            res = cast_obj(TYPE_TIMESTAMP, dirs);
+
+            if (IS_ERROR(res))
+                return res;
+
+            // Sort parted dirs in an ascending order
+            ord = ray_iasc(res);
+
+            if (IS_ERROR(ord))
+                return ord;
+
+            gcol = ray_at(res, ord);
+            drop_obj(res);
+
+            res = ray_at(dirs, ord);
+            drop_obj(ord);
+            drop_obj(dirs);
+
+            // Trverse dirs for requested table
+            l = res->len;
+            for (i = 0; i < l; i++) {
+            }
+
+            return vn_list(2, gcol, res);
+
+        default:
+            THROW(ERR_LENGTH, "get parted: expected 2 arguments, got %lld", n);
     }
 }

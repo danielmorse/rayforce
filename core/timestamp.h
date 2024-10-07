@@ -39,7 +39,7 @@ typedef struct timestamp_t {
 } timestamp_t;
 
 timestamp_t timestamp_from_i64(i64_t offset);
-timestamp_t timestamp_from_str(str_p src);
+timestamp_t timestamp_from_str(str_p src, u64_t len);
 i64_t timestamp_into_i64(timestamp_t ts);
 
 obj_p ray_timestamp(obj_p arg);

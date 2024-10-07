@@ -189,7 +189,7 @@ obj_p parse_csv_field(i8_t type, str_p start, str_p end, i64_t row, obj_p out) {
                 AS_TIMESTAMP(out)[row] = NULL_I64;
                 break;
             }
-            AS_TIMESTAMP(out)[row] = timestamp_into_i64(timestamp_from_str(start));
+            AS_TIMESTAMP(out)[row] = timestamp_into_i64(timestamp_from_str(start, end - start));
             break;
         case TYPE_F64:
             AS_F64(out)[row] = f64_from_str(start, end - start);
@@ -615,6 +615,30 @@ obj_p distinct_syms(obj_p *x, u64_t n) {
     return vec;
 }
 
+obj_p io_get_symfile(obj_p path) {
+    obj_p s, col, v;
+
+    if (path->len < 2 || AS_C8(path)[path->len - 1] != '/') {
+        v = ray_get(path);
+    } else {
+        s = cstring_from_str("sym", 3);
+        col = ray_concat(path, s);
+        v = ray_get(col);
+        drop_obj(s);
+        drop_obj(col);
+    }
+
+    if (IS_ERROR(v))
+        return v;
+
+    s = symbol("sym", 3);
+    drop_obj(ray_set(s, v));
+    drop_obj(s);
+    drop_obj(v);
+
+    return NULL_OBJ;
+}
+
 obj_p io_set_table_splayed(obj_p path, obj_p table, obj_p symfile) {
     i64_t c = 0;
     u64_t i, l;
@@ -785,33 +809,13 @@ obj_p io_get_table_splayed(obj_p path, obj_p symfile) {
 
     // read symbol data (if any) if sym is not present in current env
     if (resolve(SYMBOL_SYM) == NULL) {
-        switch (symfile->type) {
-            case TYPE_NULL:
-                s = cstring_from_str("sym", 3);
-                col = ray_concat(path, s);
-                v = ray_get(col);
-                drop_obj(s);
-                drop_obj(col);
-                break;
-            case TYPE_C8:
-                v = ray_get(symfile);
-                break;
-            default:
-                drop_obj(keys);
-                drop_obj(vals);
-                THROW(ERR_TYPE, "get: symfile must be a string");
-        }
+        v = (symfile->type != TYPE_NULL) ? io_get_symfile(symfile) : io_get_symfile(path);
 
         if (IS_ERROR(v)) {
             drop_obj(keys);
             drop_obj(vals);
             return v;
         }
-
-        s = symbol("sym", 3);
-        drop_obj(ray_set(s, v));
-        drop_obj(s);
-        drop_obj(v);
     }
 
     return table(keys, vals);
