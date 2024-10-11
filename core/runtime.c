@@ -233,3 +233,13 @@ obj_p runtime_fdmap_pop(runtime_p runtime, obj_p assoc) {
 
     return fdmap;
 }
+
+obj_p runtime_fdmap_get(runtime_p runtime, obj_p assoc) {
+    obj_p id, fdmap;
+
+    id = i64((i64_t)assoc);
+    fdmap = at_obj(runtime->fdmaps, id);
+    drop_obj(id);
+
+    return fdmap;
+}

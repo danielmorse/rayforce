@@ -192,7 +192,10 @@ obj_p ray_set_parted(obj_p *x, u64_t n) {
 
 obj_p ray_get_parted(obj_p *x, u64_t n) {
     u64_t i, j, l, wide;
-    obj_p path, colpath, dir, sym, dirs, gcol, ord, t1, t2, eq, fmap, fmaps, res;
+    obj_p path, colpath, dir, sym, dirs, gcol, ord, t1, t2, eq, fmaps, fdmap, res;
+    runtime_p runtime;
+
+    runtime = runtime_get();
 
     switch (n) {
         case 2:
@@ -276,13 +279,15 @@ obj_p ray_get_parted(obj_p *x, u64_t n) {
             }
 
             fmaps = LIST(l);
-            for (j = 0; j < l; j++)
-                AS_LIST(fmaps)[j] = LIST(0);
+            for (i = 0; i < l; i++)
+                AS_LIST(fmaps)[i] = LIST(0);
 
             // Create filemaps over columns of the 1st partition
             for (i = 0; i < wide; i++) {
                 colpath = str_fmt(-1, "%s%s", AS_C8(path), str_from_symbol(AS_SYMBOL(AS_LIST(t1)[0])[i]));
-                push_obj(AS_LIST(fmaps), colpath);
+                fdmap = runtime_fdmap_get(runtime, AS_LIST(AS_LIST(t1)[1])[i]);
+                push_obj(AS_LIST(fmaps), vn_list(2, colpath, i64(AS_I64(AS_LIST(fdmap)[0])[2])));
+                drop_obj(fdmap);
             }
 
             drop_obj(path);
@@ -341,7 +346,9 @@ obj_p ray_get_parted(obj_p *x, u64_t n) {
                 // Create filemaps over columns of the partition
                 for (j = 0; j < wide; j++) {
                     colpath = str_fmt(-1, "%s%s", AS_C8(path), str_from_symbol(AS_SYMBOL(AS_LIST(t2)[0])[j]));
-                    push_obj(AS_LIST(fmaps) + i, colpath);
+                    fdmap = runtime_fdmap_get(runtime, AS_LIST(AS_LIST(t2)[1])[j]);
+                    push_obj(AS_LIST(fmaps), vn_list(2, colpath, i64(AS_I64(AS_LIST(fdmap)[0])[2])));
+                    drop_obj(fdmap);
                 }
 
                 drop_obj(t2);
