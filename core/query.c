@@ -358,11 +358,6 @@ obj_p select_apply_mappings(obj_p obj, query_ctx_p ctx) {
 
             // Materialize fields
             switch (val->type) {
-                case TYPE_ENUM:
-                    prm = ray_value(val);
-                    drop_obj(val);
-                    val = prm;
-                    break;
                 case TYPE_FILTERMAP:
                     prm = filter_collect(AS_LIST(val)[0], AS_LIST(val)[1]);
                     drop_obj(val);
@@ -464,13 +459,10 @@ obj_p select_collect_fields(query_ctx_p ctx) {
                 val = filter_collect(AS_LIST(prm)[0], AS_LIST(prm)[1]);
                 drop_obj(prm);
                 break;
-            case TYPE_ENUM:
-                val = ray_value(prm);
-                drop_obj(prm);
-                break;
             default:
                 val = ray_value(prm);
                 drop_obj(prm);
+                break;
         }
 
         if (IS_ERROR(val)) {

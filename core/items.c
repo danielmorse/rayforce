@@ -1054,7 +1054,6 @@ obj_p ray_value(obj_p x) {
             return res;
         case TYPE_MAPI64:
         case TYPE_MAPTIMESTAMP:
-        case TYPE_MAPENUM:
             l = x->len;
             n = ops_count(x);
             res = vector(AS_LIST(x)[0]->type, n);
@@ -1090,6 +1089,22 @@ obj_p ray_value(obj_p x) {
                 n = AS_LIST(x)[i]->len;
                 memcpy(guidptr, AS_GUID(AS_LIST(x)[i]), n * sizeof(guid_t));
                 guidptr += n;
+            }
+
+            return res;
+        case TYPE_MAPENUM:
+            l = x->len;
+            n = ops_count(x);
+            res = SYMBOL(n);
+            i64ptr = AS_I64(res);
+
+            // TODO: optimise enums
+            for (i = 0; i < l; i++) {
+                v = ray_value(AS_LIST(x)[i]);
+                n = v->len;
+                memcpy(i64ptr, AS_I64(v), n * sizeof(i64_t));
+                drop_obj(v);
+                i64ptr += n;
             }
 
             return res;
