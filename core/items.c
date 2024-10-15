@@ -964,9 +964,9 @@ obj_p ray_value(obj_p x) {
 
             for (i = 0; i < xl; i++) {
                 if (AS_I64(e)[i] < sl)
-                    AS_SYMBOL(res)
-                [i] = AS_SYMBOL(sym)[AS_I64(e)[i]];
-                else AS_SYMBOL(res)[i] = NULL_I64;
+                    AS_SYMBOL(res)[i] = AS_SYMBOL(sym)[AS_I64(e)[i]];
+                else
+                    AS_SYMBOL(res)[i] = NULL_I64;
             }
 
             drop_obj(sym);
