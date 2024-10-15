@@ -229,7 +229,8 @@ obj_p ray_eq(obj_p x, obj_p y) {
                 AS_B8(vec)[i] = (cmp_obj(AS_LIST(x)[i], AS_LIST(y)[i]) == 0);
 
             return vec;
-
+        case MTYPE2(TYPE_VIRTMAP, -TYPE_TIMESTAMP):
+            return cmp_map((raw_p)ray_eq_partial, AS_LIST(x)[0], y);
         default:
             THROW(ERR_TYPE, "eq: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }

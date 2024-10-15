@@ -652,10 +652,10 @@ obj_p at_idx(obj_p obj, i64_t idx) {
 }
 
 obj_p at_ids(obj_p obj, i64_t ids[], u64_t len) {
-    u64_t i, xl;
+    u64_t i, l, xl;
     i64_t *iinp, *iout;
     f64_t *finp, *fout;
-    obj_p k, v, cols, res;
+    obj_p k, v, cols, *oinp, *oout, res;
 
     switch (obj->type) {
         case TYPE_I64:
@@ -727,6 +727,30 @@ obj_p at_ids(obj_p obj, i64_t ids[], u64_t len) {
             }
 
             return table(clone_obj(AS_LIST(obj)[0]), cols);
+        case TYPE_MAPB8:
+        case TYPE_MAPU8:
+        case TYPE_MAPI64:
+        case TYPE_MAPTIMESTAMP:
+        case TYPE_MAPF64:
+        case TYPE_MAPGUID:
+        case TYPE_MAPENUM:
+            // res = LIST(len);
+            // res->type = obj->type;
+            // oinp = AS_LIST(obj);
+            // oout = AS_LIST(res);
+            // for (i = 0; i < len; i++)
+            //     oout[i] = clone_obj(oinp[ids[i]]);
+
+            // return res;
+
+            return clone_obj(AS_LIST(obj)[0]);
+        case TYPE_VIRTMAP:
+            l = AS_I64(AS_LIST(obj)[1])[0];
+            res = vector(AS_LIST(obj)[0]->type, l);
+            for (i = 0; i < l; i++)
+                AS_I64(res)[i] = AS_I64(AS_LIST(obj)[0])[0];
+
+            return res;
         default:
             res = vector(TYPE_LIST, len);
             for (i = 0; i < len; i++)
