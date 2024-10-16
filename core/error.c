@@ -51,7 +51,7 @@ obj_p error(i8_t code, lit_p fmt, ...) {
     va_list args;
 
     va_start(args, fmt);
-    e = vn_vC8(fmt, args);
+    e = vn_vc8(fmt, args);
     va_end(args);
 
     return error_obj(code, e);

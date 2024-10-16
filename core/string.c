@@ -344,7 +344,7 @@ u64_t str_cpy(str_p dst, str_p src) {
     return i;
 }
 
-obj_p vn_vC8(lit_p fmt, va_list args) {
+obj_p vn_vc8(lit_p fmt, va_list args) {
     obj_p res = NULL_OBJ;
 
     str_vfmt_into(&res, -1, fmt, args);
@@ -357,7 +357,7 @@ obj_p vn_c8(lit_p fmt, ...) {
     va_list args;
 
     va_start(args, fmt);
-    res = vn_vC8(fmt, args);
+    res = vn_vc8(fmt, args);
     va_end(args);
 
     return res;
