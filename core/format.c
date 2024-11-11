@@ -655,6 +655,16 @@ i64_t raw_fmt_into(obj_p *dst, i64_t indent, i64_t limit, obj_p obj, i64_t i) {
             n = obj_fmt_into(dst, indent, limit, B8_FALSE, res);
             drop_obj(res);
             return n;
+        case TYPE_MAPB8:
+        case TYPE_MAPU8:
+        case TYPE_MAPI64:
+        case TYPE_MAPTIMESTAMP:
+        case TYPE_MAPF64:
+        case TYPE_MAPGUID:
+            res = at_idx(obj, i);
+            n = obj_fmt_into(dst, indent, limit, B8_FALSE, res);
+            drop_obj(res);
+            return n;
         default:
             return str_fmt_into(dst, limit, "null");
     }
@@ -907,7 +917,7 @@ i64_t table_fmt_into(obj_p *dst, i64_t indent, b8_t full, obj_p obj) {
             if (table_height == rows)
                 m = raw_fmt_into(&s, 0, 38, column, j);
             else
-                m = raw_fmt_into(&s, 0, 38, column, rows - table_height + j - 1);
+                m = raw_fmt_into(&s, 0, 38, column, rows - table_height + j);
             formatted_columns[i][j] = s;
             MAXN(l, m);
         }

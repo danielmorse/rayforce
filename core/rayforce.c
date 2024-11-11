@@ -646,6 +646,29 @@ obj_p at_idx(obj_p obj, i64_t idx) {
 
             return dict(clone_obj(AS_LIST(obj)[0]), v);
 
+        case TYPE_MAPB8:
+        case TYPE_MAPU8:
+            if (idx < 0)
+                idx = obj->len + idx;
+            if (idx >= 0 && idx < (i64_t)obj->len)
+                return b8(AS_U8(obj)[idx]);
+            return b8(B8_FALSE);
+
+        case TYPE_MAPI64:
+        case TYPE_MAPTIMESTAMP:
+            if (idx < 0)
+                idx = obj->len + idx;
+            if (idx >= 0 && idx < (i64_t)obj->len)
+                return i64(AS_I64(obj)[idx]);
+            return i64(NULL_I64);
+
+        case TYPE_MAPF64:
+            if (idx < 0)
+                idx = obj->len + idx;
+            if (idx >= 0 && idx < (i64_t)obj->len)
+                return f64(AS_F64(obj)[idx]);
+            return f64(NULL_F64);
+
         default:
             return clone_obj(obj);
     }

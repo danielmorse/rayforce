@@ -185,18 +185,18 @@ obj_p aggr_first_partial(raw_p arg1, raw_p arg2, raw_p arg3, raw_p arg4, raw_p a
 }
 
 obj_p aggr_first(obj_p val, obj_p index) {
-    u64_t i, n;
+    u64_t i, l, n, m;
     i64_t *xo, *xe;
     obj_p parts, res, ek, sym;
     n = index_group_count(index);
-    parts = aggr_map((raw_p)aggr_first_partial, val, val->type, index);
-    UNWRAP_LIST(parts);
 
     switch (val->type) {
         case TYPE_I64:
         case TYPE_SYMBOL:
         case TYPE_TIMESTAMP:
         case TYPE_ENUM:
+            parts = aggr_map((raw_p)aggr_first_partial, val, val->type, index);
+            UNWRAP_LIST(parts);
             res = AGGR_COLLECT(parts, n, i64, i64, if ($out[$y] == NULL_I64) $out[$y] = $in[$x]);
             res->type = val->type;
             drop_obj(parts);
@@ -228,16 +228,22 @@ obj_p aggr_first(obj_p val, obj_p index) {
 
             return res;
         case TYPE_F64:
+            parts = aggr_map((raw_p)aggr_first_partial, val, val->type, index);
+            UNWRAP_LIST(parts);
             res = AGGR_COLLECT(parts, n, f64, f64, if (ops_is_nan($out[$y])) $out[$y] = $in[$x]);
             drop_obj(parts);
             return res;
         case TYPE_GUID:
+            parts = aggr_map((raw_p)aggr_first_partial, val, val->type, index);
+            UNWRAP_LIST(parts);
             res = AGGR_COLLECT(parts, n, guid, guid,
                                if (memcmp($out[$y], NULL_GUID, sizeof(guid_t)) == 0)
                                    memcpy($out[$y], $in[$x], sizeof(guid_t)));
             drop_obj(parts);
             return res;
         case TYPE_LIST:
+            parts = aggr_map((raw_p)aggr_first_partial, val, val->type, index);
+            UNWRAP_LIST(parts);
             res = AGGR_COLLECT(parts, n, list, list, if ($out[$y] == NULL_OBJ) $out[$y] = clone_obj($in[$x]));
             drop_obj(parts);
             return res;
@@ -246,8 +252,29 @@ obj_p aggr_first(obj_p val, obj_p index) {
         //     res = AGGR_COLLECT(parts, n, list, list, if ($out[$y] == NULL_OBJ) $out[$y] = clone_obj($in[$x]));
         //     drop_obj(parts);
         //     return res;
+        case TYPE_MAPB8:
+        case TYPE_MAPU8:
+            res = vector(AS_LIST(val)[0]->type, n);
+            for (i = 0; i < n; i++)
+                AS_B8(res)[i] = AS_B8(AS_LIST(val)[i])[0];
+            return res;
+        case TYPE_MAPI64:
+        case TYPE_MAPTIMESTAMP:
+            res = vector(AS_LIST(val)[0]->type, n);
+            for (i = 0; i < n; i++)
+                AS_I64(res)[i] = AS_I64(AS_LIST(val)[i])[0];
+            return res;
+        case TYPE_MAPF64:
+            res = vector(AS_LIST(val)[0]->type, n);
+            for (i = 0; i < n; i++)
+                AS_F64(res)[i] = AS_F64(AS_LIST(val)[i])[0];
+            return res;
+        case TYPE_MAPGUID:
+            res = vector(AS_LIST(val)[0]->type, n);
+            for (i = 0; i < n; i++)
+                memcpy(AS_GUID(res) + i, AS_GUID(AS_LIST(val)[i])[0], sizeof(guid_t));
+            return res;
         default:
-            drop_obj(parts);
             return error(ERR_TYPE, "first: unsupported type: '%s'", type_name(val->type));
     }
 }
