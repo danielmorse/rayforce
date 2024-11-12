@@ -185,7 +185,7 @@ obj_p aggr_first_partial(raw_p arg1, raw_p arg2, raw_p arg3, raw_p arg4, raw_p a
 }
 
 obj_p aggr_first(obj_p val, obj_p index) {
-    u64_t i, l, n, m;
+    u64_t i, n;
     i64_t *xo, *xe;
     obj_p parts, res, ek, sym;
     n = index_group_count(index);
