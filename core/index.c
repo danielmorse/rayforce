@@ -641,19 +641,15 @@ u64_t index_group_len(obj_p index) {
     return AS_LIST(index)[1]->len;  // group_ids
 }
 
-index_type_t index_group_type(obj_p index) {
-    if (AS_LIST(index)[3] != NULL_OBJ)
-        return INDEX_TYPE_SHIFT;
-
-    return INDEX_TYPE_IDS;
-}
+index_type_t index_group_type(obj_p index) { return (index_type_t)AS_LIST(index)[0]->i64; }
 
 i64_t *index_group_source(obj_p index) { return AS_I64(AS_LIST(index)[3]); }
 
 i64_t index_group_shift(obj_p index) { return AS_LIST(index)[2]->i64; }
 
-obj_p index_group_build(u64_t groups_count, obj_p group_ids, i64_t index_min, obj_p source, obj_p filter) {
-    return vn_list(5, i64(groups_count), group_ids, i64(index_min), source, filter);
+obj_p index_group_build(index_type_t tp, u64_t groups_count, obj_p group_ids, i64_t index_min, obj_p source,
+                        obj_p filter) {
+    return vn_list(6, i64(tp), i64(groups_count), group_ids, i64(index_min), source, filter);
 }
 
 typedef struct __group_radix_part_ctx_t {
@@ -826,7 +822,7 @@ obj_p index_group_i8(obj_p obj, obj_p filter) {
 
     drop_obj(keys);
 
-    return index_group_build(j, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
+    return index_group_build(INDEX_TYPE_IDS, j, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
 }
 
 obj_p index_group_i64_unscoped(obj_p obj, obj_p filter) {
@@ -846,7 +842,7 @@ obj_p index_group_i64_unscoped(obj_p obj, obj_p filter) {
 
     timeit_tick("index group unscoped");
 
-    return index_group_build(g, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
+    return index_group_build(INDEX_TYPE_IDS, g, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
 }
 
 obj_p index_group_i64_scoped_partial(i64_t input[], i64_t filter[], i64_t group_ids[], u64_t len, u64_t offset,
@@ -901,7 +897,7 @@ obj_p index_group_i64_scoped(obj_p obj, obj_p filter, const index_scope_t scope)
         //  do not compute group indices as they can be obtained from the keys
         if (scope.range <= INDEX_SCOPE_LIMIT) {
             timeit_tick("index group scoped perfect simple");
-            return index_group_build(groups, keys, scope.min, clone_obj(obj), clone_obj(filter));
+            return index_group_build(INDEX_TYPE_SHIFT, groups, keys, scope.min, clone_obj(obj), clone_obj(filter));
         }
 
         vals = I64(len);
@@ -930,7 +926,7 @@ obj_p index_group_i64_scoped(obj_p obj, obj_p filter, const index_scope_t scope)
 
         timeit_tick("index group scoped perfect");
 
-        return index_group_build(groups, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
+        return index_group_build(INDEX_TYPE_IDS, groups, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
     }
 
     return index_group_i64_unscoped(obj, filter);
@@ -995,7 +991,7 @@ obj_p index_group_guid(obj_p obj, obj_p filter) {
 
     drop_obj(ht);
 
-    return index_group_build(j, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
+    return index_group_build(INDEX_TYPE_IDS, j, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
 }
 
 obj_p index_group_obj(obj_p obj, obj_p filter) {
@@ -1012,7 +1008,7 @@ obj_p index_group_obj(obj_p obj, obj_p filter) {
 
     g = index_group_distribute(values, indices, out, len, &hash_obj, &hash_cmp_obj);
 
-    return index_group_build(g, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
+    return index_group_build(INDEX_TYPE_IDS, g, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
 }
 
 obj_p index_group(obj_p val, obj_p filter) {
@@ -1185,7 +1181,7 @@ obj_p index_group_list_perfect(obj_p obj, obj_p filter) {
     return res;
 }
 
-obj_p index_group_LIST(obj_p obj, obj_p filter) {
+obj_p index_group_list(obj_p obj, obj_p filter) {
     u64_t i, len;
     i64_t g, v, *xo, *indices;
     obj_p res, *values, ht;
@@ -1231,7 +1227,7 @@ obj_p index_group_LIST(obj_p obj, obj_p filter) {
 
     timeit_tick("group index list");
 
-    return index_group_build(g, res, NULL_I64, NULL_OBJ, clone_obj(filter));
+    return index_group_build(INDEX_TYPE_IDS, g, res, NULL_I64, NULL_OBJ, clone_obj(filter));
 }
 
 obj_p index_join_obj(obj_p lcols, obj_p rcols, u64_t len) {

@@ -73,7 +73,7 @@ obj_p remap_group(obj_p *gvals, obj_p cols, obj_p tab, obj_p filter, obj_p gkeys
 
             return res;
         case TYPE_SYMBOL:
-            index = index_group_LIST(cols, filter);
+            index = index_group_list(cols, filter);
             timeit_tick("build compound index");
 
             if (IS_ERROR(index))
