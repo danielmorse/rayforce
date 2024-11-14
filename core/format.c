@@ -376,12 +376,15 @@ i64_t symbol_fmt_into(obj_p *dst, i64_t limit, b8_t full, i64_t val) {
     return n;
 }
 
-i64_t string_fmt_into(obj_p *dst, i64_t limit, obj_p obj) {
+i64_t string_fmt_into(obj_p *dst, i64_t limit, b8_t full, obj_p obj) {
     i64_t n;
     u64_t i, l;
     str_p s;
+    n = 0;
 
-    n = str_fmt_into(dst, 2, "\"");
+    if (full)
+        n += str_fmt_into(dst, 2, "\"");
+
     l = obj->len;
     s = AS_C8(obj);
 
@@ -394,7 +397,8 @@ i64_t string_fmt_into(obj_p *dst, i64_t limit, obj_p obj) {
     if (limit_reached(limit, n))
         n += str_fmt_into(dst, 3, "..");
 
-    n += str_fmt_into(dst, 2, "\"");
+    if (full)
+        n += str_fmt_into(dst, 2, "\"");
 
     return n;
 }
@@ -1115,7 +1119,7 @@ i64_t obj_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj) 
         case TYPE_GUID:
             return vector_fmt_into(dst, limit, obj);
         case TYPE_C8:
-            return string_fmt_into(dst, limit, obj);
+            return string_fmt_into(dst, limit, full, obj);
         case TYPE_LIST:
             return list_fmt_into(dst, indent, limit, full, obj);
         case TYPE_ENUM:
@@ -1183,7 +1187,7 @@ obj_p obj_fmt_n(obj_p *x, u64_t n) {
         }
 
         if (end > start)
-            str_fmt_into(&res, NO_LIMIT, "%.*s", (end - start) + 1, start);
+            str_fmt_into(&res, NO_LIMIT, "%.*s", end - start, start);
 
         sz -= (end + 1 - start);
         start = end + 1;

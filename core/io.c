@@ -643,7 +643,7 @@ obj_p io_set_table_splayed(obj_p path, obj_p table, obj_p symfile) {
     i64_t c = 0;
     u64_t i, l;
     obj_p res, col, s, p, v, e, cols, sym;
-
+    DEBUG_OBJ(path);
     if (path->type != TYPE_C8)
         THROW(ERR_TYPE, "set: table path must be a string");
 

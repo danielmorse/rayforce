@@ -1,39 +1,27 @@
-(set n 100000000)
-
-(set t (table [OrderId Symbol Price Size Timestamp] 
-    (list (take n (guid 1000000))
-          (take n [AAPL GOOG MSFT IBM AMZN FB BABA]) 
-          (as 'F64 (til n)) 
-          (take n (+ 1 (til 3)))
-          (as 'Timestamp (til n)) 
-    ))
+(set n 10000000)
+(set tabname "a")
+(set dbpath "/tmp/db")
+(set sympath (format "%/sym" dbpath))
+(set gen-tab 
+    (fn [x]
+        (let p (format "%/%/%/" dbpath (+ 2021.01.01 (* 24 (* 3600 (* x 1000000000)))) tabname))
+        (println "Creating table: %" p)
+        (let t (table [OrderId Symbol Price Size Timestamp] 
+            (list (take n (guid 1000000))
+                  (take n [AAPL GOOG MSFT IBM AMZN FB BABA]) 
+                  (as 'F64 (+ x (til n))) 
+                  (take n (+ x (til 3)))
+                  (as 'Timestamp (til n)) 
+            )
+        ))
+        (set-splayed p t "/tmp/db/sym")
+        (println "Table created")
+    )
 )
 
-(set-splayed "/tmp/db/2024.01.01/a/" t "/tmp/db/sym")
+(map gen-tab (til 30))
 
-(set t (table [OrderId Symbol Price Size Timestamp] 
-    (list (take n (guid 1000000))
-          (take n [AAPL GOOG MSFT IBM AMZN FB BABA]) 
-          (as 'F64 (+ 100 (til n))) 
-          (take n (+ 10 (til 3)))
-          (as 'Timestamp (til n)) 
-    ))
-)
-
-(set-splayed "/tmp/db/2024.01.02/a/" t "/tmp/db/sym")
-
-(set t (table [OrderId Symbol Price Size Timestamp] 
-    (list (take n (guid 1000000))
-          (take n [AAPL GOOG MSFT IBM AMZN FB BABA]) 
-          (as 'F64 (+ 2000 (til n))) 
-          (take n (+ 100 (til 3)))
-          (as 'Timestamp (til n)) 
-    ))
-)
-
-(set-splayed "/tmp/db/2024.01.03/a/" t "/tmp/db/sym")
-
-(println "Save parted done.")
+(println "Done.")
 (exit 0)
 
 ;; (set t (get-parted "/tmp/db/" 'a))
