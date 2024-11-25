@@ -67,7 +67,7 @@ obj_p lambda_map(obj_p f, obj_p *x, u64_t n) {
         return NULL_OBJ;
 
     pool = pool_get();
-    executors = pool_split_by(pool, l, 0, B8_FALSE);
+    executors = pool_split_by(pool, l, 0);
 
     if (executors > 1) {
         pool_prepare(pool);

@@ -129,16 +129,14 @@ obj_p aggr_map(raw_p aggr, obj_p val, i8_t outype, obj_p index) {
     u64_t i, l, n, group_count, group_len, chunk;
     obj_p res;
     raw_p argv[6];
-    index_type_t idx_type;
 
     if (outype > TYPE_MAPLIST && outype < TYPE_TABLE)
         outype = AS_LIST(val)[0]->type;
 
-    idx_type = index_group_type(index);
     group_count = index_group_count(index);
     group_len = index_group_len(index);
-    printf("GROUP LEN: %lld\n", group_len);
-    n = pool_split_by(pool, group_len, group_count, idx_type == INDEX_TYPE_GENERATOR);
+
+    n = pool_split_by(pool, group_len, group_count);
     if (n == 1) {
         argv[0] = (raw_p)group_len;
         argv[1] = (raw_p)0;
@@ -152,22 +150,13 @@ obj_p aggr_map(raw_p aggr, obj_p val, i8_t outype, obj_p index) {
 
     pool_prepare(pool);
 
-    switch (idx_type) {
-        case INDEX_TYPE_GENERATOR:
-            for (i = 0; i < group_count; i++)
-                pool_add_task(pool, aggr, 5, AS_LIST(val)[i]->len, i, AS_LIST(val)[i], index,
-                              vector(outype, group_count));
+    l = group_len;
+    chunk = l / n;
 
-            break;
-        default:
-            l = group_len;
-            chunk = l / n;
+    for (i = 0; i < n - 1; i++)
+        pool_add_task(pool, aggr, 5, chunk, i * chunk, val, index, vector(outype, group_count));
 
-            for (i = 0; i < n - 1; i++)
-                pool_add_task(pool, aggr, 5, chunk, i * chunk, val, index, vector(outype, group_count));
-
-            pool_add_task(pool, aggr, 5, l - i * chunk, i * chunk, val, index, vector(outype, group_count));
-    }
+    pool_add_task(pool, aggr, 5, l - i * chunk, i * chunk, val, index, vector(outype, group_count));
 
     return pool_run(pool);
 }

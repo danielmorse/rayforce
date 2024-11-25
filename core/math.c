@@ -867,7 +867,7 @@ obj_p ray_sum(obj_p x) {
             xii = AS_I64(x);
 
             pool = pool_get();
-            chunks = pool_split_by(pool, l, 0, B8_FALSE);
+            chunks = pool_split_by(pool, l, 0);
 
             if (chunks == 1) {
                 for (i = 0, isum = 0; i < l; i++)
@@ -902,6 +902,26 @@ obj_p ray_sum(obj_p x) {
             return f64(fsum);
         case TYPE_MAPGROUP:
             return aggr_sum(AS_LIST(x)[0], AS_LIST(x)[1]);
+
+        case TYPE_PARTEDI64:
+            l = x->len;
+            for (i = 0, isum = 0; i < l; i++) {
+                res = ray_sum(AS_LIST(x)[i]);
+                isum += (res->i64 == NULL_I64) ? 0 : res->i64;
+                drop_obj(res);
+            }
+
+            return i64(isum);
+
+        case TYPE_PARTEDF64:
+            l = x->len;
+            for (i = 0, fsum = 0; i < l; i++) {
+                res = ray_sum(AS_LIST(x)[i]);
+                fsum += res->f64;
+                drop_obj(res);
+            }
+
+            return f64(fsum);
 
         default:
             THROW(ERR_TYPE, "sum: unsupported type: '%s", type_name(x->type));

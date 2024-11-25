@@ -205,7 +205,7 @@ nil_t __index_list_precalc_hash(obj_p cols, u64_t out[], u64_t ncols, u64_t nrow
     obj_p v;
 
     pool = pool_get();
-    chunks = pool_split_by(pool, nrows, 0, B8_FALSE);
+    chunks = pool_split_by(pool, nrows, 0);
     chunk = nrows / chunks;
 
     // init hashes
@@ -272,7 +272,7 @@ index_scope_t index_scope(i64_t values[], i64_t indices[], u64_t len) {
     if (len == 0)
         return (index_scope_t){NULL_I64, NULL_I64, 0};
 
-    chunks = pool_split_by(pool, len, 0, B8_FALSE);
+    chunks = pool_split_by(pool, len, 0);
 
     if (chunks == 1)
         index_scope_partial(len, values, indices, 0, &min, &max);
@@ -717,7 +717,7 @@ u64_t index_group_distribute(i64_t keys[], i64_t filter[], i64_t out[], u64_t le
     obj_p ht, res;
 
     pool = pool_get();
-    parts = pool_split_by(pool, len, 0, B8_FALSE);
+    parts = pool_split_by(pool, len, 0);
     groups = 0;
 
     if (parts == 1) {
@@ -898,7 +898,7 @@ obj_p index_group_i64_scoped(obj_p obj, obj_p filter, const index_scope_t scope)
         hv = AS_I64(vals);
 
         pool = pool_get();
-        chunks = pool_split_by(pool, len, 0, B8_FALSE);
+        chunks = pool_split_by(pool, len, 0);
 
         if (chunks == 1)
             index_group_i64_scoped_partial(values, indices, hk, len, 0, scope.min, hv);
