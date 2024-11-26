@@ -351,14 +351,15 @@ obj_p aggr_last(obj_p val, obj_p index) {
     obj_p parts, res, ek, sym;
 
     n = index_group_count(index);
-    parts = aggr_map((raw_p)aggr_last_partial, val, val->type, index);
-    UNWRAP_LIST(parts);
 
     switch (val->type) {
         case TYPE_I64:
         case TYPE_SYMBOL:
         case TYPE_TIMESTAMP:
         case TYPE_ENUM:
+            parts = aggr_map((raw_p)aggr_last_partial, val, val->type, index);
+            UNWRAP_LIST(parts);
+
             res = AGGR_COLLECT(parts, n, i64, i64, if ($out[$y] == NULL_I64) $out[$y] = $in[$x]);
             drop_obj(parts);
             if (val->type == TYPE_ENUM) {
@@ -387,21 +388,31 @@ obj_p aggr_last(obj_p val, obj_p index) {
 
             return res;
         case TYPE_F64:
+            parts = aggr_map((raw_p)aggr_last_partial, val, val->type, index);
+            UNWRAP_LIST(parts);
             res = AGGR_COLLECT(parts, n, f64, f64, if (ops_is_nan($out[$y])) $out[$y] = $in[$x]);
             drop_obj(parts);
             return res;
         case TYPE_GUID:
+            parts = aggr_map((raw_p)aggr_last_partial, val, val->type, index);
+            UNWRAP_LIST(parts);
             res = AGGR_COLLECT(parts, n, guid, guid,
                                if (memcmp($out[$y], NULL_GUID, sizeof(guid_t)) == 0)
                                    memcpy($out[$y], $in[$x], sizeof(guid_t)));
             drop_obj(parts);
             return res;
         case TYPE_LIST:
+            parts = aggr_map((raw_p)aggr_last_partial, val, val->type, index);
+            UNWRAP_LIST(parts);
             res = AGGR_COLLECT(parts, n, list, list, if ($out[$y] == NULL_OBJ) $out[$y] = clone_obj($in[$x]));
             drop_obj(parts);
             return res;
+        case TYPE_PARTEDLIST:
+            res = LIST(n);
+            for (i = 0; i < n; i++)
+                AS_LIST(res)[i] = at_idx(AS_LIST(val)[i], -1);
+            return res;
         default:
-            drop_obj(parts);
             return error(ERR_TYPE, "last: unsupported type: '%s'", type_name(val->type));
     }
 }
