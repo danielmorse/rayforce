@@ -41,11 +41,11 @@ extern "C"
 #define TYPE_GUID 7
 #define TYPE_C8 8
 #define TYPE_ENUM 20
-#define TYPE_MAPFILTER 72
-#define TYPE_MAPGROUP 73
-#define TYPE_MAPFD 74
-#define TYPE_MAPCOMMON 75
-#define TYPE_MAPLIST 76
+#define TYPE_MAPFILTER 71
+#define TYPE_MAPGROUP 72
+#define TYPE_MAPFD 73
+#define TYPE_MAPCOMMON 74
+#define TYPE_MAPLIST 75
 // Parted types 77..97 (TYPE_PARTEDLIST 77 + type)
 #define TYPE_PARTEDLIST 77
 #define TYPE_PARTEDB8 (TYPE_PARTEDLIST + TYPE_B8)

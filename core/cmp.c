@@ -236,10 +236,18 @@ obj_p ray_eq(obj_p x, obj_p y) {
                 if (IS_ERROR(vec))
                     return vec;
 
-                map = LIST(2);
-                map->type = TYPE_MAPCOMMON;
-                AS_LIST(map)[0] = vec;
-                AS_LIST(map)[1] = clone_obj(AS_LIST(x)[1]);
+                l = vec->len;
+                map = LIST(l);
+                map->type = TYPE_PARTEDB8;
+
+                for (i = 0; i < l; i++) {
+                    if (AS_B8(vec)[i])
+                        AS_LIST(map)[i] = b8(B8_TRUE);
+                    else
+                        AS_LIST(map)[i] = NULL_OBJ;
+                }
+
+                drop_obj(vec);
 
                 return map;
             } else if (y->type == TYPE_MAPCOMMON) {
@@ -247,10 +255,17 @@ obj_p ray_eq(obj_p x, obj_p y) {
                 if (IS_ERROR(vec))
                     return vec;
 
-                map = LIST(2);
-                map->type = TYPE_MAPCOMMON;
-                AS_LIST(map)[0] = vec;
-                AS_LIST(map)[1] = clone_obj(AS_LIST(y)[1]);
+                l = vec->len;
+                map = LIST(l);
+
+                for (i = 0; i < l; i++) {
+                    if (AS_B8(vec)[i])
+                        AS_LIST(map)[i] = b8(B8_TRUE);
+                    else
+                        AS_LIST(map)[i] = NULL_OBJ;
+                }
+
+                drop_obj(vec);
 
                 return map;
             }

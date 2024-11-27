@@ -1145,20 +1145,25 @@ obj_p ray_value(obj_p x) {
 }
 
 obj_p ray_where(obj_p x) {
-    obj_p vec, map;
+    u64_t i, l;
+    obj_p res;
 
     switch (x->type) {
         case TYPE_B8:
             return ops_where(AS_B8(x), x->len);
-        case TYPE_MAPCOMMON:
-            if (AS_LIST(x)[0]->type != TYPE_B8)
-                THROW(ERR_TYPE, "where: first argument must be a boolean vector");
+        case TYPE_PARTEDB8:
+            l = x->len;
+            res = LIST(l);
+            res->type = TYPE_PARTEDI64;
 
-            vec = ops_where(AS_B8(AS_LIST(x)[0]), AS_LIST(x)[0]->len);
-            map = vn_list(2, vec, NULL_OBJ);
-            map->type = TYPE_MAPCOMMON;
+            for (i = 0; i < l; i++) {
+                if (AS_LIST(x)[i] == NULL_OBJ)
+                    AS_LIST(res)[i] = NULL_OBJ;
+                else
+                    AS_LIST(res)[i] = i64(1);
+            }
 
-            return map;
+            return res;
         default:
             THROW(ERR_TYPE, "where: unsupported type: '%s", type_name(x->type));
     }

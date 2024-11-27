@@ -133,9 +133,10 @@ b8_t is_valid(obj_p obj) {
            || obj->type == TYPE_ENUM            || obj->type == TYPE_MAPLIST       
            || obj->type == TYPE_MAPFILTER       || obj->type == TYPE_MAPGROUP
            || obj->type == TYPE_MAPFD           || (obj->type >= TYPE_PARTEDB8 && obj->type <= TYPE_PARTEDGUID)
-           || obj->type == TYPE_LIST            || obj->type == TYPE_PARTEDLIST
-           || obj->type == TYPE_PARTEDTIMESTAMP || obj->type == TYPE_MAPCOMMON
-           || obj->type == TYPE_PARTEDENUM      || obj->type == TYPE_ERROR
+           || obj->type == TYPE_LIST            
+           || obj->type == TYPE_PARTEDLIST      || obj->type == TYPE_PARTEDTIMESTAMP 
+           || obj->type == TYPE_MAPCOMMON       || obj->type == TYPE_PARTEDENUM      
+           || obj->type == TYPE_ERROR
            || obj->type == TYPE_NULL;
     // clang-format on
 }
