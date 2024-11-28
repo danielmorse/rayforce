@@ -31,7 +31,7 @@
 typedef enum index_type_t {
     INDEX_TYPE_IDS = 0,
     INDEX_TYPE_SHIFT,
-    INDEX_TYPE_GENERATOR,
+    INDEX_TYPE_PARTEDCOMMON,
 } index_type_t;
 
 typedef struct __index_list_ctx_t {
@@ -58,7 +58,8 @@ u64_t index_group_len(obj_p index);
 index_type_t index_group_type(obj_p index);
 i64_t *index_group_source(obj_p index);
 i64_t *index_group_ids(obj_p index);
-i64_t *index_group_filter(obj_p index);
+i64_t *index_group_filter_ids(obj_p index);
+obj_p index_group_filter(obj_p index);
 i64_t index_group_shift(obj_p index);
 obj_p index_distinct_i8(i8_t values[], u64_t len, b8_t term);
 obj_p index_distinct_i64(i64_t values[], u64_t len);

@@ -625,12 +625,14 @@ i64_t *index_group_ids(obj_p index) {
     return NULL;
 }
 
-i64_t *index_group_filter(obj_p index) {
-    if (AS_LIST(index)[5] != NULL_OBJ)
+i64_t *index_group_filter_ids(obj_p index) {
+    if (AS_LIST(index)[5]->type == TYPE_I64)
         return AS_I64(AS_LIST(index)[5]);
 
     return NULL;
 }
+
+obj_p index_group_filter(obj_p index) { return clone_obj(AS_LIST(index)[5]); }
 
 u64_t index_group_len(obj_p index) {
     if (AS_LIST(index)[5] != NULL_OBJ)  // filter
@@ -1038,7 +1040,7 @@ obj_p index_group(obj_p val, obj_p filter) {
             drop_obj(v);
             return bins;
         case TYPE_MAPCOMMON:
-            return index_group_build(INDEX_TYPE_GENERATOR, AS_LIST(val)[0]->len, clone_obj(val), NULL_I64, NULL_OBJ,
+            return index_group_build(INDEX_TYPE_PARTEDCOMMON, AS_LIST(val)[0]->len, clone_obj(val), NULL_I64, NULL_OBJ,
                                      clone_obj(filter));
         default:
             THROW(ERR_TYPE, "'index group' unable to group by: %s", type_name(val->type));
