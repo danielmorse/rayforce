@@ -160,6 +160,7 @@ nil_t init_functions(obj_p functions)
     REGISTER_FN(functions,  "set-display-width",   TYPE_UNARY,    FN_NONE,                   ray_set_display_width);
     REGISTER_FN(functions,  "nil?",                TYPE_UNARY,    FN_NONE,                   ray_is_null);
     REGISTER_FN(functions,  "resolve",             TYPE_UNARY,    FN_NONE,                   ray_resolve);
+    REGISTER_FN(functions,  "show",                TYPE_UNARY,    FN_NONE,                   ray_show);
     
     // Binary           
     REGISTER_FN(functions,  "try",                 TYPE_BINARY,   FN_NONE | FN_SPECIAL_FORM, try_obj);

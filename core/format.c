@@ -1206,6 +1206,16 @@ obj_p obj_fmt_n(obj_p *x, u64_t n) {
     return res;
 }
 
+obj_p ray_show(obj_p obj) {
+    obj_p dst = NULL_OBJ;
+
+    obj_fmt_into(&dst, 0, NO_LIMIT, B8_TRUE, obj);
+    printf("%.*s\n", (i32_t)dst->len, AS_C8(dst));
+    drop_obj(dst);
+
+    return NULL_OBJ;
+}
+
 i64_t timeit_fmt_into(obj_p *dst, u64_t indent, u64_t *index, timeit_t *timeit) {
     i64_t n;
     u64_t i;

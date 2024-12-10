@@ -202,6 +202,9 @@ obj_p parse_csv_field(i8_t type, str_p start, str_p end, i64_t row, obj_p out) {
             n = end - start;
             if ((n > 0) && (*(end - 1) == '\r'))
                 n--;
+
+            // printf("start: %p row: %lld STR: %.*s\n", start, row, n + 12, start);
+
             AS_SYMBOL(out)[row] = symbols_intern(start, n);
             break;
         case TYPE_C8:
@@ -317,9 +320,9 @@ obj_p parse_csv_range(i8_t *types, i64_t num_types, str_p buf, i64_t size, u64_t
                 }
                 return res;
             }
-
-            prev = line_end + 1;  // Move past the newline
         }
+
+        prev = line_end + 1;  // Move past the newline
     }
 
     return NULL_OBJ;  // Success
