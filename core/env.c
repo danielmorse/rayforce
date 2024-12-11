@@ -125,7 +125,6 @@ nil_t init_functions(obj_p functions)
     REGISTER_FN(functions,  "sum",                 TYPE_UNARY,    FN_ATOMIC | FN_AGGR,       ray_sum);
     REGISTER_FN(functions,  "avg",                 TYPE_UNARY,    FN_ATOMIC | FN_AGGR,       ray_avg);
     REGISTER_FN(functions,  "med",                 TYPE_UNARY,    FN_ATOMIC | FN_AGGR,       ray_med);
-    REGISTER_FN(functions,  "ids",                 TYPE_UNARY,    FN_AGGR,                   ray_ids);
     REGISTER_FN(functions,  "dev",                 TYPE_UNARY,    FN_ATOMIC | FN_AGGR,       ray_dev);
     REGISTER_FN(functions,  "min",                 TYPE_UNARY,    FN_ATOMIC | FN_AGGR,       ray_min);
     REGISTER_FN(functions,  "max",                 TYPE_UNARY,    FN_ATOMIC | FN_AGGR,       ray_max);
@@ -161,6 +160,7 @@ nil_t init_functions(obj_p functions)
     REGISTER_FN(functions,  "nil?",                TYPE_UNARY,    FN_NONE,                   ray_is_null);
     REGISTER_FN(functions,  "resolve",             TYPE_UNARY,    FN_NONE,                   ray_resolve);
     REGISTER_FN(functions,  "show",                TYPE_UNARY,    FN_NONE,                   ray_show);
+    REGISTER_FN(functions,  "meta",                TYPE_UNARY,    FN_NONE,                   ray_meta);
     
     // Binary           
     REGISTER_FN(functions,  "try",                 TYPE_BINARY,   FN_NONE | FN_SPECIAL_FORM, try_obj);

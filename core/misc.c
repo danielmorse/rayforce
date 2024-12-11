@@ -61,11 +61,34 @@ obj_p ray_rc(obj_p x) {
 
 obj_p ray_quote(obj_p x) { return clone_obj(x); }
 
-obj_p ray_ids(obj_p x) {
+obj_p ray_meta(obj_p x) {
+    u64_t i, l;
+    obj_p keys, vals;
+
     switch (x->type) {
-        case TYPE_MAPGROUP:
-            return aggr_ids(AS_LIST(x)[0], AS_LIST(x)[1]);
+        case TYPE_TABLE:
+            keys = SYMBOL(4);
+            ins_sym(&keys, 0, "name");
+            ins_sym(&keys, 1, "type");
+            ins_sym(&keys, 2, "mmod");
+            ins_sym(&keys, 3, "attrs");
+
+            l = AS_LIST(x)[0]->len;
+            vals = LIST(4);
+            AS_LIST(vals)[0] = clone_obj(AS_LIST(x)[0]);
+            AS_LIST(vals)[1] = SYMBOL(l);
+            AS_LIST(vals)[2] = I64(l);
+            AS_LIST(vals)[3] = I64(l);
+
+            for (i = 0; i < l; i++) {
+                AS_SYMBOL(AS_LIST(vals)[1])
+                [i] = env_get_typename_by_type(&runtime_get()->env, AS_LIST(AS_LIST(x)[1])[i]->type);
+                AS_I64(AS_LIST(vals)[2])[i] = AS_LIST(x)[0]->mmod;
+                AS_I64(AS_LIST(vals)[3])[i] = AS_LIST(x)[0]->attrs;
+            }
+
+            return table(keys, vals);
         default:
-            return ray_til(x);
+            return NULL_OBJ;
     }
 }
