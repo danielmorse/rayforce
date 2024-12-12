@@ -43,7 +43,7 @@
 #include "error.h"
 #include "eval.h"
 #include "sys.h"
-#include "time.h"
+#include "clock.h"
 
 __thread i32_t __EVENT_FD;  // eventfd to notify epoll loop of shutdown
 

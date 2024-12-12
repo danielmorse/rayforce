@@ -21,8 +21,8 @@
  *   SOFTWARE.
  */
 
-#ifndef TIME_H
-#define TIME_H
+#ifndef CLOCK_H
+#define CLOCK_H
 
 #include "rayforce.h"
 
@@ -91,4 +91,4 @@ nil_t timer_sleep(u64_t ms);
 obj_p ray_timer(obj_p *x, u64_t n);
 obj_p ray_timeit(obj_p x);
 
-#endif  // TIME_H
+#endif  // CLOCK_H

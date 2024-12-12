@@ -24,7 +24,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "term.h"
-#include "time.h"
+#include "clock.h"
 #include "heap.h"
 #include "string.h"
 #include "error.h"

@@ -39,7 +39,7 @@
 #include "io.h"
 #include "error.h"
 #include "filter.h"
-#include "time.h"
+#include "clock.h"
 
 #define FORMAT_TRAILER_SIZE 4
 #define ERR_STACK_MAX_HEIGHT 10  // Maximum number of error stack frames

@@ -40,7 +40,7 @@
 #include "update.h"
 #include "term.h"
 #include "pool.h"
-#include "time.h"
+#include "clock.h"
 #include "runtime.h"
 #include "fs.h"
 
