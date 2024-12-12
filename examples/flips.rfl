@@ -1,0 +1,39 @@
+;; Usage: 
+;; unzip -oq ~/Downloads/flips.zip -d /tmp
+;; rayforce examples/flips.rfl
+;; (set t (get-parted "/tmp/db/" 'a))
+
+(set csvpath "/tmp/flips.csv")
+(set tabname "a")
+(set dbpath "/tmp/db")
+(set sympath (format "%/sym" dbpath))
+
+(println "Reading CSV file: %" csvpath)
+
+(set flips (except (read-csv 
+  [Timestamp I64 I64 Symbol I64 Symbol Timestamp F64 F64 I64 
+   I64 I64 Symbol Guid Symbol String String I64 I64 F64 I64 Symbol 
+   Symbol Symbol Symbol Symbol Symbol String Symbol Symbol F64 
+   String String String String String String Symbol Guid F64 String I64 String 
+   Symbol Symbol I64 String String Symbol Symbol Symbol Symbol Symbol 
+   Symbol Symbol Symbol Symbol Symbol Symbol Symbol Symbol Symbol 
+   Symbol Symbol Symbol Symbol Symbol Symbol Symbol Symbol Symbol 
+   Symbol Symbol F64 String I64 I64 I64 F64 F64 F64 F64 I64 I64 I64 I64 
+   Symbol I64 I64 Symbol Symbol Symbol Timestamp Symbol I64] 
+  csvpath) 'date))
+
+(println "%" "CSV file read.")
+
+(set create-tab 
+    (fn [x]
+        (let p (format "%/%/%/" dbpath (+ 2024.01.01 (* 24 (* 3600 (* x 1000000000)))) tabname))
+        (println "Creating table: %" p)
+        (set-splayed p flips "/tmp/db/sym")
+        (println "%" "Table created")
+    )
+)
+
+(map create-tab (til 5))
+
+(println "Done.")
+(exit 0)
