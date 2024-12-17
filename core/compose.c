@@ -84,8 +84,10 @@ obj_p ray_til(obj_p x) {
     pool = pool_get();
     n = pool_split_by(pool, l, 0);
 
-    if (n == 1)
-        return ray_til_partial(l, 0, AS_I64(vec));
+    if (n == 1) {
+        ray_til_partial(l, 0, AS_I64(vec));
+        return vec;
+    }
 
     chunk = l / n;
     pool_prepare(pool);
