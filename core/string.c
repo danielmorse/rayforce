@@ -62,6 +62,31 @@ obj_p cstring_from_str(lit_p str, u64_t len) {
 
 obj_p cstring_from_obj(obj_p obj) { return cstring_from_str(AS_C8(obj), obj->len); }
 
+i32_t i32_from_str(lit_p str, u64_t len) {
+    i32_t result = 0, sign = 1;
+
+    if (len == 0)
+        return NULL_I32;
+
+    // Skip leading whitespace
+    while (IS_SPACE(*str))
+        str++;
+
+    // Handle optional sign
+    if (*str == '-') {
+        sign = -1;
+        str++;
+    }
+
+    // Parse the digits
+    while (is_digit(*str)) {
+        result = result * 10 + (*str - '0');
+        str++;
+    }
+
+    return result * sign;
+}
+
 i64_t i64_from_str(lit_p str, u64_t len) {
     i64_t result = 0, sign = 1;
 

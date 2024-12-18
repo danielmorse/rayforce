@@ -32,8 +32,8 @@ timestruct_t time_from_i32(i32_t offset) {
     b8_t sign;
     u8_t hh, mm, ss;
     u16_t ms;
-    i32_t mask, val;
-    i64_t min, secs;
+    i32_t mask;
+    i64_t val, min, secs;
 
     if (offset == NULL_I32)
         return (timestruct_t){.null = 1};
@@ -55,7 +55,7 @@ timestruct_t time_from_i32(i32_t offset) {
 timestruct_t time_from_str(str_p src, u64_t len) {
     u64_t i;
     i64_t cnt = 0, val = 0, digit;
-    timestruct_t ts = {.null = 0, .sign = 0, .hours = 0, .mins = 0, .secs = 0, .msecs = 0};
+    timestruct_t ts = {.null = 0, .sign = 1, .hours = 0, .mins = 0, .secs = 0, .msecs = 0};
 
     for (i = 0; i < len; i++) {
         if (src[i] == '-') {
@@ -63,7 +63,7 @@ timestruct_t time_from_str(str_p src, u64_t len) {
             continue;
         }
 
-        if (src[i] == ':') {
+        if (src[i] == ':' || src[i] == '.') {
             switch (cnt) {
                 case 0:
                     ts.hours = (u8_t)val;
@@ -83,8 +83,9 @@ timestruct_t time_from_str(str_p src, u64_t len) {
             continue;
         }
 
-        if (src[i] < '0' || src[i] > '9')
+        if (src[i] < '0' || src[i] > '9') {
             return (timestruct_t){.null = 1};
+        }
 
         digit = src[i] - '0';
         val = val * 10 + digit;
@@ -92,6 +93,8 @@ timestruct_t time_from_str(str_p src, u64_t len) {
 
     if (cnt < 3)
         ts.null = 1;
+
+    ts.msecs = (u16_t)val;
 
     return ts;
 }

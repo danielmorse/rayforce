@@ -1532,8 +1532,19 @@ obj_p cast_obj(i8_t type, obj_p obj) {
             return i64((i64_t)obj->f64);
         case MTYPE2(-TYPE_F64, -TYPE_I64):
             return f64((f64_t)obj->i64);
+        case MTYPE2(-TYPE_I32, -TYPE_TIME):
+        case MTYPE2(-TYPE_I32, -TYPE_DATE):
+            return i32(obj->i32);
         case MTYPE2(-TYPE_I64, -TYPE_TIMESTAMP):
             return i64(obj->i64);
+        case MTYPE2(-TYPE_DATE, -TYPE_I32):
+            return adate(obj->i32);
+        case MTYPE2(-TYPE_TIME, -TYPE_I32):
+            return atime(obj->i32);
+        case MTYPE2(-TYPE_DATE, -TYPE_I64):
+            return adate((i32_t)obj->i64);
+        case MTYPE2(-TYPE_TIME, -TYPE_I64):
+            return atime((i32_t)obj->i64);
         case MTYPE2(-TYPE_TIMESTAMP, -TYPE_I64):
             return timestamp(obj->i64);
         case MTYPE2(-TYPE_SYMBOL, -TYPE_I64):

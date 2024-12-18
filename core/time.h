@@ -32,7 +32,7 @@ typedef struct timestruct_t {
     u8_t hours;
     u8_t mins;
     u8_t secs;
-    u8_t msecs;
+    u16_t msecs;
     u64_t pad;
 } timestruct_t;
 

@@ -11,7 +11,7 @@
 (println "Reading CSV file: %" csvpath)
 
 (set flips (except (read-csv 
-  [Timestamp I64 I64 Symbol I64 Symbol Timestamp F64 F64 I64 
+  [Date I64 I64 Symbol I64 Symbol Time F64 F64 I64 
    I64 I64 Symbol Guid Symbol String String I64 I64 F64 I64 Symbol 
    Symbol Symbol Symbol Symbol Symbol String Symbol Symbol F64 
    String String String String String String Symbol Guid F64 String I64 String 
@@ -19,7 +19,7 @@
    Symbol Symbol Symbol Symbol Symbol Symbol Symbol Symbol Symbol 
    Symbol Symbol Symbol Symbol Symbol Symbol Symbol Symbol Symbol 
    Symbol Symbol F64 String I64 I64 I64 F64 F64 F64 F64 I64 I64 I64 I64 
-   Symbol I64 I64 Symbol Symbol Symbol Timestamp Symbol I64] 
+   Symbol I64 I64 Symbol Symbol Symbol Time Symbol I64] 
   csvpath) 'date))
 
 (println "%" "CSV file read.")

@@ -315,6 +315,13 @@ i64_t c8_fmt_into(obj_p *dst, b8_t full, c8_t val) {
     }
 }
 
+i64_t i32_fmt_into(obj_p *dst, i32_t val) {
+    if (val == NULL_I32)
+        return str_fmt_into(dst, 3, "%s", "0i");
+
+    return str_fmt_into(dst, NO_LIMIT, "%d", val);
+}
+
 i64_t i64_fmt_into(obj_p *dst, i64_t val) {
     if (val == NULL_I64)
         return str_fmt_into(dst, 3, "%s", "0l");
@@ -646,16 +653,18 @@ i64_t raw_fmt_into(obj_p *dst, i64_t indent, i64_t limit, obj_p obj, i64_t i) {
             return b8_fmt_into(dst, AS_B8(obj)[i]);
         case TYPE_U8:
             return byte_fmt_into(dst, AS_U8(obj)[i]);
+        case TYPE_I32:
+            return i32_fmt_into(dst, AS_I32(obj)[i]);
+        case TYPE_DATE:
+            return date_fmt_into(dst, AS_DATE(obj)[i]);
+        case TYPE_TIME:
+            return time_fmt_into(dst, AS_TIME(obj)[i]);
         case TYPE_I64:
             return i64_fmt_into(dst, AS_I64(obj)[i]);
         case TYPE_F64:
             return f64_fmt_into(dst, AS_F64(obj)[i]);
         case TYPE_SYMBOL:
             return symbol_fmt_into(dst, limit, B8_TRUE, AS_SYMBOL(obj)[i]);
-        case TYPE_DATE:
-            return date_fmt_into(dst, AS_DATE(obj)[i]);
-        case TYPE_TIME:
-            return time_fmt_into(dst, AS_TIME(obj)[i]);
         case TYPE_TIMESTAMP:
             return timestamp_fmt_into(dst, AS_TIMESTAMP(obj)[i]);
         case TYPE_GUID:
@@ -1115,16 +1124,18 @@ i64_t obj_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj) 
             return b8_fmt_into(dst, obj->b8);
         case -TYPE_U8:
             return byte_fmt_into(dst, obj->u8);
+        case -TYPE_I32:
+            return i32_fmt_into(dst, obj->i32);
+        case -TYPE_DATE:
+            return date_fmt_into(dst, obj->i32);
+        case -TYPE_TIME:
+            return time_fmt_into(dst, obj->i32);
         case -TYPE_I64:
             return i64_fmt_into(dst, obj->i64);
         case -TYPE_F64:
             return f64_fmt_into(dst, obj->f64);
         case -TYPE_SYMBOL:
             return symbol_fmt_into(dst, limit, full, obj->i64);
-        case -TYPE_DATE:
-            return date_fmt_into(dst, obj->i32);
-        case -TYPE_TIME:
-            return time_fmt_into(dst, obj->i32);
         case -TYPE_TIMESTAMP:
             return timestamp_fmt_into(dst, obj->i64);
         case -TYPE_GUID:
@@ -1133,10 +1144,11 @@ i64_t obj_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj) 
             return c8_fmt_into(dst, full, obj->c8);
         case TYPE_B8:
         case TYPE_U8:
-        case TYPE_I64:
-        case TYPE_SYMBOL:
+        case TYPE_I32:
         case TYPE_DATE:
         case TYPE_TIME:
+        case TYPE_I64:
+        case TYPE_SYMBOL:
         case TYPE_TIMESTAMP:
         case TYPE_F64:
         case TYPE_GUID:

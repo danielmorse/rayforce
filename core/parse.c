@@ -300,6 +300,7 @@ obj_p parse_timestamp(parser_t *parser) {
         dt.year = ts.year;
         dt.month = ts.month;
         dt.day = ts.day;
+
         res = adate(date_into_i32(dt));
         span_extend(parser, &span);
         nfo_insert(parser->nfo, (i64_t)res, span);

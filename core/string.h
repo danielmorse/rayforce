@@ -35,6 +35,7 @@ b8_t str_match(str_p str, u64_t str_len, str_p pat, u64_t pat_len);
 obj_p string_from_str(lit_p str, u64_t len);
 obj_p cstring_from_str(lit_p str, u64_t len);
 obj_p cstring_from_obj(obj_p obj);
+i32_t i32_from_str(lit_p str, u64_t len);
 i64_t i64_from_str(lit_p str, u64_t len);
 f64_t f64_from_str(lit_p str, u64_t len);
 i64_t guid_from_str(lit_p str, u64_t len, guid_t dst);

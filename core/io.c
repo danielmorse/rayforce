@@ -33,6 +33,8 @@
 #include "poll.h"
 #include "runtime.h"
 #include "error.h"
+#include "date.h"
+#include "time.h"
 #include "timestamp.h"
 #include "sys.h"
 #include "string.h"
@@ -181,6 +183,27 @@ obj_p parse_csv_field(i8_t type, str_p start, str_p end, i64_t row, obj_p out) {
             }
             AS_U8(out)[row] = (u8_t)i64_from_str(start, end - start);
             break;
+        case TYPE_I32:
+            if (start == NULL || end == NULL) {
+                AS_I32(out)[row] = NULL_I32;
+                break;
+            }
+            AS_I32(out)[row] = i32_from_str(start, end - start);
+            break;
+        case TYPE_DATE:
+            if (start == NULL || end == NULL) {
+                AS_DATE(out)[row] = NULL_I32;
+                break;
+            }
+            AS_DATE(out)[row] = date_into_i32(date_from_str(start, end - start));
+            break;
+        case TYPE_TIME:
+            if (start == NULL || end == NULL) {
+                AS_TIME(out)[row] = NULL_I32;
+                break;
+            }
+            AS_TIME(out)[row] = time_into_i32(time_from_str(start, end - start));
+            break;
         case TYPE_I64:
             AS_I64(out)[row] = i64_from_str(start, end - start);
             break;
@@ -203,8 +226,6 @@ obj_p parse_csv_field(i8_t type, str_p start, str_p end, i64_t row, obj_p out) {
             if ((n > 0) && (*(end - 1) == '\r'))
                 n--;
 
-            // printf("start: %p row: %lld STR: %.*s\n", start, row, n + 12, start);
-
             AS_SYMBOL(out)[row] = symbols_intern(start, n);
             break;
         case TYPE_C8:
@@ -222,7 +243,6 @@ obj_p parse_csv_field(i8_t type, str_p start, str_p end, i64_t row, obj_p out) {
                 memcpy(AS_GUID(out)[row], NULL_GUID, sizeof(guid_t));
                 break;
             }
-
             break;
         default:
             THROW(ERR_TYPE, "csv: unsupported type: '%s", type_name(type));

@@ -123,16 +123,16 @@ datestruct_t date_from_str(str_p src, u64_t len) {
 }
 
 i32_t date_into_i32(datestruct_t dt) {
-    u8_t leap;
-    u32_t mdays;
-    i64_t yy, mm, ydays;
+    i64_t leap, mdays, yy, mm, dd, ydays;
 
     yy = (dt.year > 0) ? dt.year - 1 : 0;
     ydays = years_by_days(yy);
-    leap = leap_year(yy);
+    leap = leap_year(dt.year);
     mm = (dt.month > 0) ? dt.month - 1 : 0;
-    mdays = MONTHDAYS_FWD[leap][(i32_t)mm];
-    return ydays - years_by_days(EPOCH - 1) + mdays + dt.day - 1;
+    mdays = MONTHDAYS_FWD[leap][mm];
+    dd = dt.day;
+
+    return ydays - years_by_days(EPOCH - 1) + mdays + dd - 1;
 }
 
 obj_p ray_date(obj_p arg) {
