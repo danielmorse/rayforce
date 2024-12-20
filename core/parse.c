@@ -384,24 +384,44 @@ obj_p parse_timestamp(parser_t *parser) {
 }
 
 obj_p specify_number(parser_t *parser, str_p current, span_t span, obj_p num) {
+    obj_p res;
+
+    // Check first
     switch (*current) {
         case 'i':
-            current++;
+        case 'd':
+        case 't':
+        case 'l':
             if (num->type == -TYPE_F64) {
+                current++;
                 drop_obj(num);
                 span.end_column += (current - parser->current);
                 nfo_insert(parser->nfo, parser->count, span);
                 return parse_error(parser, parser->count++,
                                    str_fmt(-1, "Invalid literal: integer can not be imaginary"));
             }
+            break;
+        default:
+            break;
+    }
+
+    switch (*current++) {
+        case 'i':
             num->type = -TYPE_I32;
             break;
+        case 'd':
+            num->type = -TYPE_DATE;
+            break;
+        case 't':
+            num->type = -TYPE_TIME;
+            break;
         case 'f':
-            current++;
-            num->type = -TYPE_F64;
+            res = cast_obj(-TYPE_F64, num);
+            drop_obj(num);
+            num = res;
+            DEBUG_OBJ(num);
             break;
         case 'l':
-            current++;
             num->type = -TYPE_I64;
             break;
         default:
