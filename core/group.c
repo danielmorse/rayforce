@@ -44,8 +44,7 @@ obj_p group_map(obj_p val, obj_p index) {
             res = LIST(l);
             for (i = 0; i < l; i++) {
                 v = AS_LIST(AS_LIST(val)[1])[i];
-                AS_LIST(res)
-                [i] = group_map(v, index);
+                AS_LIST(res)[i] = group_map(v, index);
             }
 
             return table(clone_obj(AS_LIST(val)[0]), res);

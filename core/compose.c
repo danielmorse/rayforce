@@ -197,6 +197,9 @@ obj_p ray_table(obj_p x, obj_p y) {
             case -TYPE_I64:
             case -TYPE_F64:
             case -TYPE_C8:
+            case -TYPE_I32:
+            case -TYPE_DATE:
+            case -TYPE_TIME:
             case -TYPE_SYMBOL:
             case -TYPE_TIMESTAMP:
             case -TYPE_GUID:
@@ -207,6 +210,9 @@ obj_p ray_table(obj_p x, obj_p y) {
                 break;
             case TYPE_B8:
             case TYPE_U8:
+            case TYPE_I32:
+            case TYPE_DATE:
+            case TYPE_TIME:
             case TYPE_I64:
             case TYPE_F64:
             case TYPE_TIMESTAMP:
@@ -255,6 +261,9 @@ obj_p ray_table(obj_p x, obj_p y) {
         switch (AS_LIST(y)[i]->type) {
             case -TYPE_B8:
             case -TYPE_U8:
+            case -TYPE_I32:
+            case -TYPE_DATE:
+            case -TYPE_TIME:
             case -TYPE_I64:
             case -TYPE_F64:
             case -TYPE_C8:

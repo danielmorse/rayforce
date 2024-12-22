@@ -1179,7 +1179,7 @@ i64_t obj_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj) 
         case TYPE_LAMBDA:
             return lambda_fmt_into(dst, limit, obj);
         case TYPE_NULL:
-            return str_fmt_into(dst, limit, "null");
+            return str_fmt_into(dst, limit, "Null");
         case TYPE_ERROR:
             return error_fmt_into(dst, limit, obj);
         default:

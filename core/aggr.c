@@ -124,7 +124,7 @@
         $$filter = index_group_filter(index);                                                         \
         $$res = __v_##outcoerse(groups);                                                              \
         for ($$i = 0, $$j = 0; $$i < $$l; $$i++) {                                                    \
-            if (AS_LIST($$filter)[$$i] != NULL_OBJ) {                                                 \
+            if ($$filter == NULL_OBJ || AS_LIST($$filter)[$$i] != NULL_OBJ) {                         \
                 $$parts = aggr_map(preaggr, AS_LIST(val)[$$i], AS_LIST(val)[$$i]->type, index);       \
                 $$v = AGGR_COLLECT($$parts, 1, incoerse, outcoerse, postaggr);                        \
                 drop_obj($$parts);                                                                    \
@@ -327,7 +327,7 @@ obj_p aggr_first(obj_p val, obj_p index) {
 
             for (i = 0, j = 0; i < l; i++) {
                 if (AS_LIST(filter)[i] != NULL_OBJ)
-                    AS_I64(res)[j++] = AS_I64(AS_LIST(val)[0])[i];
+                    AS_DATE(res)[j++] = AS_DATE(AS_LIST(val)[0])[i];
             }
 
             return res;
