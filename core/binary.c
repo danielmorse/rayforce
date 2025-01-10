@@ -314,6 +314,7 @@ obj_p binary_call(u8_t attrs, binary_f f, obj_p x, obj_p y) {
 obj_p binary_set(obj_p x, obj_p y) {
     i64_t fd, c = 0;
     u64_t i, l, sz, size;
+    u32_t rc;
     u8_t *b, mmod;
     obj_p res, col, s, p, k, v, e, path, buf;
     c8_t objbuf[RAY_PAGE_SIZE] = {0};
@@ -550,6 +551,17 @@ obj_p binary_set(obj_p x, obj_p y) {
                         lseek(fd, 0, SEEK_SET);
                         mmod = MMOD_EXTERNAL_SIMPLE;
                         c = fs_fwrite(fd, (str_p)&mmod, sizeof(u8_t));
+                        if (c == -1) {
+                            e = sys_error(ERROR_TYPE_SYS, AS_C8(path));
+                            drop_obj(path);
+                            fs_fclose(fd);
+                            return e;
+                        }
+
+                        // write rc = 0
+                        lseek(fd, sizeof(u32_t), SEEK_SET);
+                        rc = 0;
+                        c = fs_fwrite(fd, (str_p)&rc, sizeof(u32_t));
                         if (c == -1) {
                             e = sys_error(ERROR_TYPE_SYS, AS_C8(path));
                             drop_obj(path);

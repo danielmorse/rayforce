@@ -306,6 +306,7 @@ obj_p ray_get_parted(obj_p *x, u64_t n) {
                     drop_obj(res);
                     drop_obj(t1);
                     drop_obj(path);
+                    drop_obj(fmaps);
                     return t2;
                 }
 
@@ -316,6 +317,7 @@ obj_p ray_get_parted(obj_p *x, u64_t n) {
                     drop_obj(t1);
                     drop_obj(t2);
                     drop_obj(path);
+                    drop_obj(fmaps);
                     THROW(ERR_LENGTH, "get parted: partitions have different wides");
                 }
 
@@ -328,6 +330,7 @@ obj_p ray_get_parted(obj_p *x, u64_t n) {
                     drop_obj(t1);
                     drop_obj(t2);
                     drop_obj(path);
+                    drop_obj(fmaps);
                     THROW(ERR_LENGTH, "get parted: partitions have different column names");
                 }
 
@@ -341,6 +344,7 @@ obj_p ray_get_parted(obj_p *x, u64_t n) {
                         drop_obj(t1);
                         drop_obj(t2);
                         drop_obj(path);
+                        drop_obj(fmaps);
                         THROW(ERR_LENGTH, "get parted: partitions have different column types");
                     }
                 }

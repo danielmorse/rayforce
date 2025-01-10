@@ -37,7 +37,7 @@ RAYASSERT(sizeof(struct block_t) == (2 * sizeof(struct obj_t)), heap_h);
 #endif
 
 __thread heap_p __HEAP = NULL;
-__thread static c8_t HEAP_SWAP[64] = {0};
+__thread c8_t HEAP_SWAP[64] = {0};
 
 #define BLOCKSIZE(s) (sizeof(struct obj_t) + (s))
 #define BSIZEOF(o) (1ull << (u64_t)(o))
