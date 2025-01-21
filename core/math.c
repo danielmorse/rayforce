@@ -53,7 +53,7 @@
     ({                                                           \
         rt##_t *$rhs;                                            \
         __INNER_##ot *$out;                                      \
-        $rhs = __AS_##rt(y);                                     \
+        $rhs = __AS_##rt(y) + of;                                \
         $out = __AS_##ot(ov) + of;                               \
         for (u64_t $i = 0; $i < ln; $i++)                        \
             __DISPATCH_BINOP(x->lt, $rhs[$i], op, ot, $out[$i]); \
@@ -64,7 +64,7 @@
     ({                                                           \
         lt##_t *$lhs;                                            \
         __INNER_##ot *$out;                                      \
-        $lhs = __AS_##lt(x);                                     \
+        $lhs = __AS_##lt(x) + of;                                \
         $out = __AS_##ot(ov) + of;                               \
         for (u64_t $i = 0; $i < ln; $i++)                        \
             __DISPATCH_BINOP($lhs[$i], y->rt, op, ot, $out[$i]); \
@@ -76,8 +76,8 @@
         lt##_t *$lhs;                                               \
         rt##_t *$rhs;                                               \
         __INNER_##ot *$out;                                         \
-        $lhs = __AS_##lt(x);                                        \
-        $rhs = __AS_##rt(y);                                        \
+        $lhs = __AS_##lt(x) + of;                                   \
+        $rhs = __AS_##rt(y) + of;                                   \
         $out = __AS_##ot(ov) + of;                                  \
         for (u64_t $i = 0; $i < ln; $i++)                           \
             __DISPATCH_BINOP($lhs[$i], $rhs[$i], op, ot, $out[$i]); \
