@@ -388,6 +388,7 @@ obj_p specify_number(parser_t *parser, str_p current, span_t span, obj_p num) {
 
     // Check first
     switch (*current) {
+        case 'x':
         case 'i':
         case 'd':
         case 't':
@@ -406,7 +407,24 @@ obj_p specify_number(parser_t *parser, str_p current, span_t span, obj_p num) {
     }
 
     switch (*current++) {
+        case 'x':
+            if (num->i64 > 255) {
+                drop_obj(num);
+                span.end_column += (current - parser->current);
+                nfo_insert(parser->nfo, parser->count, span);
+                return parse_error(parser, parser->count++, str_fmt(-1, "Number is out of range"));
+            }
+            num->u8 = (u8_t)num->i64;
+            num->type = -TYPE_U8;
+            break;
         case 'i':
+            if (num->i64 > 2147483647) {
+                drop_obj(num);
+                span.end_column += (current - parser->current);
+                nfo_insert(parser->nfo, parser->count, span);
+                return parse_error(parser, parser->count++, str_fmt(-1, "Number is out of range"));
+            }
+            num->i32 = (i32_t)num->i64;
             num->type = -TYPE_I32;
             break;
         case 'd':
@@ -437,12 +455,29 @@ obj_p specify_number(parser_t *parser, str_p current, span_t span, obj_p num) {
 
 obj_p parse_number(parser_t *parser) {
     str_p end;
+    u8_t num_u8;
     i64_t num_i64;
     f64_t num_f64;
     obj_p num;
     span_t span = span_start(parser);
 
     errno = 0;
+
+    if (*parser->current == '0' && (*(parser->current + 1) == 'x')) {
+        num_i64 = strtoll(parser->current + 2, &end, 16);
+        if (num_i64 > 255) {
+            span.end_column += (end - parser->current);
+            nfo_insert(parser->nfo, parser->count, span);
+            return parse_error(parser, parser->count++, str_fmt(-1, "Number is out of range"));
+        }
+        num_u8 = (u8_t)num_i64;
+        shift(parser, end - parser->current);
+        span_extend(parser, &span);
+        num = u8(num_u8);
+        nfo_insert(parser->nfo, (i64_t)num, span);
+
+        return num;
+    }
 
     num_i64 = strtoll(parser->current, &end, 10);
 
@@ -468,22 +503,6 @@ obj_p parse_number(parser_t *parser) {
         num = f64(num_f64);
     } else
         num = i64(num_i64);
-
-    // if (*(parser->current + 2) == 'x') {
-    //             num_u64 = strtoul(parser->current, &end, 16);
-    //             if (num_u64 > 255) {
-    //                 span.end_column += (end - parser->current);
-    //                 nfo_insert(parser->nfo, parser->count, span);
-    //                 return parse_error(parser, parser->count++, str_fmt(-1, "Number is out of range"));
-    //             }
-    //             num_u8 = (u8_t)num_u64;
-    //             shift(parser, end - parser->current);
-    //             span_extend(parser, &span);
-    //             res = u8(num_u8);
-    //             nfo_insert(parser->nfo, (i64_t)res, span);
-
-    //             return res;
-    //         }
 
     return specify_number(parser, end, span, num);
 }
