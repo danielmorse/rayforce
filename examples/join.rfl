@@ -6,5 +6,5 @@
 (set y (table [a b c d e] 
     (list (take n (list "aa" "bb" "cc" "dd" "ee")) (take n [I J K]) (til n) (til n) (til n))))
 
-;; (lj [a] x y)
-;; (lj [a b] x y)
+;; (left-join [a] x y)
+;; (left-join [a b] x y)

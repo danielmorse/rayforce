@@ -26,7 +26,7 @@
 
 #include "rayforce.h"
 
-obj_p ray_lj(obj_p *x, u64_t n);
-obj_p ray_ij(obj_p *x, u64_t n);
+obj_p ray_left_join(obj_p *x, u64_t n);
+obj_p ray_inner_join(obj_p *x, u64_t n);
 
 #endif  // JOIN_H

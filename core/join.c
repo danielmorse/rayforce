@@ -77,22 +77,22 @@ obj_p get_column(obj_p left_col, obj_p right_col, i64_t ids[], u64_t len) {
     return at_ids(right_col, ids, len);
 }
 
-obj_p ray_lj(obj_p *x, u64_t n) {
+obj_p ray_left_join(obj_p *x, u64_t n) {
     u64_t ll;
     i64_t i, j, l;
     obj_p k1, k2, c1, c2, un, col, cols, vals, idx, rescols, resvals;
 
     if (n != 3)
-        THROW(ERR_LENGTH, "lj");
+        THROW(ERR_LENGTH, "left-join");
 
     if (x[0]->type != TYPE_SYMBOL)
-        THROW(ERR_TYPE, "lj: first argument must be a symbol vector");
+        THROW(ERR_TYPE, "left-join: first argument must be a symbol vector");
 
     if (x[1]->type != TYPE_TABLE)
-        THROW(ERR_TYPE, "lj: second argument must be a table");
+        THROW(ERR_TYPE, "left-join: second argument must be a table");
 
     if (x[2]->type != TYPE_TABLE)
-        THROW(ERR_TYPE, "lj: third argument must be a table");
+        THROW(ERR_TYPE, "left-join: third argument must be a table");
 
     if (ops_count(x[1]) == 0 || ops_count(x[2]) == 0)
         return clone_obj(x[1]);
@@ -139,7 +139,7 @@ obj_p ray_lj(obj_p *x, u64_t n) {
         drop_obj(k1);
         drop_obj(idx);
         drop_obj(cols);
-        THROW(ERR_LENGTH, "lj: no columns to join on");
+        THROW(ERR_LENGTH, "left-join: no columns to join on");
     }
 
     // resulting columns
@@ -201,22 +201,22 @@ obj_p ray_lj(obj_p *x, u64_t n) {
     return table(rescols, resvals);
 }
 
-obj_p ray_ij(obj_p *x, u64_t n) {
+obj_p ray_inner_join(obj_p *x, u64_t n) {
     u64_t ll;
     i64_t i, j, l;
     obj_p k1, k2, c1, c2, un, col, cols, vals, idx;
 
     if (n != 3)
-        THROW(ERR_LENGTH, "ij");
+        THROW(ERR_LENGTH, "inner-join");
 
     if (x[0]->type != TYPE_SYMBOL)
-        THROW(ERR_TYPE, "ij: first argument must be a symbol vector");
+        THROW(ERR_TYPE, "inner-join: first argument must be a symbol vector");
 
     if (x[1]->type != TYPE_TABLE)
-        THROW(ERR_TYPE, "ij: second argument must be a table");
+        THROW(ERR_TYPE, "inner-join: second argument must be a table");
 
     if (x[2]->type != TYPE_TABLE)
-        THROW(ERR_TYPE, "ij: third argument must be a table");
+        THROW(ERR_TYPE, "inner-join: third argument must be a table");
 
     if (ops_count(x[1]) == 0 || ops_count(x[2]) == 0)
         return clone_obj(x[1]);
@@ -260,7 +260,7 @@ obj_p ray_ij(obj_p *x, u64_t n) {
     if (cols->len == 0) {
         drop_obj(idx);
         drop_obj(cols);
-        THROW(ERR_LENGTH, "ij: no columns to join on");
+        THROW(ERR_LENGTH, "inner-join: no columns to join on");
     }
 
     col = ray_concat(x[0], cols);
