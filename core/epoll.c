@@ -270,9 +270,6 @@ poll_result_t _recv(poll_p poll, selector_p selector) {
         selector->version = selector->rx.buf[selector->rx.bytes_transfered - 2];
         selector->rx.bytes_transfered = 0;
 
-        // Now we are ready for income messages and can call userspace callback (if any)
-        poll_call_usr_on_open(poll, selector->id);
-
         // send handshake response
         size = 0;
         while (size < (i64_t)sizeof(handshake)) {
@@ -283,6 +280,9 @@ poll_result_t _recv(poll_p poll, selector_p selector) {
 
             size += sz;
         }
+
+        // Now we are ready for income messages and can call userspace callback (if any)
+        poll_call_usr_on_open(poll, selector->id);
     }
 
     // read header
