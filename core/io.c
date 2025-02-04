@@ -101,11 +101,11 @@ obj_p ray_hclose(obj_p x) {
 }
 
 obj_p ray_read(obj_p x) {
-    u64_t sz;
+    u64_t sz, rs = 0;
     i64_t fd, size, c = 0;
     u8_t *map, *cur;
     str_p buf;
-    obj_p s, val, res;
+    obj_p s, v, val, res;
 
     switch (x->type) {
         case -TYPE_I32:
@@ -113,7 +113,7 @@ obj_p ray_read(obj_p x) {
             size = fs_fsize(fd);
 
             if (size < 1)
-                return sys_error(ERROR_TYPE_SYS, "read");
+                THROW(ERR_LENGTH, "read: invalid size: %d", size);
 
             map = (u8_t *)mmap_file(fd, NULL, size, 0);
             cur = map;
@@ -126,8 +126,8 @@ obj_p ray_read(obj_p x) {
                 val = load_obj(&cur, &sz);
 
                 if (IS_ERROR(val)) {
-                    mmap_free(map, size);
-                    return val;
+                    drop_obj(val);
+                    goto finally;
                 }
 
                 res = eval_obj(val);
@@ -139,11 +139,19 @@ obj_p ray_read(obj_p x) {
                 }
 
                 drop_obj(res);
+                c++;
+                rs = size - sz;
             }
 
+        finally:
             mmap_free(map, size);
 
-            return NULL_OBJ;
+            v = I64(3);
+            AS_I64(v)[0] = c;
+            AS_I64(v)[1] = rs;
+            AS_I64(v)[2] = size;
+
+            return dict(vn_symbol(3, "items", "read", "total"), v);
         case TYPE_C8:
             s = cstring_from_obj(x);
             fd = fs_fopen(AS_C8(s), ATTR_RDONLY);

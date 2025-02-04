@@ -248,8 +248,8 @@ obj_p vector(i8_t type, u64_t len) {
 
     vec = (obj_p)heap_alloc(sizeof(struct obj_t) + len * size_of_type(t));
 
-    if (!vec)
-        PANIC("oom");
+    if (vec == NULL)
+        THROW(ERR_HEAP, "oom");
 
     vec->mmod = MMOD_INTERNAL;
     vec->type = t;

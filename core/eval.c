@@ -587,7 +587,7 @@ obj_p try_obj(obj_p obj, obj_p ctch) {
     ctx_pop();
 
     if (IS_ERROR(res) || sig) {
-        if (ctch) {
+        if (ctch != NULL_OBJ) {
             if (ctch->type == TYPE_LAMBDA) {
                 if (AS_LAMBDA(ctch)->args->len != 1) {
                     drop_obj(res);

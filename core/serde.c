@@ -465,6 +465,8 @@ obj_p load_obj(u8_t **buf, u64_t *len) {
             *buf += sizeof(u64_t);
             *len -= sizeof(u64_t);
             obj = B8(l);
+            if (IS_ERROR(obj))
+                return obj;
             memcpy(AS_B8(obj), *buf, l * sizeof(b8_t));
             *buf += l * sizeof(b8_t);
             *len -= l * sizeof(b8_t);
@@ -475,6 +477,8 @@ obj_p load_obj(u8_t **buf, u64_t *len) {
             *buf += sizeof(u64_t);
             *len -= sizeof(u64_t);
             obj = U8(l);
+            if (IS_ERROR(obj))
+                return obj;
             memcpy(AS_U8(obj), *buf, l * sizeof(u8_t));
             *buf += l * sizeof(u8_t);
             *len -= l * sizeof(u8_t);
@@ -485,6 +489,8 @@ obj_p load_obj(u8_t **buf, u64_t *len) {
             *buf += sizeof(u64_t);
             *len -= sizeof(u64_t);
             obj = C8(l);
+            if (IS_ERROR(obj))
+                return obj;
             memcpy(AS_C8(obj), *buf, l * sizeof(c8_t));
             *buf += l * sizeof(c8_t);
             *len -= l * sizeof(c8_t);
@@ -496,6 +502,8 @@ obj_p load_obj(u8_t **buf, u64_t *len) {
             *buf += sizeof(u64_t);
             *len -= sizeof(u64_t);
             obj = I64(l);
+            if (IS_ERROR(obj))
+                return obj;
             memcpy(AS_I64(obj), *buf, l * sizeof(i64_t));
             *buf += l * sizeof(i64_t);
             *len -= l * sizeof(i64_t);
@@ -507,6 +515,8 @@ obj_p load_obj(u8_t **buf, u64_t *len) {
             *buf += sizeof(u64_t);
             *len -= sizeof(u64_t);
             obj = F64(l);
+            if (IS_ERROR(obj))
+                return obj;
             memcpy(AS_F64(obj), *buf, l * sizeof(f64_t));
             *buf += l * sizeof(f64_t);
             *len -= l * sizeof(f64_t);
@@ -517,6 +527,8 @@ obj_p load_obj(u8_t **buf, u64_t *len) {
             *buf += sizeof(u64_t);
             *len -= sizeof(u64_t);
             obj = SYMBOL(l);
+            if (IS_ERROR(obj))
+                return obj;
             for (i = 0; i < l; i++) {
                 c = str_len((str_p)*buf, *len);
                 id = symbols_intern((str_p)*buf, c);
@@ -531,6 +543,8 @@ obj_p load_obj(u8_t **buf, u64_t *len) {
             *buf += sizeof(u64_t);
             *len -= sizeof(u64_t);
             obj = GUID(l);
+            if (IS_ERROR(obj))
+                return obj;
             memcpy(AS_C8(obj), *buf, l * sizeof(guid_t));
             *buf += l * sizeof(guid_t);
             *len -= l * sizeof(guid_t);
@@ -541,6 +555,8 @@ obj_p load_obj(u8_t **buf, u64_t *len) {
             *buf += sizeof(u64_t);
             *len -= sizeof(u64_t);
             obj = LIST(l);
+            if (IS_ERROR(obj))
+                return obj;
             for (i = 0; i < l; i++) {
                 v = load_obj(buf, len);
                 if (IS_ERROR(v)) {
