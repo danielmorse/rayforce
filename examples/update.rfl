@@ -9,6 +9,7 @@
 ;; Generic lists
 (set l (list [1 2] "asd" 66))
 (alter 'l set [0 2] 192)
+(alter 'l concat 88)
 
 ;; And tables
 (set t (table [sym price volume tape] (list [aapl vod goog] [102 99 203] [500 400 900] (list "A" "B" "C"))))

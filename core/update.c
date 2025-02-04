@@ -38,6 +38,7 @@
 #include "filter.h"
 #include "query.h"
 #include "aggr.h"
+#include "compose.h"
 
 #define UNCOW_OBJ(o, v, r)            \
     {                                 \
@@ -88,9 +89,17 @@ obj_p __alter(obj_p *obj, obj_p *x, u64_t n) {
     // special case for set
     if (x[1]->i64 == (i64_t)ray_set || x[1]->i64 == (i64_t)ray_let) {
         if (n != 4)
-            THROW(ERR_LENGTH, "alter: set expected a value");
+            THROW(ERR_LENGTH, "alter: set use expected 4 args");
 
         return set_obj(obj, x[2], clone_obj(x[3]));
+    }
+
+    // special case for concat
+    if (x[1]->i64 == (i64_t)ray_concat) {
+        if (n != 3)
+            THROW(ERR_LENGTH, "alter: concat use expected 3 args");
+
+        return push_obj(obj, clone_obj(x[2]));
     }
 
     // retrieve the object via indices
