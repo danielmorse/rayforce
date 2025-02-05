@@ -45,6 +45,7 @@
 #include "eval.h"
 #include "sys.h"
 #include "chrono.h"
+#include "binary.h"
 
 __thread i32_t __EVENT_FD;  // eventfd to notify epoll loop of shutdown
 
@@ -118,6 +119,8 @@ poll_p poll_init(i64_t port) {
     poll->selectors = freelist_create(128);
     poll->timers = timers_create(16);
 
+    poll_set_usr_fd(0);
+
     return poll;
 }
 
@@ -186,8 +189,10 @@ nil_t poll_call_usr_on_open(poll_p poll, i64_t id) {
 
     // Call the callback if it's a lambda
     if (clbfn != NULL && (*clbfn)->type == TYPE_LAMBDA) {
+        poll_set_usr_fd(id);
         stack_push(i64(id));
         v = call(*clbfn, 1);
+        poll_set_usr_fd(0);
         if (IS_ERROR(v)) {
             f = obj_fmt(v, B8_FALSE);
             fprintf(stderr, "Error in .z.po callback: \n%.*s\n", (i32_t)f->len, AS_C8(f));
@@ -210,8 +215,10 @@ nil_t poll_call_usr_on_close(poll_p poll, i64_t id) {
 
     // Call the callback if it's a lambda
     if (clbfn != NULL && (*clbfn)->type == TYPE_LAMBDA) {
+        poll_set_usr_fd(id);
         stack_push(i64(id));
         v = call(*clbfn, 1);
+        poll_set_usr_fd(0);
         if (IS_ERROR(v)) {
             f = obj_fmt(v, B8_FALSE);
             fprintf(stderr, "Error in .z.pc callback: \n%.*s\n", (i32_t)f->len, AS_C8(f));
