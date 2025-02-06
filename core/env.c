@@ -51,6 +51,7 @@
 #include "update.h"
 #include "util.h"
 #include "vary.h"
+#include "os.h"
 
 i64_t SYMBOL_FN;
 i64_t SYMBOL_SELF;
@@ -165,6 +166,7 @@ nil_t init_functions(obj_p functions)
     REGISTER_FN(functions,  "resolve",             TYPE_UNARY,    FN_NONE,                   ray_resolve);
     REGISTER_FN(functions,  "show",                TYPE_UNARY,    FN_NONE,                   ray_show);
     REGISTER_FN(functions,  "meta",                TYPE_UNARY,    FN_NONE,                   ray_meta);
+    REGISTER_FN(functions,  "os-get-var",          TYPE_UNARY,    FN_NONE,                   ray_os_get_var);
     
     // Binary           
     REGISTER_FN(functions,  "try",                 TYPE_BINARY,   FN_NONE | FN_SPECIAL_FORM, try_obj);
@@ -205,6 +207,7 @@ nil_t init_functions(obj_p functions)
     REGISTER_FN(functions,  "xdesc",               TYPE_BINARY,   FN_NONE,                   ray_xdesc);
     REGISTER_FN(functions,  "enum",                TYPE_BINARY,   FN_NONE,                   ray_enum);
     REGISTER_FN(functions,  "xbar",                TYPE_BINARY,   FN_ATOMIC,                 ray_xbar);
+    REGISTER_FN(functions,  "os-set-var",          TYPE_BINARY,   FN_ATOMIC,                 ray_os_set_var);
         
     // Vary               
     REGISTER_FN(functions,  "do",                  TYPE_VARY,     FN_NONE | FN_SPECIAL_FORM, ray_do);

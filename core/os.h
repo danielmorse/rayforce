@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2023 Anton Kundenko <singaraiona@gmail.com>
+ *   Copyright (c) 2025 Anton Kundenko <singaraiona@gmail.com>
  *   All rights reserved.
 
  *   Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,23 +21,14 @@
  *   SOFTWARE.
  */
 
-#ifndef SYS_H
-#define SYS_H
+#ifndef OS_H
+#define OS_H
 
 #include "rayforce.h"
 
-typedef struct sys_info_t {
-    i32_t major_version;
-    i32_t minor_version;
-    c8_t build_date[256];
-    c8_t cpu[256];
-    c8_t os[256];
-    c8_t cwd[1024];
-    i32_t mem;
-    i32_t cores;
-    i32_t threads;
-} sys_info_t;
+i64_t os_get_var(lit_p name, c8_t buf[], u64_t len);
+i64_t os_set_var(lit_p name, u64_t nlen, lit_p value, u64_t vlen);
+obj_p ray_os_get_var(obj_p x);
+obj_p ray_os_set_var(obj_p x, obj_p y);
 
-sys_info_t sys_info(i32_t threads);
-
-#endif  // SYS_H
+#endif  // OS_H

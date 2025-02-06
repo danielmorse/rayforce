@@ -598,6 +598,9 @@ i64_t error_fmt_into(obj_p *dst, i64_t limit, obj_p obj) {
         case ERR_SYS:
             error_desc = "system";
             break;
+        case ERR_OS:
+            error_desc = "os";
+            break;
         case ERR_NOT_FOUND:
             error_desc = "object not found";
             break;

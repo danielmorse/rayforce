@@ -31,6 +31,7 @@
 #include "util.h"
 #include "string.h"
 #include "sys.h"
+#include "os.h"
 
 #ifndef __EMSCRIPTEN__
 RAYASSERT(sizeof(struct block_t) == (2 * sizeof(struct obj_t)), heap_h);
@@ -61,7 +62,7 @@ heap_p heap_create(u64_t id) {
 
     memset(__HEAP->freelist, 0, sizeof(__HEAP->freelist));
 
-    if (sys_get_var("HEAP_SWAP", HEAP_SWAP, sizeof(HEAP_SWAP)) == -1)
+    if (os_get_var("HEAP_SWAP", HEAP_SWAP, sizeof(HEAP_SWAP)) == -1)
         snprintf(HEAP_SWAP, sizeof(HEAP_SWAP), "%s", DEFAULT_HEAP_SWAP);
 
     if (HEAP_SWAP[strlen(HEAP_SWAP) - 1] != '/')

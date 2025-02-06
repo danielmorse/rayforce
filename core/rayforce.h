@@ -87,12 +87,13 @@ extern "C"
 #define ERR_HEAP 9
 #define ERR_IO 10
 #define ERR_SYS 11
-#define ERR_NOT_FOUND 12
-#define ERR_NOT_EXIST 13
-#define ERR_NOT_IMPLEMENTED 14
-#define ERR_NOT_SUPPORTED 15
-#define ERR_STACK_OVERFLOW 16
-#define ERR_RAISE 17
+#define ERR_OS 12
+#define ERR_NOT_FOUND 13
+#define ERR_NOT_EXIST 14
+#define ERR_NOT_IMPLEMENTED 15
+#define ERR_NOT_SUPPORTED 16
+#define ERR_STACK_OVERFLOW 17
+#define ERR_RAISE 18
 #define ERR_UNKNOWN 127
 
 typedef char i8_t;
