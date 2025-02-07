@@ -1662,25 +1662,56 @@ obj_p cast_obj(i8_t type, obj_p obj) {
         return clone_obj(obj);
 
     switch (MTYPE2(type, obj->type)) {
-        case MTYPE2(-TYPE_I64, -TYPE_F64):
-            return i64((i64_t)obj->f64);
-        case MTYPE2(-TYPE_F64, -TYPE_I64):
-            return f64((f64_t)obj->i64);
+        case MTYPE2(-TYPE_U8, -TYPE_I16):
+        case MTYPE2(-TYPE_U8, -TYPE_I32):
+        case MTYPE2(-TYPE_U8, -TYPE_I64):
+            return u8(obj->u8);
+        case MTYPE2(-TYPE_I16, -TYPE_I16):
+        case MTYPE2(-TYPE_I16, -TYPE_I32):
+        case MTYPE2(-TYPE_I16, -TYPE_I64):
+            return i16(obj->i16);
+        case MTYPE2(-TYPE_I32, -TYPE_U8):
+        case MTYPE2(-TYPE_I32, -TYPE_I16):
+        case MTYPE2(-TYPE_I32, -TYPE_I64):
+            return i32(obj->i32);
         case MTYPE2(-TYPE_I32, -TYPE_TIME):
         case MTYPE2(-TYPE_I32, -TYPE_DATE):
             return i32(obj->i32);
+        case MTYPE2(-TYPE_I64, -TYPE_U8):
+        case MTYPE2(-TYPE_I64, -TYPE_I16):
+        case MTYPE2(-TYPE_I64, -TYPE_I32):
+        case MTYPE2(-TYPE_I64, -TYPE_TIME):
+        case MTYPE2(-TYPE_I64, -TYPE_DATE):
         case MTYPE2(-TYPE_I64, -TYPE_TIMESTAMP):
             return i64(obj->i64);
+        case MTYPE2(-TYPE_I64, -TYPE_F64):
+            return i64((i64_t)obj->f64);
+        case MTYPE2(-TYPE_F64, -TYPE_U8):
+        case MTYPE2(-TYPE_F64, -TYPE_I16):
+        case MTYPE2(-TYPE_F64, -TYPE_I32):
+        case MTYPE2(-TYPE_F64, -TYPE_DATE):
+        case MTYPE2(-TYPE_F64, -TYPE_TIME):
+        case MTYPE2(-TYPE_F64, -TYPE_I64):
+        case MTYPE2(-TYPE_F64, -TYPE_TIMESTAMP):
+            return f64((f64_t)obj->i64);
+        case MTYPE2(-TYPE_DATE, -TYPE_U8):
+        case MTYPE2(-TYPE_DATE, -TYPE_I16):
         case MTYPE2(-TYPE_DATE, -TYPE_I32):
-            return adate(obj->i32);
-        case MTYPE2(-TYPE_TIME, -TYPE_I32):
-            return atime(obj->i32);
         case MTYPE2(-TYPE_DATE, -TYPE_I64):
-            return adate((i32_t)obj->i64);
+            return adate(obj->i32);
+        case MTYPE2(-TYPE_TIME, -TYPE_U8):
+        case MTYPE2(-TYPE_TIME, -TYPE_I16):
+        case MTYPE2(-TYPE_TIME, -TYPE_I32):
         case MTYPE2(-TYPE_TIME, -TYPE_I64):
-            return atime((i32_t)obj->i64);
+            return atime(obj->i32);
+        case MTYPE2(-TYPE_TIMESTAMP, -TYPE_U8):
+        case MTYPE2(-TYPE_TIMESTAMP, -TYPE_I16):
+        case MTYPE2(-TYPE_TIMESTAMP, -TYPE_I32):
         case MTYPE2(-TYPE_TIMESTAMP, -TYPE_I64):
             return timestamp(obj->i64);
+        case MTYPE2(-TYPE_SYMBOL, -TYPE_U8):
+        case MTYPE2(-TYPE_SYMBOL, -TYPE_I16):
+        case MTYPE2(-TYPE_SYMBOL, -TYPE_I32):
         case MTYPE2(-TYPE_SYMBOL, -TYPE_I64):
             v = str_fmt(-1, "%lld", obj->i64);
             res = symbol(AS_C8(v), strlen(AS_C8(v)));
@@ -1707,17 +1738,97 @@ obj_p cast_obj(i8_t type, obj_p obj) {
             return table(clone_obj(AS_LIST(obj)[0]), clone_obj(AS_LIST(obj)[1]));
         case MTYPE2(TYPE_DICT, TYPE_TABLE):
             return dict(clone_obj(AS_LIST(obj)[0]), clone_obj(AS_LIST(obj)[1]));
-        case MTYPE2(TYPE_F64, TYPE_I64):
+        case MTYPE2(TYPE_B8, TYPE_I16):
+        case MTYPE2(TYPE_U8, TYPE_I16):
             l = obj->len;
-            res = F64(l);
+            res = U8(l);
+            res->type = type;
             for (i = 0; i < l; i++)
-                AS_F64(res)[i] = (f64_t)AS_I64(obj)[i];
+                AS_U8(res)[i] = (u8_t)AS_I16(obj)[i];
             return res;
-        case MTYPE2(TYPE_I64, TYPE_DATE):
+        case MTYPE2(TYPE_B8, TYPE_I32):
+        case MTYPE2(TYPE_U8, TYPE_I32):
+        case MTYPE2(TYPE_U8, TYPE_DATE):
+        case MTYPE2(TYPE_U8, TYPE_TIME):
+            l = obj->len;
+            res = U8(l);
+            res->type = type;
+            for (i = 0; i < l; i++)
+                AS_U8(res)[i] = (u8_t)AS_I32(obj)[i];
+            return res;
+        case MTYPE2(TYPE_B8, TYPE_I64):
+        case MTYPE2(TYPE_U8, TYPE_TIMESTAMP):
+            l = obj->len;
+            res = U8(l);
+            res->type = type;
+            for (i = 0; i < l; i++)
+                AS_U8(res)[i] = (u8_t)AS_I64(obj)[i];
+            return res;
+        case MTYPE2(TYPE_B8, TYPE_F64):
+        case MTYPE2(TYPE_U8, TYPE_F64):
+            l = obj->len;
+            res = U8(l);
+            res->type = type;
+            for (i = 0; i < l; i++)
+                AS_U8(res)[i] = (u8_t)AS_F64(obj)[i];
+            return res;
+        case MTYPE2(TYPE_I16, TYPE_U8):
+        case MTYPE2(TYPE_I16, TYPE_B8):
+            l = obj->len;
+            res = I16(l);
+            for (i = 0; i < l; i++)
+                AS_I16(res)[i] = (i16_t)AS_U8(obj)[i];
+            return res;
+        case MTYPE2(TYPE_I16, TYPE_I32):
+            l = obj->len;
+            res = I16(l);
+            for (i = 0; i < l; i++)
+                AS_I16(res)[i] = (i16_t)AS_I32(obj)[i];
+            return res;
+        case MTYPE2(TYPE_I16, TYPE_I64):
+            l = obj->len;
+            res = I16(l);
+            for (i = 0; i < l; i++)
+                AS_I16(res)[i] = (i16_t)AS_I64(obj)[i];
+            return res;
+        case MTYPE2(TYPE_I32, TYPE_U8):
+        case MTYPE2(TYPE_I32, TYPE_B8):
+            l = obj->len;
+            res = I32(l);
+            for (i = 0; i < l; i++)
+                AS_I32(res)[i] = (i32_t)AS_U8(obj)[i];
+            return res;
+        case MTYPE2(TYPE_I32, TYPE_I16):
+            l = obj->len;
+            res = I32(l);
+            for (i = 0; i < l; i++)
+                AS_I32(res)[i] = (i32_t)AS_I16(obj)[i];
+            return res;
+        case MTYPE2(TYPE_I32, TYPE_I64):
+            l = obj->len;
+            res = I32(l);
+            for (i = 0; i < l; i++)
+                AS_I32(res)[i] = (i32_t)AS_I64(obj)[i];
+            return res;
+        case MTYPE2(TYPE_I64, TYPE_U8):
             l = obj->len;
             res = I64(l);
             for (i = 0; i < l; i++)
-                AS_I64(res)[i] = (i64_t)AS_DATE(obj)[i];
+                AS_I64(res)[i] = (i64_t)AS_U8(obj)[i];
+            return res;
+        case MTYPE2(TYPE_I64, TYPE_I16):
+            l = obj->len;
+            res = I64(l);
+            for (i = 0; i < l; i++)
+                AS_I64(res)[i] = (i64_t)AS_I16(obj)[i];
+            return res;
+        case MTYPE2(TYPE_I64, TYPE_I32):
+        case MTYPE2(TYPE_I64, TYPE_DATE):
+        case MTYPE2(TYPE_I64, TYPE_TIME):
+            l = obj->len;
+            res = I64(l);
+            for (i = 0; i < l; i++)
+                AS_I64(res)[i] = (i64_t)AS_I32(obj)[i];
             return res;
         case MTYPE2(TYPE_I64, TYPE_F64):
             l = obj->len;
@@ -1725,11 +1836,52 @@ obj_p cast_obj(i8_t type, obj_p obj) {
             for (i = 0; i < l; i++)
                 AS_I64(res)[i] = (i64_t)AS_F64(obj)[i];
             return res;
-        case MTYPE2(TYPE_B8, TYPE_I64):
+        case MTYPE2(TYPE_I64, TYPE_TIMESTAMP):
             l = obj->len;
-            res = B8(l);
+            res = I64(l);
             for (i = 0; i < l; i++)
-                AS_B8(res)[i] = (b8_t)AS_I64(obj)[i];
+                AS_I64(res)[i] = AS_I64(obj)[i];
+            return res;
+        case MTYPE2(TYPE_TIMESTAMP, TYPE_I32):
+            l = obj->len;
+            res = TIMESTAMP(l);
+            for (i = 0; i < l; i++)
+                AS_TIMESTAMP(res)[i] = (i64_t)AS_I32(obj)[i];
+            return res;
+        case MTYPE2(TYPE_TIMESTAMP, TYPE_I64):
+            l = obj->len;
+            res = TIMESTAMP(l);
+            for (i = 0; i < l; i++)
+                AS_TIMESTAMP(res)[i] = AS_I64(obj)[i];
+            return res;
+        case MTYPE2(TYPE_F64, TYPE_U8):
+        case MTYPE2(TYPE_F64, TYPE_B8):
+            l = obj->len;
+            res = F64(l);
+            res->type = type;
+            for (i = 0; i < l; i++)
+                AS_F64(res)[i] = (f64_t)AS_U8(obj)[i];
+            return res;
+        case MTYPE2(TYPE_F64, TYPE_I16):
+            l = obj->len;
+            res = F64(l);
+            for (i = 0; i < l; i++)
+                AS_F64(res)[i] = (f64_t)AS_I16(obj)[i];
+            return res;
+        case MTYPE2(TYPE_F64, TYPE_I32):
+        case MTYPE2(TYPE_F64, TYPE_DATE):
+        case MTYPE2(TYPE_F64, TYPE_TIME):
+            l = obj->len;
+            res = F64(l);
+            for (i = 0; i < l; i++)
+                AS_F64(res)[i] = (f64_t)AS_I32(obj)[i];
+            return res;
+        case MTYPE2(TYPE_F64, TYPE_I64):
+        case MTYPE2(TYPE_F64, TYPE_TIMESTAMP):
+            l = obj->len;
+            res = F64(l);
+            for (i = 0; i < l; i++)
+                AS_F64(res)[i] = (f64_t)AS_I64(obj)[i];
             return res;
         case MTYPE2(-TYPE_GUID, TYPE_C8):
             res = guid(NULL);
@@ -1748,18 +1900,6 @@ obj_p cast_obj(i8_t type, obj_p obj) {
             if (i != sizeof(guid_t))
                 memset(AS_GUID(res)[0], 0, sizeof(guid_t));
 
-            return res;
-        case MTYPE2(TYPE_I64, TYPE_TIMESTAMP):
-            l = obj->len;
-            res = I64(l);
-            for (i = 0; i < l; i++)
-                AS_I64(res)[i] = AS_TIMESTAMP(obj)[i];
-            return res;
-        case MTYPE2(TYPE_TIMESTAMP, TYPE_I64):
-            l = obj->len;
-            res = TIMESTAMP(l);
-            for (i = 0; i < l; i++)
-                AS_TIMESTAMP(res)[i] = AS_I64(obj)[i];
             return res;
         default:
             if (type == TYPE_C8)

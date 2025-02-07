@@ -134,6 +134,11 @@ obj_p parse_0Nx(parser_t *parser) {
                 shift(parser, 3);
                 nfo_insert(parser->nfo, (i64_t)res, span);
                 return res;
+            case 'h':
+                res = i16(NULL_I16);
+                shift(parser, 3);
+                nfo_insert(parser->nfo, (i64_t)res, span);
+                return res;
             case 'i':
                 res = i32(NULL_I32);
                 shift(parser, 3);
@@ -389,6 +394,7 @@ obj_p specify_number(parser_t *parser, str_p current, span_t span, obj_p num) {
     // Check first
     switch (*current) {
         case 'x':
+        case 'h':
         case 'i':
         case 'd':
         case 't':
@@ -416,6 +422,16 @@ obj_p specify_number(parser_t *parser, str_p current, span_t span, obj_p num) {
             }
             num->u8 = (u8_t)num->i64;
             num->type = -TYPE_U8;
+            break;
+        case 'h':
+            if (num->i64 > 32767) {
+                drop_obj(num);
+                span.end_column += (current - parser->current);
+                nfo_insert(parser->nfo, parser->count, span);
+                return parse_error(parser, parser->count++, str_fmt(-1, "Number is out of range"));
+            }
+            num->i16 = (i16_t)num->i64;
+            num->type = -TYPE_I16;
             break;
         case 'i':
             if (num->i64 > 2147483647) {

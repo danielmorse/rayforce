@@ -1134,6 +1134,8 @@ i64_t obj_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj) 
             return b8_fmt_into(dst, obj->b8);
         case -TYPE_U8:
             return byte_fmt_into(dst, obj->u8);
+        case -TYPE_I16:
+            return i16_fmt_into(dst, obj->i16);
         case -TYPE_I32:
             return i32_fmt_into(dst, obj->i32);
         case -TYPE_DATE:
@@ -1154,6 +1156,7 @@ i64_t obj_fmt_into(obj_p *dst, i64_t indent, i64_t limit, b8_t full, obj_p obj) 
             return c8_fmt_into(dst, full, obj->c8);
         case TYPE_B8:
         case TYPE_U8:
+        case TYPE_I16:
         case TYPE_I32:
         case TYPE_DATE:
         case TYPE_TIME:
