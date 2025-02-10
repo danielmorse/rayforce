@@ -173,11 +173,14 @@ raw_p executor_run(raw_p arg) {
     executor->interpreter = interpreter_create(executor->id + 1);
     rc_sync_set(B8_TRUE);
 
+    // Mark executor as running
+    __atomic_store_n(&executor->state, RUN_STATE_RUNNING, __ATOMIC_RELAXED);
+
     for (;;) {
         mutex_lock(&executor->pool->mutex);
         cond_wait(&executor->pool->run, &executor->pool->mutex);
 
-        if (executor->pool->state == POOL_STATE_STOP) {
+        if (executor->pool->state == RUN_STATE_STOPPED) {
             mutex_unlock(&executor->pool->mutex);
             break;
         }
@@ -223,7 +226,7 @@ pool_p pool_create(u64_t executors_count) {
     pool->tasks_count = 0;
     pool->task_queue = mpmc_create(DEFAULT_MPMC_SIZE);
     pool->result_queue = mpmc_create(DEFAULT_MPMC_SIZE);
-    pool->state = POOL_STATE_RUN;
+    pool->state = RUN_STATE_RUNNING;
     pool->mutex = mutex_create();
     pool->run = cond_create();
     pool->done = cond_create();
@@ -231,6 +234,7 @@ pool_p pool_create(u64_t executors_count) {
 
     for (i = 0; i < executors_count; i++) {
         pool->executors[i].id = i;
+        pool->executors[i].state = RUN_STATE_STOPPED;
         pool->executors[i].pool = pool;
         pool->executors[i].handle = ray_thread_create(executor_run, &pool->executors[i]);
         if (thread_pin(pool->executors[i].handle, i + 1) != 0)
@@ -242,6 +246,12 @@ pool_p pool_create(u64_t executors_count) {
 
     mutex_unlock(&pool->mutex);
 
+    // Now ensure that all threads are running
+    for (i = 0; i < executors_count; i++) {
+        while (__atomic_load_n(&pool->executors[i].state, __ATOMIC_RELAXED) != RUN_STATE_RUNNING)
+            ;
+    }
+
     return pool;
 }
 
@@ -249,7 +259,7 @@ nil_t pool_destroy(pool_p pool) {
     u64_t i, n;
 
     mutex_lock(&pool->mutex);
-    pool->state = POOL_STATE_STOP;
+    pool->state = RUN_STATE_STOPPED;
     cond_broadcast(&pool->run);
     mutex_unlock(&pool->mutex);
 

@@ -69,10 +69,11 @@ typedef struct mpmc_t {
 
 typedef struct pool_t *pool_p;
 
-typedef enum pool_state_t { POOL_STATE_RUN = 0, POOL_STATE_STOP = 1 } pool_state_t;
+typedef enum run_state_t { RUN_STATE_RUNNING = 0, RUN_STATE_STOPPED = 1 } run_state_t;
 
 typedef struct {
     u64_t id;
+    run_state_t state;          // Executor's state
     heap_p heap;                // Executor's heap
     interpreter_p interpreter;  // Executor's interpreter
     pool_p pool;                // Executor's pool
@@ -83,7 +84,7 @@ typedef struct pool_t {
     mutex_t mutex;           // Mutex for condition variable
     cond_t run;              // Condition variable for run executors
     cond_t done;             // Condition variable for signal that executor is done
-    pool_state_t state;      // Pool's state
+    run_state_t state;       // Pool's state
     u64_t done_count;        // Number of done executors
     u64_t executors_count;   // Number of executors
     u64_t tasks_count;       // Number of tasks

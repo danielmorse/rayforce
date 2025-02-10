@@ -111,7 +111,7 @@ obj_p parse_cmdline(i32_t argc, str_p argv[]) {
 
 i32_t runtime_create(i32_t argc, str_p argv[]) {
     u64_t n;
-    obj_p arg, res;
+    obj_p arg, fmt, res;
     symbols_p symbols = symbols_create();
 
     heap_create(0);
@@ -152,20 +152,6 @@ i32_t runtime_create(i32_t argc, str_p argv[]) {
 
         __RUNTIME->poll = poll_init(__RUNTIME->addr.port);
 
-        // load file
-        arg = runtime_get_arg("file");
-        if (!is_null(arg)) {
-            res = ray_load(arg);
-            drop_obj(arg);
-            drop_obj(res);
-            // if (res) {
-            //     fmt = obj_fmt(res, B8_TRUE);
-            //     printf("%.*s\n", (i32_t)fmt->len, AS_C8(fmt));
-            //     drop_obj(fmt);
-            //     drop_obj(res);
-            // }
-        }
-
         // timeit
         arg = runtime_get_arg("timeit");
         if (!is_null(arg)) {
@@ -173,6 +159,20 @@ i32_t runtime_create(i32_t argc, str_p argv[]) {
             drop_obj(arg);
             timeit_activate(n);
         }
+
+        // load file
+        arg = runtime_get_arg("file");
+        if (!is_null(arg)) {
+            res = ray_load(arg);
+            drop_obj(arg);
+            if (IS_ERROR(res)) {
+                fmt = obj_fmt(res, B8_TRUE);
+                printf("%.*s\n", (i32_t)fmt->len, AS_C8(fmt));
+                drop_obj(fmt);
+            }
+            drop_obj(res);
+        }
+
     } else {
         __RUNTIME->poll = NULL;
         __RUNTIME->sys_info = sys_info(1);

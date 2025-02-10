@@ -310,7 +310,7 @@ nil_t init_typenames(obj_p typenames)
 
 nil_t init_internals(obj_p internals) {
     REGISTER_INTERNAL(internals, "pid", i64(proc_get_pid()));
-    REGISTER_INTERNAL(internals, "started", timestamp(timestamp_into_i64(timestamp_current("local"))));
+    // REGISTER_INTERNAL(internals, "started", timestamp(timestamp_into_i64(timestamp_current("local"))));
 }
 
 nil_t init_keywords(obj_p *keywords) {
