@@ -73,7 +73,6 @@ typedef enum run_state_t { RUN_STATE_RUNNING = 0, RUN_STATE_STOPPED = 1 } run_st
 
 typedef struct {
     u64_t id;
-    run_state_t state;          // Executor's state
     heap_p heap;                // Executor's heap
     interpreter_p interpreter;  // Executor's interpreter
     pool_p pool;                // Executor's pool
