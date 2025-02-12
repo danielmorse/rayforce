@@ -2096,6 +2096,8 @@ nil_t __attribute__((hot)) drop_obj(obj_p obj) {
     }
 }
 
+nil_t drop_raw(raw_p ptr) { heap_free(ptr); }
+
 obj_p copy_obj(obj_p obj) {
     u64_t i, l;
     obj_p res;
