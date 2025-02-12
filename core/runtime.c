@@ -38,69 +38,60 @@ nil_t usage(nil_t) {
 
 obj_p parse_cmdline(i32_t argc, str_p argv[]) {
     i32_t opt;
-    obj_p keys = SYMBOL(0), vals = LIST(0), str;
-    b8_t file_handled = B8_FALSE;  // flag to indicate if the file has been handled
+    obj_p keys = SYMBOL(0), vals = LIST(0), str, sym;
+    b8_t file_handled = B8_FALSE, user_defined = B8_FALSE;
+    str_p flag;
 
     for (opt = 1; opt < argc; opt++) {
         if (argv[opt][0] == '-') {
-            switch (argv[opt][1]) {
-                case 'f':
-                    opt++;
+            flag = argv[opt] + 1;  // Skip '-'
 
-                    if (argv[opt] == NULL)
-                        usage();
-
-                    push_sym(&keys, "file");
-                    str = cstring_from_str(argv[opt], strlen(argv[opt]));
-                    push_obj(&vals, str);
-                    file_handled = B8_TRUE;
-                    break;
-
-                case 'p':
-                    opt++;
-
-                    if (argv[opt] == NULL)
-                        usage();
-
-                    push_sym(&keys, "port");
-                    str = cstring_from_str(argv[opt], strlen(argv[opt]));
-                    push_obj(&vals, str);
-                    break;
-
-                case 'c':
-                    opt++;
-
-                    if (argv[opt] == NULL)
-                        usage();
-
-                    push_sym(&keys, "cores");
-                    str = cstring_from_str(argv[opt], strlen(argv[opt]));
-                    push_obj(&vals, str);
-                    break;
-
-                case 't':
-                    opt++;
-
-                    if (argv[opt] == NULL)
-                        usage();
-
-                    push_sym(&keys, "timeit");
-                    str = cstring_from_str(argv[opt], strlen(argv[opt]));
-                    push_obj(&vals, str);
-                    break;
-
-                default:
+            if (strcmp(flag, "f") == 0 || strcmp(flag, "file") == 0) {
+                if (++opt >= argc)
                     usage();
+                push_sym(&keys, "file");
+                str = string_from_str(argv[opt], strlen(argv[opt]));
+                push_obj(&vals, str);
+                file_handled = B8_TRUE;
+            } else if (strcmp(flag, "p") == 0 || strcmp(flag, "port") == 0) {
+                if (++opt >= argc)
+                    usage();
+                push_sym(&keys, "port");
+                str = string_from_str(argv[opt], strlen(argv[opt]));
+                push_obj(&vals, str);
+            } else if (strcmp(flag, "c") == 0 || strcmp(flag, "cores") == 0) {
+                if (++opt >= argc)
+                    usage();
+                push_sym(&keys, "cores");
+                str = string_from_str(argv[opt], strlen(argv[opt]));
+                push_obj(&vals, str);
+            } else if (strcmp(flag, "t") == 0 || strcmp(flag, "timeit") == 0) {
+                if (++opt >= argc)
+                    usage();
+                push_sym(&keys, "timeit");
+                str = string_from_str(argv[opt], strlen(argv[opt]));
+                push_obj(&vals, str);
+            } else if (strcmp(flag, "-") == 0) {
+                user_defined = B8_TRUE;
+            } else {
+                if (!user_defined)
+                    usage();
+
+                if (++opt >= argc)
+                    usage();
+                sym = symbol(flag, strlen(flag));
+                push_obj(&keys, sym);
+                str = string_from_str(argv[opt], strlen(argv[opt]));
+                push_obj(&vals, str);
             }
         } else {
-            // Handle non-option argument (file path)
+            // Handle non-option arguments (files)
             if (!file_handled) {
                 push_sym(&keys, "file");
-                str = cstring_from_str(argv[opt], strlen(argv[opt]));
+                str = string_from_str(argv[opt], strlen(argv[opt]));
                 push_obj(&vals, str);
                 file_handled = B8_TRUE;
             } else {
-                // If a file path has already been handled, treat as an error
                 usage();
             }
         }
