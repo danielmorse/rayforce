@@ -203,6 +203,10 @@ typedef obj_p (*ray_cmp_f)(obj_p, obj_p, u64_t, u64_t, obj_p);
                 return __CMP_V_V(x, y, i64, i32, op##I64, len, offset, res);                                \
             case MTYPE2(TYPE_I64, TYPE_F64):                                                                \
                 return __CMP_V_V(x, y, i64, f64, op##F64, len, offset, res);                                \
+            case MTYPE2(TYPE_F64, -TYPE_I32):                                                               \
+                return __CMP_V_A(x, y, f64, i32, op##F64, len, offset, res);                                \
+            case MTYPE2(TYPE_F64, -TYPE_I64):                                                               \
+                return __CMP_V_A(x, y, f64, i64, op##F64, len, offset, res);                                \
             case MTYPE2(TYPE_F64, TYPE_I32):                                                                \
                 return __CMP_V_V(x, y, f64, i32, op##F64, len, offset, res);                                \
             case MTYPE2(TYPE_F64, TYPE_I64):                                                                \

@@ -169,7 +169,7 @@ static inline i32_t f64_to_date(f64_t x) { return (x == NULL_F64) ? NULL_I32 : (
 static inline i32_t f64_to_time(f64_t x) { return (x == NULL_F64) ? NULL_I32 : (i32_t)x; }
 static inline i64_t f64_to_i64(f64_t x) { return (x == NULL_F64) ? NULL_I64 : (i64_t)x; }
 static inline i64_t f64_to_timestamp(f64_t x) { return (x == NULL_F64) ? NULL_I64 : (i64_t)x; }
-static inline f64_t f64_to_f64(i64_t x) { return x; }
+static inline f64_t f64_to_f64(f64_t x) { return x; }
 
 #define __BINOP_I32_I64(x, y, op) \
     ({                            \

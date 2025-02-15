@@ -53,7 +53,7 @@ test_result_t test_lang_basic() {
     TEST_ASSERT_EQ("1.1", "1.10");
     TEST_ASSERT_EQ("\"\"", "\"\"");
     TEST_ASSERT_EQ("'asd", "'asd");
-    TEST_ASSERT_EQ("'", "0s");
+    TEST_ASSERT_EQ("'", "0Ns");
     TEST_ASSERT_EQ("(as 'String ')", "\"\"");
     TEST_ASSERT_EQ("(as 'String ' )", "\"\"");
     TEST_ASSERT_EQ("\"asd\"", "\"asd\"");
