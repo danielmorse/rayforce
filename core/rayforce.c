@@ -1358,7 +1358,10 @@ obj_p set_obj(obj_p *obj, obj_p idx, obj_p val) {
                     return *obj;
                 }
 
-                set_idx(&AS_LIST(*obj)[1], i, val);
+                res = set_idx(&AS_LIST(*obj)[1], i, val);
+
+                if (IS_ERROR(res))
+                    return res;
 
                 return *obj;
             }
