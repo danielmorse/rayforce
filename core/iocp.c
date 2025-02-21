@@ -705,7 +705,7 @@ obj_p ipc_send_async(poll_p poll, i64_t id, obj_p msg) {
     idx = freelist_get(poll->selectors, id - SELECTOR_ID_OFFSET);
 
     if (idx == NULL_I64)
-        THROW(ERR_IO, "ipc_send_sync: invalid socket fd: %lld", id);
+        THROW(ERR_IO, "ipc_send_async: invalid socket fd: %lld", id);
 
     selector = (selector_p)idx;
     if (selector == NULL)
