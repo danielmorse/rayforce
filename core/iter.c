@@ -174,6 +174,8 @@ obj_p ray_map_left(obj_p *x, u64_t n) {
             }
 
             l = ops_count(x[0]);
+            if (l < 1)
+                return vector(x[0]->type, 0);
 
             // first item to get type of res
             stack_push(at_idx(x[0], 0));
@@ -250,6 +252,8 @@ obj_p ray_map_right(obj_p *x, u64_t n) {
             }
 
             l = ops_count(x[n - 1]);
+            if (l < 1)
+                return vector(x[n - 1]->type, 0);
 
             // first item to get type of res
             for (j = 0; j < n - 1; j++) {
