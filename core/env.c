@@ -374,7 +374,7 @@ i64_t env_get_typename_by_type(env_t *env, i8_t type) {
     t = type;
     i = find_raw(AS_LIST(env->typenames)[0], &t);
 
-    if (i == (i64_t)AS_LIST(env->typenames)[0]->len)
+    if (i == NULL_I64)
         return AS_SYMBOL(AS_LIST(env->typenames)[1])[0];
 
     return AS_SYMBOL(AS_LIST(env->typenames)[1])[i];
@@ -386,7 +386,7 @@ i8_t env_get_type_by_type_name(env_t *env, i64_t name) {
     n = name;
     i = find_raw(AS_LIST(env->typenames)[1], &n);
 
-    if (i == (i64_t)AS_LIST(env->typenames)[1]->len)
+    if (i == NULL_I64)
         return TYPE_ERROR;
 
     return (i8_t)AS_I64(AS_LIST(env->typenames)[0])[i];
@@ -423,7 +423,7 @@ obj_p env_get_internal_function(lit_p name) {
 
     i = find_sym(AS_LIST(runtime_get()->env.functions)[0], name);
 
-    if (i < (i64_t)AS_LIST(runtime_get()->env.functions)[0]->len)
+    if (i != NULL_I64)
         return clone_obj(AS_LIST(AS_LIST(runtime_get()->env.functions)[1])[i]);
 
     return NULL_OBJ;
@@ -434,7 +434,7 @@ obj_p env_get_internal_function_by_id(i64_t id) {
 
     i = find_raw(AS_LIST(runtime_get()->env.functions)[0], &id);
 
-    if (i < (i64_t)AS_LIST(runtime_get()->env.functions)[0]->len)
+    if (i != NULL_I64)
         return clone_obj(AS_LIST(AS_LIST(runtime_get()->env.functions)[1])[i]);
 
     return NULL_OBJ;

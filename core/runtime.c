@@ -211,7 +211,7 @@ obj_p runtime_get_arg(lit_p key) {
     i64_t i;
 
     i = find_sym(AS_LIST(__RUNTIME->args)[0], key);
-    if (i < (i64_t)AS_LIST(__RUNTIME->args)[0]->len)
+    if (i != NULL_I64)
         return at_idx(AS_LIST(__RUNTIME->args)[1], i);
 
     return NULL_OBJ;

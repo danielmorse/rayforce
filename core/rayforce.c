@@ -626,6 +626,9 @@ obj_p at_idx(obj_p obj, i64_t idx) {
     obj_p k, v, res;
     u8_t *buf;
 
+    if (idx == NULL_I64)
+        return null(obj->type);
+
     switch (obj->type) {
         case TYPE_I16:
             if (idx < 0)
@@ -1002,8 +1005,8 @@ obj_p at_ids(obj_p obj, i64_t ids[], u64_t len) {
 }
 
 obj_p at_obj(obj_p obj, obj_p idx) {
-    u64_t i, j, n, l;
-    i64_t *ids;
+    u64_t i, n, l;
+    i64_t j, *ids;
     obj_p v;
 
     switch (MTYPE2(obj->type, idx->type)) {
@@ -1019,7 +1022,7 @@ obj_p at_obj(obj_p obj, obj_p idx) {
             return at_idx(obj, idx->i64);
         case MTYPE2(TYPE_TABLE, -TYPE_SYMBOL):
             j = find_raw(AS_LIST(obj)[0], &idx->i64);
-            if (j == AS_LIST(obj)[0]->len)
+            if (j == NULL_I64)
                 return null(AS_LIST(obj)[1]->type);
             return at_idx(AS_LIST(obj)[1], j);
         case MTYPE2(TYPE_I64, TYPE_I64):
@@ -1043,7 +1046,7 @@ obj_p at_obj(obj_p obj, obj_p idx) {
 
             for (i = 0; i < l; i++) {
                 j = find_raw(AS_LIST(obj)[0], &AS_SYMBOL(idx)[i]);
-                if (j == AS_LIST(obj)[0]->len)
+                if (j == NULL_I64)
                     AS_LIST(v)[i] = null(0);
                 else
                     AS_LIST(v)[i] = at_idx(AS_LIST(obj)[1], j);
@@ -1051,11 +1054,11 @@ obj_p at_obj(obj_p obj, obj_p idx) {
             return v;
         default:
             if (obj->type == TYPE_DICT) {
-                i = find_obj_idx(AS_LIST(obj)[0], idx);
-                if (i == AS_LIST(obj)[0]->len)
+                j = find_obj_idx(AS_LIST(obj)[0], idx);
+                if (j == NULL_I64)
                     return null(AS_LIST(obj)[1]->type);
 
-                return at_idx(AS_LIST(obj)[1], i);
+                return at_idx(AS_LIST(obj)[1], j);
             }
 
             THROW(ERR_TYPE, "at_obj: unable to index: '%s by '%s", type_name(obj->type), type_name(idx->type));
@@ -1236,7 +1239,9 @@ obj_p __expand(obj_p obj, u64_t len) {
 }
 
 i64_t find_sym(obj_p obj, lit_p str) {
-    i64_t n = symbols_intern(str, strlen(str));
+    i64_t n;
+
+    n = symbols_intern(str, strlen(str));
     return find_raw(obj, &n);
 }
 
@@ -1244,24 +1249,22 @@ i64_t find_obj_idx(obj_p obj, obj_p val) {
     if (!IS_VECTOR(obj))
         return NULL_I64;
 
-    switch (obj->type) {
-        case TYPE_I64:
-        case TYPE_SYMBOL:
-        case TYPE_TIMESTAMP:
+    switch (MTYPE2(obj->type, val->type)) {
+        case MTYPE2(TYPE_I64, -TYPE_I64):
+        case MTYPE2(TYPE_SYMBOL, -TYPE_SYMBOL):
+        case MTYPE2(TYPE_TIMESTAMP, -TYPE_TIMESTAMP):
             return find_raw(obj, &val->i64);
-        case TYPE_F64:
+        case MTYPE2(TYPE_F64, -TYPE_F64):
             return find_raw(obj, &val->f64);
-        case TYPE_C8:
+        case MTYPE2(TYPE_C8, -TYPE_C8):
             return find_raw(obj, &val->c8);
-        case TYPE_LIST:
-            return find_raw(obj, &val);
         default:
-            PANIC("find: invalid type: %d", obj->type);
+            return NULL_I64;
     }
 }
 
 obj_p find_obj_ids(obj_p obj, obj_p val) {
-    i64_t i, j, l, m;
+    i64_t i, j, l;
     obj_p ids;
 
     switch (MTYPE2(obj->type, val->type)) {
@@ -1269,12 +1272,11 @@ obj_p find_obj_ids(obj_p obj, obj_p val) {
         case MTYPE2(TYPE_SYMBOL, TYPE_SYMBOL):
         case MTYPE2(TYPE_TIMESTAMP, TYPE_TIMESTAMP):
             l = val->len;
-            m = obj->len;
             ids = I64(l);
 
             for (i = 0; i < l; i++) {
                 j = find_raw(obj, &AS_I64(val)[i]);
-                if (j == m) {
+                if (j == NULL_I64) {
                     drop_obj(ids);
                     return NULL_OBJ;
                 }
@@ -1289,7 +1291,7 @@ obj_p find_obj_ids(obj_p obj, obj_p val) {
 }
 
 obj_p set_dict_obj(obj_p *obj, obj_p idx, obj_p val) {
-    u64_t i;
+    i64_t i;
     obj_p ids, res;
 
     switch (idx->type) {
@@ -1297,7 +1299,7 @@ obj_p set_dict_obj(obj_p *obj, obj_p idx, obj_p val) {
         case -TYPE_SYMBOL:
         case -TYPE_TIMESTAMP:
             i = find_obj_idx(AS_LIST(*obj)[0], idx);
-            if (i == AS_LIST(*obj)[0]->len) {
+            if (i == NULL_I64) {
                 res = push_obj(&AS_LIST(*obj)[0], clone_obj(idx));
                 if (res->type == TYPE_ERROR)
                     return res;
@@ -1333,7 +1335,7 @@ obj_p set_dict_obj(obj_p *obj, obj_p idx, obj_p val) {
 obj_p set_obj(obj_p *obj, obj_p idx, obj_p val) {
     obj_p k, v, res;
     u64_t i, n, l;
-    i64_t id = NULL_I64, *ids = NULL;
+    i64_t j, id = NULL_I64, *ids = NULL;
 
     // dispatch:
     switch (MTYPE2((*obj)->type, idx->type)) {
@@ -1374,8 +1376,8 @@ obj_p set_obj(obj_p *obj, obj_p idx, obj_p val) {
             val = __expand(val, ops_count(*obj));
             if (IS_ERROR(val))
                 return val;
-            i = find_obj_idx(AS_LIST(*obj)[0], idx);
-            if (i == AS_LIST(*obj)[0]->len) {
+            j = find_obj_idx(AS_LIST(*obj)[0], idx);
+            if (j == NULL_I64) {
                 res = push_obj(&AS_LIST(*obj)[0], clone_obj(idx));
                 if (IS_ERROR(res))
                     return res;
@@ -1387,7 +1389,7 @@ obj_p set_obj(obj_p *obj, obj_p idx, obj_p val) {
                 return *obj;
             }
 
-            set_idx(&AS_LIST(*obj)[1], i, val);
+            set_idx(&AS_LIST(*obj)[1], j, val);
 
             return *obj;
         case MTYPE2(TYPE_TABLE, TYPE_SYMBOL):
@@ -1426,7 +1428,7 @@ obj_p set_obj(obj_p *obj, obj_p idx, obj_p val) {
 
             for (i = 0; i < l; i++) {
                 id = find_raw(AS_LIST(*obj)[0], &AS_SYMBOL(idx)[i]);
-                if (id == (i64_t)AS_LIST(*obj)[0]->len) {
+                if (id == NULL_I64) {
                     push_raw(&AS_LIST(*obj)[0], &AS_SYMBOL(idx)[i]);
                     push_obj(&AS_LIST(*obj)[1], clone_obj(AS_LIST(val)[i]));
                 } else {
@@ -1583,7 +1585,7 @@ obj_p remove_ids(obj_p *obj, i64_t ids[], u64_t len) {
 }
 
 obj_p remove_obj(obj_p *obj, obj_p idx) {
-    u64_t i;
+    i64_t i;
     obj_p v;
 
     switch (MTYPE2((*obj)->type, idx->type)) {
@@ -1617,7 +1619,7 @@ obj_p remove_obj(obj_p *obj, obj_p idx) {
             i = find_obj_idx(AS_LIST(*obj)[0], idx);
 
             // not found ?
-            if (i == AS_LIST(*obj)[0]->len)
+            if (i == NULL_I64)
                 return *obj;
 
             v = remove_idx(&AS_LIST(*obj)[0], i);
@@ -1725,7 +1727,7 @@ i64_t find_raw(obj_p obj, raw_p val) {
     i64_t i, l;
 
     if (!IS_VECTOR(obj))
-        return 1;
+        return NULL_I64;
 
     switch (obj->type) {
         case TYPE_I64:
@@ -1735,27 +1737,27 @@ i64_t find_raw(obj_p obj, raw_p val) {
             for (i = 0; i < l; i++)
                 if (AS_I64(obj)[i] == *(i64_t *)val)
                     return i;
-            return l;
+            return NULL_I64;
         case TYPE_F64:
             l = obj->len;
             for (i = 0; i < l; i++)
                 if (AS_F64(obj)[i] == *(f64_t *)val)
                     return i;
-            return l;
+            return NULL_I64;
         case TYPE_C8:
             l = obj->len;
             for (i = 0; i < l; i++)
                 if (AS_C8(obj)[i] == *(c8_t *)val)
                     return i;
-            return l;
+            return NULL_I64;
         case TYPE_LIST:
             l = obj->len;
             for (i = 0; i < l; i++)
                 if (cmp_obj(AS_LIST(obj)[i], *(obj_p *)val) == 0)
                     return i;
-            return l;
+            return NULL_I64;
         default:
-            PANIC("find: invalid type: %d", obj->type);
+            return NULL_I64;
     }
 }
 

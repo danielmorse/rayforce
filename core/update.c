@@ -537,8 +537,8 @@ upsert:
 }
 
 obj_p __update_table(obj_p tab, obj_p keys, obj_p vals, obj_p filters, obj_p groupby) {
-    u64_t i, j, l, m, n;
-    i64_t *ids;
+    u64_t i, l, m, n;
+    i64_t j, *ids;
     obj_p prm, obj, *val = NULL, gids, v, col, index, res;
 
     // No filters nor groupings
@@ -575,7 +575,7 @@ obj_p __update_table(obj_p tab, obj_p keys, obj_p vals, obj_p filters, obj_p gro
             j = find_raw(AS_LIST(obj)[0], AS_I64(keys) + i);
 
             // Add new column
-            if (j == AS_LIST(obj)[0]->len) {
+            if (j == NULL_I64) {
                 push_raw(AS_LIST(obj), AS_SYMBOL(keys) + i);
                 push_obj(AS_LIST(obj) + 1, nullv(AS_LIST(vals)[i]->type, ops_count(obj)));
             }
@@ -665,7 +665,7 @@ obj_p __update_table(obj_p tab, obj_p keys, obj_p vals, obj_p filters, obj_p gro
             j = find_raw(AS_LIST(obj)[0], AS_I64(keys) + i);
 
             // Add new column
-            if (j == AS_LIST(obj)[0]->len) {
+            if (j == NULL_I64) {
                 push_raw(AS_LIST(obj), AS_SYMBOL(keys) + i);
                 push_obj(AS_LIST(obj) + 1, nullv(AS_LIST(vals)[i]->type, ops_count(obj)));
             }

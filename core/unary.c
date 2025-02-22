@@ -161,72 +161,62 @@ obj_p ray_get(obj_p x) {
             if (x->len == 0)
                 THROW(ERR_LENGTH, "get: empty string path");
 
-            // get splayed table
-            if (x->len > 1 && AS_C8(x)[x->len - 1] == '/') {
-                return io_get_table_splayed(x, NULL_OBJ);
-            }
-            // get other obj
-            else {
-                path = cstring_from_obj(x);
-                fd = fs_fopen(AS_C8(path), ATTR_RDWR);
+            path = cstring_from_obj(x);
+            fd = fs_fopen(AS_C8(path), ATTR_RDWR);
 
-                if (fd == -1) {
-                    res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
-                    drop_obj(path);
-                    return res;
-                }
-
-                size = fs_fsize(fd);
-
-                if (size < sizeof(struct obj_t)) {
-                    res = error(ERR_LENGTH, "get: file '%s': invalid size: %d", AS_C8(path), size);
-                    drop_obj(path);
-                    fs_fclose(fd);
-                    return res;
-                }
-
+            if (fd == -1) {
+                res = sys_error(ERROR_TYPE_SYS, AS_C8(path));
                 drop_obj(path);
-
-                res = (obj_p)mmap_file(fd, NULL, size, 0);
-
-                if (IS_EXTERNAL_SERIALIZED(res)) {
-                    v = de_raw((u8_t *)res, size);
-                    mmap_free(res, size);
-                    fs_fclose(fd);
-                    return v;
-                } else if (IS_EXTERNAL_COMPOUND(res)) {
-                    fdmap = fdmap_create(1);
-                    fdmap_add_fd(fdmap, res, fd, size);
-                    res = (obj_p)((str_p)res + RAY_PAGE_SIZE);
-                    runtime_fdmap_push(runtime_get(), res, fdmap);
-                } else {
-                    fdmap = fdmap_create(1);
-                    fdmap_add_fd(fdmap, res, fd, size);
-                    runtime_fdmap_push(runtime_get(), res, fdmap);
-                }
-
-                // anymap needs additional nested mapping of dependencies
-                if (res->type == TYPE_MAPLIST) {
-                    s = cstring_from_str("#", 1);
-                    col = ray_concat(x, s);
-                    keys = ray_get(col);
-                    drop_obj(s);
-                    drop_obj(col);
-
-                    if (keys->type != TYPE_U8) {
-                        drop_obj(keys);
-                        mmap_free(res, size);
-                        THROW(ERR_TYPE, "get: expected anymap schema as a byte vector, got: '%s",
-                              type_name(keys->type));
-                    }
-
-                    ((obj_p)((str_p)res - RAY_PAGE_SIZE))->obj = keys;
-                }
-
-                res = clone_obj(res);  // increment ref count
-
                 return res;
             }
+
+            size = fs_fsize(fd);
+
+            if (size < sizeof(struct obj_t)) {
+                res = error(ERR_LENGTH, "get: file '%s': invalid size: %d", AS_C8(path), size);
+                drop_obj(path);
+                fs_fclose(fd);
+                return res;
+            }
+
+            drop_obj(path);
+
+            res = (obj_p)mmap_file(fd, NULL, size, 0);
+
+            if (IS_EXTERNAL_SERIALIZED(res)) {
+                v = de_raw((u8_t *)res, size);
+                mmap_free(res, size);
+                fs_fclose(fd);
+                return v;
+            } else if (IS_EXTERNAL_COMPOUND(res)) {
+                fdmap = fdmap_create(1);
+                fdmap_add_fd(fdmap, res, fd, size);
+                res = (obj_p)((str_p)res + RAY_PAGE_SIZE);
+                runtime_fdmap_push(runtime_get(), res, fdmap);
+            } else {
+                fdmap = fdmap_create(1);
+                fdmap_add_fd(fdmap, res, fd, size);
+                runtime_fdmap_push(runtime_get(), res, fdmap);
+            }
+
+            // anymap needs additional nested mapping of dependencies
+            if (res->type == TYPE_MAPLIST) {
+                s = cstring_from_str("#", 1);
+                col = ray_concat(x, s);
+                keys = ray_get(col);
+                drop_obj(s);
+                drop_obj(col);
+
+                if (keys->type != TYPE_U8) {
+                    drop_obj(keys);
+                    mmap_free(res, size);
+                    THROW(ERR_TYPE, "get: expected anymap schema as a byte vector, got: '%s", type_name(keys->type));
+                }
+
+                ((obj_p)((str_p)res - RAY_PAGE_SIZE))->obj = keys;
+            }
+
+            return clone_obj(res);  // increment ref count
 
         default:
             THROW(ERR_TYPE, "get: unsupported type: '%s", type_name(x->type));

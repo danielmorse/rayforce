@@ -173,11 +173,11 @@ obj_p ray_set_splayed(obj_p *x, u64_t n) {
 obj_p ray_get_splayed(obj_p *x, u64_t n) {
     switch (n) {
         case 1:
-            return ray_get(x[0]);
+            return io_get_table_splayed(x[0], NULL_OBJ);
         case 2:
             return io_get_table_splayed(x[0], x[1]);
         default:
-            THROW(ERR_LENGTH, "get splayed: expected 1 argument, got %lld", n);
+            THROW(ERR_LENGTH, "get splayed: expected 1 or 2 arguments, got %lld", n);
     }
 }
 

@@ -991,8 +991,7 @@ i64_t table_fmt_into(obj_p *dst, i64_t indent, b8_t full, obj_p obj) {
             // Adjust width to '...' if it's less than 4
             if (AS_I64(column_widths)[i] < 4) {
                 total_width += 4 - AS_I64(column_widths)[i];
-                AS_I64(column_widths)
-                [i] = 4;
+                AS_I64(column_widths)[i] = 4;
             }
         }
     }

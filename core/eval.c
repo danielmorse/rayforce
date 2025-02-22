@@ -549,8 +549,8 @@ obj_p ray_eval_str(obj_p str, obj_p file) {
 
 obj_p try_obj(obj_p obj, obj_p ctch) {
     ctx_p curr_ctx, ctx;
-    obj_p fn, *pfn, res = NULL_OBJ;
     b8_t sig = B8_FALSE;
+    volatile obj_p fn, *pfn, res = NULL_OBJ;
 
     curr_ctx = ctx_get();
     ctx = ctx_push(curr_ctx->lambda);
@@ -632,7 +632,7 @@ nil_t interpreter_env_set(interpreter_p interpreter, obj_p env) { interpreter->s
 nil_t interpreter_env_unset(interpreter_p interpreter) { drop_obj(interpreter->stack[--interpreter->sp]); }
 
 obj_p *resolve(i64_t sym) {
-    i64_t bp, *args;
+    i64_t j, bp, *args;
     obj_p lambda, env;
     u64_t i, l, n;
     ctx_p ctx;
@@ -667,9 +667,9 @@ obj_p *resolve(i64_t sym) {
     }
 
     // search globals
-    i = find_raw(AS_LIST(runtime_get()->env.variables)[0], &sym);
-    if (i == AS_LIST(runtime_get()->env.variables)[0]->len)
+    j = find_raw(AS_LIST(runtime_get()->env.variables)[0], &sym);
+    if (j == NULL_I64)
         return NULL;
 
-    return &AS_LIST(AS_LIST(runtime_get()->env.variables)[1])[i];
+    return &AS_LIST(AS_LIST(runtime_get()->env.variables)[1])[j];
 }
