@@ -123,6 +123,7 @@ i32_t runtime_create(i32_t argc, str_p argv[]) {
     __RUNTIME->addr = (sock_addr_t){{0}, 0};
     __RUNTIME->fdmaps = dict(I64(0), LIST(0));
     __RUNTIME->args = NULL_OBJ;
+    __RUNTIME->query_ctx = NULL;
     __RUNTIME->pool = NULL;
 
     interpreter_create(0);

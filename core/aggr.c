@@ -799,7 +799,7 @@ obj_p aggr_collect(obj_p val, obj_p index) {
     }
 }
 
-obj_p aggr_ids(obj_p val, obj_p index) {
+obj_p aggr_row_index(obj_p val, obj_p index) {
     u64_t l, m, n;
     i64_t *cnts;
     obj_p cnt, res;
@@ -812,54 +812,17 @@ obj_p aggr_ids(obj_p val, obj_p index) {
     n = cnt->len;
     l = index_group_len(index);
 
-    switch (val->type) {
-        case TYPE_I64:
-        case TYPE_SYMBOL:
-        case TYPE_TIMESTAMP:
-        case TYPE_ENUM:
-            res = LIST(n);
-            AGGR_ITER(
-                index, l, 0, val, res, i64, list,
-                {
-                    UNUSED($in);
-                    m = cnts[$y];
-                    $out[$y] = I64(m);
-                    $out[$y]->len = 0;
-                },
-                AS_I64($out[$y])[$out[$y]->len++] = $x);
-            drop_obj(cnt);
+    res = LIST(n);
+    AGGR_ITER(
+        index, l, 0, val, res, i64, list,
+        {
+            UNUSED($in);
+            m = cnts[$y];
+            $out[$y] = I64(m);
+            $out[$y]->len = 0;
+        },
+        AS_I64($out[$y])[$out[$y]->len++] = $x);
+    drop_obj(cnt);
 
-            return res;
-        case TYPE_F64:
-            res = LIST(n);
-            AGGR_ITER(
-                index, l, 0, val, res, f64, list,
-                {
-                    UNUSED($in);
-                    m = cnts[$y];
-                    $out[$y] = I64(m);
-                    $out[$y]->len = 0;
-                },
-                AS_I64($out[$y])[$out[$y]->len++] = $x);
-            drop_obj(cnt);
-
-            return res;
-        case TYPE_LIST:
-            res = LIST(n);
-            AGGR_ITER(
-                index, l, 0, val, res, list, list,
-                {
-                    UNUSED($in);
-                    m = cnts[$y];
-                    $out[$y] = I64(m);
-                    $out[$y]->len = 0;
-                },
-                AS_I64($out[$y])[$out[$y]->len++] = $x);
-            drop_obj(cnt);
-
-            return res;
-        default:
-            drop_obj(cnt);
-            THROW(ERR_TYPE, "indices: unsupported type: '%s", type_name(val->type));
-    }
+    return res;
 }

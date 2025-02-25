@@ -33,19 +33,21 @@
 #include "sock.h"
 #include "pool.h"
 #include "sys.h"
+#include "query.h"
 
 /*
  * Runtime structure.
  */
 typedef struct runtime_t {
-    obj_p args;           // Command line arguments.
-    sys_info_t sys_info;  // System information.
-    env_t env;            // Environment.
-    symbols_p symbols;    // vector_symbols pool.
-    poll_p poll;          // I/O event loop handle.
-    obj_p fdmaps;         // File descriptors mappings.
-    sock_addr_t addr;     // Socket address that a process listen.
-    pool_p pool;          // Executors pool.
+    obj_p args;             // Command line arguments.
+    sys_info_t sys_info;    // System information.
+    env_t env;              // Environment.
+    symbols_p symbols;      // vector_symbols pool.
+    poll_p poll;            // I/O event loop handle.
+    obj_p fdmaps;           // File descriptors mappings.
+    sock_addr_t addr;       // Socket address that a process listen.
+    query_ctx_p query_ctx;  // Query context.
+    pool_p pool;            // Executors pool.
 } *runtime_p;
 
 extern runtime_p __RUNTIME;

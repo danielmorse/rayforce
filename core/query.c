@@ -46,19 +46,21 @@
 
 obj_p remap_filter(obj_p tab, obj_p index) { return filter_map(tab, index); }
 
-obj_p remap_group(obj_p *gvals, obj_p cols, obj_p tab, obj_p filter, obj_p gkeys, obj_p gcols) {
+obj_p remap_group(obj_p *gvals, obj_p cols, obj_p gkeys, obj_p gcols, query_ctx_p ctx) {
     u64_t i, l;
     obj_p index, v, lst, res;
 
     switch (gkeys->type) {
         case -TYPE_SYMBOL:
-            index = index_group(cols, filter);
+            index = index_group(cols, ctx->filter);
             timeit_tick("build index");
 
             if (IS_ERROR(index))
                 return index;
 
-            res = group_map(tab, index);
+            ctx->group_index = clone_obj(index);
+
+            res = group_map(ctx->table, index);
             v = (gcols == NULL_OBJ) ? aggr_first(cols, index) : aggr_first(gcols, index);
             if (IS_ERROR(v)) {
                 drop_obj(index);
@@ -73,13 +75,13 @@ obj_p remap_group(obj_p *gvals, obj_p cols, obj_p tab, obj_p filter, obj_p gkeys
 
             return res;
         case TYPE_SYMBOL:
-            index = index_group_list(cols, filter);
+            index = index_group_list(cols, ctx->filter);
             timeit_tick("build compound index");
 
             if (IS_ERROR(index))
                 return index;
 
-            res = group_map(tab, index);
+            res = group_map(ctx->table, index);
 
             l = cols->len;
             lst = LIST(l);
@@ -191,15 +193,20 @@ nil_t query_ctx_init(query_ctx_p ctx) {
     ctx->group_values = NULL_OBJ;
     ctx->query_fields = NULL_OBJ;
     ctx->query_values = NULL_OBJ;
+    ctx->group_index = NULL_OBJ;
+    runtime_get()->query_ctx = ctx;
 }
 
 nil_t query_ctx_destroy(query_ctx_p ctx) {
+    runtime_get()->query_ctx = NULL;
+
     drop_obj(ctx->table);
     drop_obj(ctx->filter);
     drop_obj(ctx->group_fields);
     drop_obj(ctx->group_values);
     drop_obj(ctx->query_fields);
     drop_obj(ctx->query_values);
+    drop_obj(ctx->group_index);
 }
 
 obj_p select_fetch_table(obj_p obj, query_ctx_p ctx) {
@@ -285,7 +292,7 @@ obj_p select_apply_groupings(obj_p obj, query_ctx_p ctx) {
 
         timeit_tick("get keys");
 
-        prm = remap_group(&gcol, groupby, ctx->table, ctx->filter, gkeys, gvals);
+        prm = remap_group(&gcol, groupby, gkeys, gvals, ctx);
 
         drop_obj(gvals);
         drop_obj(groupby);
@@ -527,7 +534,6 @@ obj_p select_build_table(query_ctx_p ctx) {
 obj_p ray_select(obj_p obj) {
     obj_p res;
     struct query_ctx_t ctx;
-    struct progress_t progress, *prog = NULL;
 
     query_ctx_init(&ctx);
 
@@ -544,50 +550,36 @@ obj_p ray_select(obj_p obj) {
     if (IS_ERROR(res))
         goto cleanup;
 
-    if (ops_count(ctx.table) > 1000000)
-        prog = &progress;
-
-    progress_init(prog, 7);
-
     // Mount table columns to a local env
-    progress_tick(prog, 1, "Mount table");
     mount_env(ctx.table);
 
     // Apply filters
-    progress_tick(prog, 1, "Apply filters");
     res = select_apply_filters(obj, &ctx);
     if (IS_ERROR(res))
         goto cleanup;
 
     // Apply groupping
-    progress_tick(prog, 1, "Apply groupings");
     res = select_apply_groupings(obj, &ctx);
     if (IS_ERROR(res))
         goto cleanup;
 
     // Apply mappings
-    progress_tick(prog, 1, "Apply mappings");
     res = select_apply_mappings(obj, &ctx);
     if (IS_ERROR(res))
         goto cleanup;
 
     // Collect fields
-    progress_tick(prog, 1, "Collect fields");
     res = select_collect_fields(&ctx);
     if (IS_ERROR(res))
         goto cleanup;
 
     // Build result table
-    progress_tick(prog, 1, "Build result table");
     res = select_build_table(&ctx);
 
 cleanup:
-    progress_tick(prog, 1, "Cleanup");
     unmount_env(ctx.tablen);
     query_ctx_destroy(&ctx);
     timeit_span_end("select");
-
-    progress_finalize(prog);
 
     return res;
 }

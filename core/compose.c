@@ -59,24 +59,33 @@ obj_p ray_cast_obj(obj_p x, obj_p y) {
     return cast_obj(type, y);
 }
 
-obj_p ray_til_partial(u64_t len, u64_t offset, i64_t out[]) {
+obj_p ray_til_partial(u64_t len, u64_t offset, i64_t filter[], i64_t out[]) {
     u64_t i;
 
-    for (i = 0; i < len; i++)
-        out[i] = i + offset;
+    if (filter) {
+        for (i = 0; i < len; i++)
+            out[i] = filter[i + offset];
+    } else {
+        for (i = 0; i < len; i++)
+            out[i] = i + offset;
+    }
 
     return NULL_OBJ;
 }
 
-obj_p ray_til(obj_p x) {
+obj_p __til(obj_p x, obj_p filter) {
     u64_t i, l, n, chunk;
+    i64_t *ids = NULL;
     obj_p v, vec;
     pool_p pool;
 
-    if (x->type != -TYPE_I64)
-        return error_str(ERR_TYPE, "til: expected i64");
-
     l = (u64_t)x->i64;
+
+    if (filter != NULL_OBJ) {
+        ids = AS_I64(filter);
+        l = filter->len;
+    }
+
     vec = I64(l);
 
     if (IS_ERROR(vec))
@@ -88,7 +97,7 @@ obj_p ray_til(obj_p x) {
     n = pool_split_by(pool, l, 0);
 
     if (n == 1) {
-        ray_til_partial(l, 0, AS_I64(vec));
+        ray_til_partial(l, 0, ids, AS_I64(vec));
         return vec;
     }
 
@@ -96,14 +105,21 @@ obj_p ray_til(obj_p x) {
     pool_prepare(pool);
 
     for (i = 0; i < n - 1; i++)
-        pool_add_task(pool, (raw_p)ray_til_partial, 3, chunk, i * chunk, AS_I64(vec) + i * chunk);
+        pool_add_task(pool, (raw_p)ray_til_partial, 4, chunk, i * chunk, ids, AS_I64(vec) + i * chunk);
 
-    pool_add_task(pool, (raw_p)ray_til_partial, 3, l - i * chunk, i * chunk, AS_I64(vec) + i * chunk);
+    pool_add_task(pool, (raw_p)ray_til_partial, 4, l - i * chunk, i * chunk, ids, AS_I64(vec) + i * chunk);
 
     v = pool_run(pool);
     drop_obj(v);
 
     return vec;
+}
+
+obj_p ray_til(obj_p x) {
+    if (x->type != -TYPE_I64)
+        return error_str(ERR_TYPE, "til: expected i64");
+
+    return __til(x, NULL_OBJ);
 }
 
 obj_p ray_reverse(obj_p x) {
@@ -622,7 +638,7 @@ obj_p ray_group(obj_p x) {
     obj_p k, v, index;
 
     index = index_group(x, NULL_OBJ);
-    v = aggr_ids(x, index);
+    v = aggr_row_index(x, index);
     k = aggr_first(x, index);
     drop_obj(index);
 
@@ -634,4 +650,32 @@ obj_p ray_unify_list(obj_p x) {
 
     lst = clone_obj(x);
     return unify_list(&lst);
+}
+
+obj_p ray_row_index(obj_p *x, u64_t n) {
+    UNUSED(x);
+    UNUSED(n);
+
+    query_ctx_p ctx;
+    runtime_p rt;
+    obj_p v, res;
+
+    rt = runtime_get();
+    ctx = rt->query_ctx;
+
+    if (ctx == NULL)
+        return error_str(ERR_LENGTH, "row_index: no table selected");
+
+    if (ctx->tablen == 0)
+        return error_str(ERR_LENGTH, "row_index: no table selected");
+
+    if (ctx->group_index != NULL_OBJ)
+        return aggr_row_index(AS_LIST(AS_LIST(ctx->table)[1])[0], ctx->group_index);
+
+    v = i64(ops_count(ctx->table));
+
+    res = __til(v, ctx->filter);
+    drop_obj(v);
+
+    return res;
 }
