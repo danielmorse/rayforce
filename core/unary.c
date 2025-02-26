@@ -185,6 +185,7 @@ obj_p ray_get(obj_p x) {
                 v = de_raw((u8_t *)res, size);
                 mmap_free(res, size);
                 fs_fclose(fd);
+                drop_obj(path);
                 return v;
             } else if (IS_EXTERNAL_COMPOUND(res)) {
                 fdmap = fdmap_create();

@@ -25,6 +25,7 @@
 #include <errno.h>
 #include <time.h>
 #include "compose.h"
+#include "def.h"
 #include "error.h"
 #include "format.h"
 #include "fs.h"
@@ -370,7 +371,6 @@ obj_p binary_set(obj_p x, obj_p y) {
                     return clone_obj(x);
                 case TYPE_TABLE:
                     return io_set_table(x, y);
-
                 case TYPE_ENUM:
                     path = cstring_from_obj(x);
                     fd = fs_fopen(AS_C8(path), ATTR_WRONLY | ATTR_CREAT);

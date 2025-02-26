@@ -803,13 +803,44 @@ obj_p io_get_symfile(obj_p path) {
 }
 
 obj_p io_set_table(obj_p path, obj_p table) {
-    // Save as a blob (serialized)
-    if (path->len < 2 || AS_C8(path)[path->len - 1] != '/') {
-        THROW(ERR_TYPE, "set: table path must be a directory");
-    }
+    i64_t c, fd;
+    obj_p s, buf, res;
+
     // Save splayed
-    else
+    if (path->len > 0 && AS_C8(path)[path->len - 1] == '/')
         return io_set_table_splayed(path, table, NULL_OBJ);
+
+    // Save as a blob (serialized)
+    s = cstring_from_obj(path);
+    fd = fs_fopen(AS_C8(s), ATTR_WRONLY | ATTR_CREAT | ATTR_TRUNC);
+
+    if (fd == -1) {
+        res = sys_error(ERROR_TYPE_SYS, AS_C8(s));
+        drop_obj(s);
+        return res;
+    }
+
+    buf = ser_obj(table);
+    if (IS_ERROR(buf)) {
+        drop_obj(s);
+        fs_fclose(fd);
+        return buf;
+    }
+
+    c = fs_fwrite(fd, AS_C8(buf), buf->len);
+    if (c == -1) {
+        res = sys_error(ERROR_TYPE_SYS, AS_C8(s));
+        drop_obj(buf);
+        drop_obj(s);
+        fs_fclose(fd);
+        return res;
+    }
+
+    drop_obj(s);
+    drop_obj(buf);
+    fs_fclose(fd);
+
+    return NULL_OBJ;
 }
 
 obj_p io_set_table_splayed(obj_p path, obj_p table, obj_p symfile) {
