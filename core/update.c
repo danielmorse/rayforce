@@ -167,8 +167,7 @@ obj_p ray_alter(obj_p *x, u64_t n) {
 }
 
 obj_p at_obj_ref(obj_p obj, obj_p idx) {
-    u64_t i, n, l;
-    i64_t j, *ids;
+    i64_t j;
     obj_p v, *p;
 
     switch (MTYPE2(obj->type, idx->type)) {

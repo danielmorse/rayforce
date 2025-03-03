@@ -538,7 +538,6 @@ obj_p unify_list(obj_p *obj) {
 }
 
 obj_p diverse_obj(obj_p *obj) {
-    i8_t type;
     u64_t i, l;
     obj_p res;
 
@@ -1148,9 +1147,9 @@ obj_p set_idx(obj_p *obj, i64_t idx, obj_p val) {
                 return *obj;
             }
 
-            drop_obj(val);
-
-            THROW(ERR_TYPE, "set_idx: invalid types: '%s, '%s", type_name((*obj)->type), type_name(val->type));
+            // Diverse to a list then
+            diverse_obj(obj);
+            return set_idx(obj, idx, val);
     }
 }
 
