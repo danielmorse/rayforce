@@ -422,6 +422,7 @@ obj_p load_obj(u8_t **buf, u64_t *len) {
             memcpy(&obj->i32, *buf, sizeof(i32_t));
             *buf += sizeof(i32_t);
             *len -= sizeof(i32_t);
+            obj->type = type;
             return obj;
 
         case -TYPE_I64:
