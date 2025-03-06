@@ -118,7 +118,7 @@ obj_p ray_read(obj_p x) {
     i64_t fd, size, c = 0;
     u8_t *map, *cur;
     str_p buf;
-    obj_p s, v, val, res;
+    obj_p s, v, val, err, res;
 
     switch (x->type) {
         case -TYPE_I32:
@@ -128,19 +128,33 @@ obj_p ray_read(obj_p x) {
             if (size < 1)
                 THROW(ERR_LENGTH, "read: invalid size: %d", size);
 
+            // Check for reasonable file size
+            if (size > 1000000000)  // 1GB max size
+                THROW(ERR_LENGTH, "read: file size too large: %d", size);
+
             map = (u8_t *)mmap_file(fd, NULL, size, 0);
-            cur = map;
-            sz = size;
 
             if (map == NULL)
                 return sys_error(ERROR_TYPE_SYS, "read");
+
+            // Validate minimum file size for header
+            if (size < (i64_t)sizeof(struct header_t)) {
+                mmap_free(map, size);
+                return error_str(ERR_IO, "read: file too small to contain valid header");
+            }
+
+            cur = map;
+            sz = size;
 
             while (sz > 0) {
                 val = load_obj(&cur, &sz);
 
                 if (IS_ERROR(val)) {
+                    // Return the error with additional context
+                    err = error_str(ERR_IO, "read: error loading object");
                     drop_obj(val);
-                    goto finally;
+                    mmap_free(map, size);
+                    return err;
                 }
 
                 res = eval_obj(val);
@@ -156,7 +170,7 @@ obj_p ray_read(obj_p x) {
                 rs = size - sz;
             }
 
-        finally:
+            // Cleanup and return results
             mmap_free(map, size);
 
             v = I64(3);
