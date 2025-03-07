@@ -76,7 +76,7 @@ sys_info_t sys_info(i32_t threads) {
     info.mem = (i32_t)(memInfo.ullTotalPhys / (1024 * 1024));
 
 #elif defined(OS_LINUX)
-    FILE* cpuFile = fopen("/proc/cpuinfo", "r");
+    FILE *cpuFile = fopen("/proc/cpuinfo", "r");
     c8_t line[256];
 
     while (fgets(line, sizeof(line), cpuFile)) {
@@ -89,7 +89,7 @@ sys_info_t sys_info(i32_t threads) {
 
     fclose(cpuFile);
 
-    FILE* memFile = fopen("/proc/meminfo", "r");
+    FILE *memFile = fopen("/proc/meminfo", "r");
     while (fgets(line, sizeof(line), memFile)) {
         if (strncmp(line, "MemTotal:", 9) == 0) {
             i32_t totalKB;
@@ -122,17 +122,208 @@ sys_info_t sys_info(i32_t threads) {
     return info;
 }
 
+typedef struct command_entry_t {
+    str_p name;
+    obj_p (*func)(i32_t argc, str_p argv[]);
+} command_entry_t;
+
+#define COMMAND(name, func) {name, func}
+
+// Internal commands list
+command_entry_t commands[] = {
+    COMMAND("use-unicode", sys_use_unicode),
+    COMMAND("set-fpr", sys_set_fpr),
+    COMMAND("set-display-width", sys_set_display_width),
+    COMMAND("timeit-activate", sys_timeit_activate),
+    COMMAND("listen", sys_listen),
+};
+
+obj_p sys_set_fpr(i32_t argc, str_p argv[]) {
+    i64_t fpr, res;
+
+    if (argc != 1)
+        THROW(ERR_LENGTH, "set-fpr: expected 1 argument");
+
+    fpr = i64_from_str(argv[0], strlen(argv[0]));
+    if (fpr < 0)
+        THROW(ERR_LENGTH, "set-fpr: expected a positive integer");
+
+    res = format_set_fpr(fpr);
+    if (res != 0)
+        THROW(ERR_LENGTH, "set-fpr: failed to set fpr");
+
+    return i64(res);
+}
+
+obj_p sys_use_unicode(i32_t argc, str_p argv[]) {
+    i64_t res;
+
+    if (argc != 1)
+        THROW(ERR_LENGTH, "use-unicode: expected 1 argument");
+
+    res = format_set_use_unicode(i64_from_str(argv[0], strlen(argv[0])));
+    if (res != 0)
+        THROW(ERR_LENGTH, "use-unicode: failed to set use unicode");
+
+    return i64(res);
+}
+
+obj_p sys_set_display_width(i32_t argc, str_p argv[]) {
+    i64_t width, res;
+
+    if (argc != 1)
+        THROW(ERR_LENGTH, "set-display-width: expected 1 argument");
+
+    width = i64_from_str(argv[0], strlen(argv[0]));
+    if (width < 0)
+        THROW(ERR_LENGTH, "set-display-width: expected a positive integer");
+
+    res = format_set_display_width(width);
+    if (res != 0)
+        THROW(ERR_LENGTH, "set-display-width: failed to set display width");
+
+    return i64(res);
+}
+
+obj_p sys_timeit_activate(i32_t argc, str_p argv[]) {
+    if (argc != 1)
+        THROW(ERR_LENGTH, "timeit-activate: expected 1 argument");
+
+    timeit_activate(i64_from_str(argv[0], strlen(argv[0])));
+
+    return i64(0);
+}
+
+obj_p sys_listen(i32_t argc, str_p argv[]) {
+    i64_t res;
+
+    if (argc != 1)
+        THROW(ERR_LENGTH, "listen: expected 1 argument");
+
+    res = i64_from_str(argv[0], strlen(argv[0]));
+    if (res < 0)
+        THROW(ERR_TYPE, "listen: expected integer");
+
+    res = poll_listen(runtime_get()->poll, res);
+
+    if (res == -1)
+        return sys_error(ERROR_TYPE_SOCK, "listen");
+
+    if (res == -2)
+        THROW(ERR_LENGTH, "listen: already listening");
+
+    return i64(res);
+}
+
+obj_p ray_internal_command(obj_p cmd) {
+    str_p argv[64];  // Max 64 arguments
+    c8_t *cmd_str, *current, cmd_buf[4096];
+    i32_t i, cmd_len, remaining_len, argc;
+
+    current = AS_C8(cmd);
+    cmd_len = cmd->len;
+    remaining_len = cmd_len;
+    argc = 0;
+
+    // Make a copy of the command string
+    strncpy(cmd_buf, current, sizeof(cmd_buf) - 1);
+    cmd_buf[sizeof(cmd_buf) - 1] = '\0';
+
+    cmd_str = cmd_buf;
+
+    // Make a copy of the command string
+    strncpy(cmd_buf, current, sizeof(cmd_buf) - 1);
+    cmd_buf[sizeof(cmd_buf) - 1] = '\0';
+
+    cmd_str = cmd_buf;
+
+    // Find first space
+    for (i = 0; i < cmd_len && current[i] != ' '; i++)
+        ;
+
+    if (i < cmd_len) {
+        // We found a space, split command and arguments
+        cmd_buf[i] = '\0';  // Null terminate command part
+        remaining_len = cmd_len - i - 1;
+        current = AS_C8(cmd) + i + 1;
+
+        // Parse arguments
+        while (remaining_len > 0 && argc < 64) {
+            // Skip leading spaces
+            while (remaining_len > 0 && *current == ' ') {
+                current++;
+                remaining_len--;
+            }
+            if (remaining_len <= 0)
+                break;
+
+            // Find end of argument
+            if (*current == '"') {
+                // Handle quoted arguments
+                current++;  // Skip opening quote
+                remaining_len--;
+
+                for (i = 0; i < remaining_len && current[i] != '"'; i++)
+                    ;
+                if (i >= remaining_len) {
+                    THROW(ERR_PARSE, "unmatched quote in command arguments");
+                }
+
+                // Null terminate the argument
+                current[i] = '\0';
+                argv[argc++] = current;
+
+                // Move past the closing quote and any following space
+                current += i + 1;
+                remaining_len -= i + 1;
+                if (remaining_len > 0 && *current == ' ') {
+                    current++;
+                    remaining_len--;
+                }
+            } else {
+                // Handle unquoted arguments
+                for (i = 0; i < remaining_len && current[i] != ' '; i++)
+                    ;
+
+                // Null terminate the argument
+                if (i < remaining_len) {
+                    current[i] = '\0';
+                    argv[argc++] = current;
+                    current += i + 1;
+                    remaining_len -= i + 1;
+                } else {
+                    argv[argc++] = current;
+                    remaining_len = 0;
+                }
+            }
+        }
+    }
+
+    // Find and execute the command
+    for (i = 0; i < (i32_t)sizeof(commands) / (i32_t)sizeof(commands[0]); i++) {
+        if (strcmp(cmd_str, commands[i].name) == 0) {
+            return commands[i].func(argc, argv);
+        }
+    }
+
+    return NULL_OBJ;
+}
+
 obj_p ray_system(obj_p cmd) {
     c8_t buf[4096];
-    FILE* fp;
+    FILE *fp;
     i64_t l, status;
     obj_p c, res;
 
-    if (cmd->type != TYPE_C8) {
+    if (cmd->type != TYPE_C8)
         THROW(ERR_TYPE, "system: expected a string");
-    }
 
-    // Append " 2>&1" to capture stderr as well
+    // Try internal command first
+    res = ray_internal_command(cmd);
+    if (res != NULL_OBJ)
+        return res;
+
+    // If not an internal command, execute as external command
     c = str_fmt(-1, "%.*s 2>&1", (i32_t)cmd->len, (lit_p)AS_U8(cmd));
 
     fp = popen(AS_C8(c), "r");

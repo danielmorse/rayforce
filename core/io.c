@@ -118,7 +118,7 @@ obj_p ray_read(obj_p x) {
     i64_t fd, size, c = 0;
     u8_t *map, *cur;
     str_p buf;
-    obj_p s, v, val, err, res;
+    obj_p s, v, val, res;
 
     switch (x->type) {
         case -TYPE_I32:
@@ -732,23 +732,6 @@ obj_p ray_load(obj_p x) {
     drop_obj(file);
 
     return res;
-}
-
-obj_p ray_listen(obj_p x) {
-    i64_t res;
-
-    if (x->type != -TYPE_I64)
-        THROW(ERR_TYPE, "listen: expected integer");
-
-    res = poll_listen(runtime_get()->poll, x->i64);
-
-    if (res == -1)
-        return sys_error(ERROR_TYPE_SOCK, "listen");
-
-    if (res == -2)
-        THROW(ERR_LENGTH, "listen: already listening");
-
-    return i64(res);
 }
 
 obj_p distinct_syms(obj_p *x, u64_t n) {

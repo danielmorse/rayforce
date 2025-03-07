@@ -76,18 +76,6 @@ obj_p ray_set_fpr(obj_p x) {
     return NULL_OBJ;
 }
 
-obj_p ray_set_display_width(obj_p x) {
-    if (x->type != -TYPE_I64)
-        return error(ERR_TYPE, "ray_set_display_width: expected 'i64, got %s", type_name(x->type));
-
-    if (x->i64 < 0)
-        MAX_ROW_WIDTH = DEFAULT_MAX_ROW_WIDTH;
-    else
-        MAX_ROW_WIDTH = x->i64;
-
-    return NULL_OBJ;
-}
-
 typedef enum {
     GLYPH_VLINE,
     GLYPH_HLINE,
@@ -1331,6 +1319,23 @@ obj_p timeit_fmt(nil_t) {
     return dst;
 }
 
-nil_t format_set_use_unicode(b8_t use) { __USE_UNICODE = use; }
+i64_t format_set_use_unicode(b8_t use) {
+    __USE_UNICODE = use;
+    return 0;
+}
 
-b8_t format_get_use_unicode() { return __USE_UNICODE; }
+i64_t format_get_use_unicode() { return __USE_UNICODE; }
+
+i64_t format_set_fpr(i64_t x) {
+    F64_PRECISION = x;
+    return 0;
+}
+
+i64_t format_set_display_width(i64_t x) {
+    if (x < 1)
+        MAX_ROW_WIDTH = DEFAULT_MAX_ROW_WIDTH;
+    else
+        MAX_ROW_WIDTH = x;
+
+    return 0;
+}

@@ -34,7 +34,6 @@ obj_p ray_read_csv(obj_p *x, i64_t n);
 obj_p ray_parse(obj_p x);
 obj_p ray_eval(obj_p x);
 obj_p ray_load(obj_p x);
-obj_p ray_listen(obj_p x);
 obj_p io_write(i64_t fd, u8_t msg_type, obj_p obj);
 obj_p io_get_symfile(obj_p path);
 obj_p io_set_table(obj_p path, obj_p table);

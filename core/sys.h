@@ -39,6 +39,12 @@ typedef struct sys_info_t {
 } sys_info_t;
 
 sys_info_t sys_info(i32_t threads);
+obj_p sys_set_fpr(i32_t argc, str_p argv[]);
+obj_p sys_use_unicode(i32_t argc, str_p argv[]);
+obj_p sys_set_display_width(i32_t argc, str_p argv[]);
+obj_p sys_timeit_activate(i32_t argc, str_p argv[]);
+obj_p sys_listen(i32_t argc, str_p argv[]);
+obj_p ray_internal_command(obj_p cmd);
 obj_p ray_system(obj_p cmd);
 
 #endif  // SYS_H

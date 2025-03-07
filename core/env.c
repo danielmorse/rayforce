@@ -129,7 +129,6 @@ nil_t init_functions(obj_p functions)
     REGISTER_FN(functions,  "parse",               TYPE_UNARY,    FN_NONE,                   ray_parse);
     REGISTER_FN(functions,  "eval",                TYPE_UNARY,    FN_NONE,                   ray_eval);
     REGISTER_FN(functions,  "load",                TYPE_UNARY,    FN_NONE,                   ray_load);
-    REGISTER_FN(functions,  "listen",              TYPE_UNARY,    FN_NONE,                   ray_listen);
     REGISTER_FN(functions,  "type",                TYPE_UNARY,    FN_NONE,                   ray_type);
     REGISTER_FN(functions,  "til",                 TYPE_UNARY,    FN_NONE,                   ray_til);
     REGISTER_FN(functions,  "reverse",             TYPE_UNARY,    FN_NONE,                   ray_reverse);
@@ -168,9 +167,6 @@ nil_t init_functions(obj_p functions)
     REGISTER_FN(functions,  "date",                TYPE_UNARY,    FN_NONE,                   ray_date);
     REGISTER_FN(functions,  "time",                TYPE_UNARY,    FN_NONE,                   ray_time);
     REGISTER_FN(functions,  "timestamp",           TYPE_UNARY,    FN_NONE,                   ray_timestamp);
-    REGISTER_FN(functions,  "use-unicode-format",  TYPE_UNARY,    FN_NONE,                   ray_unicode_format);
-    REGISTER_FN(functions,  "set-fpr",             TYPE_UNARY,    FN_NONE,                   ray_set_fpr);
-    REGISTER_FN(functions,  "set-display-width",   TYPE_UNARY,    FN_NONE,                   ray_set_display_width);
     REGISTER_FN(functions,  "nil?",                TYPE_UNARY,    FN_NONE,                   ray_is_null);
     REGISTER_FN(functions,  "resolve",             TYPE_UNARY,    FN_NONE,                   ray_resolve);
     REGISTER_FN(functions,  "show",                TYPE_UNARY,    FN_NONE,                   ray_show);
