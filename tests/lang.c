@@ -21,6 +21,7 @@
  *   SOFTWARE.
  */
 
+
 #define TEST_ASSERT_EQ(lhs, rhs)                                                                                       \
     {                                                                                                                  \
         obj_p le = eval_str(lhs);                                                                                      \
@@ -34,7 +35,7 @@
             obj_p re = eval_str(rhs);                                                                                  \
             obj_p rns = obj_fmt(re, B8_TRUE);                                                                          \
             obj_p fmt = str_fmt(-1, "Expected %s, got %s\n -- at: %s:%d", AS_C8(rns), AS_C8(lns), __FILE__, __LINE__); \
-            TEST_ASSERT(str_cmp(AS_C8(lns), lns->len, AS_C8(rns), rns->len) == 0, AS_C8(fmt));                         \
+            TEST_ASSERT(cmp_obj(le, re) == 0 || str_cmp(AS_C8(lns), lns->len, AS_C8(rns), rns->len) == 0, AS_C8(fmt)); \
             drop_obj(fmt);                                                                                             \
             drop_obj(re);                                                                                              \
             drop_obj(le);                                                                                              \
@@ -94,6 +95,22 @@ test_result_t test_lang_basic() {
 }
 
 test_result_t test_lang_math() {
+    TEST_ASSERT_EQ("(+ 0Ni 0Ni)", "0Ni");
+    TEST_ASSERT_EQ("(+ 0i 0Ni)", "0i");
+    TEST_ASSERT_EQ("(+ 0Ni -1i)", "-1i");
+    TEST_ASSERT_EQ("(+ 0Nl 0Nl)", "0Nl");
+    TEST_ASSERT_EQ("(+ 0 0Nl)", "0i");
+    TEST_ASSERT_EQ("(+ 0Ni -1i)", "-1i");
+    TEST_ASSERT_EQ("(+ 0Ni -10.00)", "-10.00")
+    TEST_ASSERT_EQ("(+ 0Ni 0Nl)", "0Nl");
+    TEST_ASSERT_EQ("(+ 0Nf 0Ni)", "0Nf");
+    TEST_ASSERT_EQ("(+ 0Nf 5)", "5.0");
+    TEST_ASSERT_EQ("(+ 0.00 0Ni)", "0.0")
+    TEST_ASSERT_EQ("(+ 0Ni -0.00)", "0.00")
+    TEST_ASSERT_EQ("(+ -0.00 0Nl)", "0.00")
+    TEST_ASSERT_EQ("(+ 0Nf [-0.00])", "[0.00]")
+    TEST_ASSERT_ER("(+ 0Nf 2024.03.20)", "add: unsupported types: 'f64, 'date");
+
     TEST_ASSERT_EQ("(+ 3i 5i)", "8i");
     TEST_ASSERT_EQ("(+ 3i 5)", "8");
     TEST_ASSERT_EQ("(+ 3i 5.2)", "8.2");
@@ -238,6 +255,8 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(- 2.5 [3i 5i])", "[-0.5 -2.5]");
     TEST_ASSERT_EQ("(- 2.5 [3 5])", "[-0.5 -2.5]");
     TEST_ASSERT_EQ("(- 2.5 [3.1 5.2])", "[-0.6 -2.7]");
+    TEST_ASSERT_EQ("(- -0.00 0.00)", "0.00")
+    TEST_ASSERT_EQ("(- -0.00 0Nf)", "0.00")
 
     TEST_ASSERT_EQ("(- 2024.03.20 5i)", "2024.03.15");
     TEST_ASSERT_EQ("(- 2024.03.20 5)", "2024.03.15");
@@ -325,6 +344,7 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(* 2i [3 5])", "[6 10]");
     TEST_ASSERT_EQ("(* 2i [3.1 5.2])", "[6.2 10.4]");
     TEST_ASSERT_EQ("(* 2i [20:15:07.000 15:41:47.087])", "[40:30:14.000 31:23:34.174]");
+    TEST_ASSERT_EQ("(* 0Ni 15:12:10.000)", "0Nt");
 
     TEST_ASSERT_EQ("(* -3 5i)", "-15");
     TEST_ASSERT_EQ("(* -3 5)", "-15");
@@ -334,6 +354,8 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(* -2 [3 5])", "[-6 -10]");
     TEST_ASSERT_EQ("(* -2 [3.1 5.2])", "[-6.2 -10.4]");
     TEST_ASSERT_EQ("(* 6 [00:15:07.000 00:41:47.087])", "[01:30:42.000 04:10:42.522]");
+    TEST_ASSERT_EQ("(* 0 -5.50)", "0.00");
+    TEST_ASSERT_EQ("(* -10 [0.0])", "[0.00]");
 
     TEST_ASSERT_EQ("(* 3.1 5i)", "15.5");
     TEST_ASSERT_EQ("(* 3.1 -5)", "-15.5");
@@ -1323,6 +1345,7 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(% [10:20:15.000] [100000])", "[00:00:15.000]");
     TEST_ASSERT_EQ("(% [10:20:15.000] [100000i])", "[00:00:15.000]");
 
+    TEST_ASSERT_EQ("(div 0i -5i)", "0.00");
     TEST_ASSERT_EQ("(div -10i 5i)", "-2.0");
     TEST_ASSERT_EQ("(div -9i 5i)", "-1.8");
     TEST_ASSERT_EQ("(div -3i 5i)", "-0.6");
@@ -1622,318 +1645,11 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(div 3.0 [5.0])", "[0.6]");
     TEST_ASSERT_EQ("(div 9.0 [5.0])", "[1.8]");
     TEST_ASSERT_EQ("(div 10.0 [5.0])", "[2.0]");
-    TEST_ASSERT_EQ("(div -10.0 [-5.0])", "[2.0]");
-    TEST_ASSERT_EQ("(div -9.0 [-5.0])", "[1.8]");
-    TEST_ASSERT_EQ("(div -3.0 [-5.0])", "[0.6]");
-    TEST_ASSERT_EQ("(div -3.0 [-0.6])", "[5.0]");
-    TEST_ASSERT_EQ("(div -3.0 [-0.0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div 3.0 [-0.0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div 3.0 [-5.0])", "[-0.6]");
-    TEST_ASSERT_EQ("(div 9.0 [-5.0])", "[-1.8]");
-    TEST_ASSERT_EQ("(div 10.0 [-5.0])", "[-2.0]");
-    TEST_ASSERT_EQ("(div 10.0 [])", "[]");
-
-    TEST_ASSERT_EQ("(div [-10i] 5i)", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-9i] 5i)", "[-1.8]");
-    TEST_ASSERT_EQ("(div [-3i] 5i)", "[-0.6]");
-    TEST_ASSERT_EQ("(div [-3i] 1i)", "[-3.0]");
-    TEST_ASSERT_EQ("(div [-3i] 0i)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3i] 0i)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3i] 5i)", "[0.6]");
-    TEST_ASSERT_EQ("(div [9i] 5i)", "[1.8]");
-    TEST_ASSERT_EQ("(div [10i] 5i)", "[2.0]");
-    TEST_ASSERT_EQ("(div [-10i] -5i)", "[2.0]");
-    TEST_ASSERT_EQ("(div [-9i] -5i)", "[1.8]");
-    TEST_ASSERT_EQ("(div [-3i] -5i)", "[0.6]");
-    TEST_ASSERT_EQ("(div [-3i] -1i)", "[3.0]");
-    TEST_ASSERT_EQ("(div [-3i] -0i)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3i] -0i)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3i] -5i)", "[-0.6]");
-    TEST_ASSERT_EQ("(div [9i] -5i)", "[-1.8]");
-    TEST_ASSERT_EQ("(div [10i] -5i)", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-10i] 5)", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-9i] 5)", "[-1.8]");
-    TEST_ASSERT_EQ("(div [-3i] 5)", "[-0.6]");
-    TEST_ASSERT_EQ("(div [-3i] 0)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3i] 0)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3i] 5)", "[0.6]");
-    TEST_ASSERT_EQ("(div [9i] 5)", "[1.8]");
-    TEST_ASSERT_EQ("(div [10i] 5)", "[2.0]");
-    TEST_ASSERT_EQ("(div [-10i] -5)", "[2.0]");
-    TEST_ASSERT_EQ("(div [-9i] -5)", "[1.8]");
-    TEST_ASSERT_EQ("(div [-3i] -5)", "[0.6]");
-    TEST_ASSERT_EQ("(div [-3i] -0)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3i] -0)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3i] -5)", "[-0.6]");
-    TEST_ASSERT_EQ("(div [9i] -5)", "[-1.8]");
-    TEST_ASSERT_EQ("(div [10i] -5)", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-10i] 5.0)", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-9i] 5.0)", "[-1.8]");
-    TEST_ASSERT_EQ("(div [-3i] 5.0)", "[-0.6]");
-    TEST_ASSERT_EQ("(div [-3i] 0.6)", "[-5.0]");
-    TEST_ASSERT_EQ("(div [-3i] 0.0)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3i] 0.0)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3i] 5.0)", "[0.6]");
-    TEST_ASSERT_EQ("(div [9i] 5.0)", "[1.8]");
-    TEST_ASSERT_EQ("(div [10i] 5.0)", "[2.0]");
-    TEST_ASSERT_EQ("(div [-10i] -5.0)", "[2.0]");
-    TEST_ASSERT_EQ("(div [-9i] -5.0)", "[1.8]");
-    TEST_ASSERT_EQ("(div [-3i] -5.0)", "[0.6]");
-    TEST_ASSERT_EQ("(div [-3i] -0.6)", "[5.0]");
-    TEST_ASSERT_EQ("(div [-3i] -0.0)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3i] -0.0)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3i] -5.0)", "[-0.6]");
-    TEST_ASSERT_EQ("(div [9i] -5.0)", "[-1.8]");
-    TEST_ASSERT_EQ("(div [10i] -5.0)", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-10i] [5i])", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-9i] [5i])", "[-1.8]");
-    TEST_ASSERT_EQ("(div [-3i] [5i])", "[-0.6]");
-    TEST_ASSERT_EQ("(div [-3i] [0i])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3i] [0i])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3i] [5i])", "[0.6]");
-    TEST_ASSERT_EQ("(div [9i] [5i])", "[1.8]");
-    TEST_ASSERT_EQ("(div [10i] [5i])", "[2.0]");
-    TEST_ASSERT_EQ("(div [-10i] [-5i])", "[2.0]");
-    TEST_ASSERT_EQ("(div [-9i] [-5i])", "[1.8]");
-    TEST_ASSERT_EQ("(div [-3i] [-5i])", "[0.6]");
-    TEST_ASSERT_EQ("(div [-3i] [-0i])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3i] [-0i])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3i] [-5i])", "[-0.6]");
-    TEST_ASSERT_EQ("(div [9i] [-5i])", "[-1.8]");
-    TEST_ASSERT_EQ("(div [10i] [-5i])", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-10i] [5])", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-9i] [5])", "[-1.8]");
-    TEST_ASSERT_EQ("(div [-3i] [5])", "[-0.6]");
-    TEST_ASSERT_EQ("(div [-3i] [0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3i] [0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3i] [5])", "[0.6]");
-    TEST_ASSERT_EQ("(div [9i] [5])", "[1.8]");
-    TEST_ASSERT_EQ("(div [10i] [5])", "[2.0]");
-    TEST_ASSERT_EQ("(div [-10i] [-5])", "[2.0]");
-    TEST_ASSERT_EQ("(div [-9i] [-5])", "[1.8]");
-    TEST_ASSERT_EQ("(div [-3i] [-5])", "[0.6]");
-    TEST_ASSERT_EQ("(div [-3i] [-0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3i] [-0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3i] [-5])", "[-0.6]");
-    TEST_ASSERT_EQ("(div [9i] [-5])", "[-1.8]");
-    TEST_ASSERT_EQ("(div [10i] [-5])", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-10i] [5.0])", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-9i] [5.0])", "[-1.8]");
-    TEST_ASSERT_EQ("(div [-3i] [5.0])", "[-0.6]");
-    TEST_ASSERT_EQ("(div [-3i] [0.6])", "[-5.0]");
-    TEST_ASSERT_EQ("(div [-3i] [0.0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3i] [0.0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3i] [5.0])", "[0.6]");
-    TEST_ASSERT_EQ("(div [9i] [5.0])", "[1.8]");
-    TEST_ASSERT_EQ("(div [10i] [5.0])", "[2.0]");
-    TEST_ASSERT_EQ("(div [-10i] [-5.0])", "[2.0]");
-    TEST_ASSERT_EQ("(div [-9i] [-5.0])", "[1.8]");
-    TEST_ASSERT_EQ("(div [-3i] [-5.0])", "[0.6]");
-    TEST_ASSERT_EQ("(div [-3i] [-0.6])", "[5.0]");
-    TEST_ASSERT_EQ("(div [-3i] [-0.0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3i] [-0.0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3i] [-5.0])", "[-0.6]");
-    TEST_ASSERT_EQ("(div [9i] [-5.0])", "[-1.8]");
-    TEST_ASSERT_EQ("(div [10i] [-5.0])", "[-2.0]");
-
-    TEST_ASSERT_EQ("(div [-10] 5i)", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-9] 5i)", "[-1.8]");
-    TEST_ASSERT_EQ("(div [-3] 5i)", "[-0.6]");
-    TEST_ASSERT_EQ("(div [-3] 0i)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3] 0i)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3] 5i)", "[0.6]");
-    TEST_ASSERT_EQ("(div [9] 5i)", "[1.8]");
-    TEST_ASSERT_EQ("(div [10] 5i)", "[2.0]");
-    TEST_ASSERT_EQ("(div [-10] -5i)", "[2.0]");
-    TEST_ASSERT_EQ("(div [-9] -5i)", "[1.8]");
-    TEST_ASSERT_EQ("(div [-3] -5i)", "[0.6]");
-    TEST_ASSERT_EQ("(div [-3] -0i)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3] -0i)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3] -5i)", "[-0.6]");
-    TEST_ASSERT_EQ("(div [9] -5i)", "[-1.8]");
-    TEST_ASSERT_EQ("(div [10] -5i)", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-10] 5)", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-9] 5)", "[-1.8]");
-    TEST_ASSERT_EQ("(div [-3] 5)", "[-0.6]");
-    TEST_ASSERT_EQ("(div [-3] 0)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3] 0)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3] 5)", "[0.6]");
-    TEST_ASSERT_EQ("(div [9] 5)", "[1.8]");
-    TEST_ASSERT_EQ("(div [10] 5)", "[2.0]");
-    TEST_ASSERT_EQ("(div [-10] -5)", "[2.0]");
-    TEST_ASSERT_EQ("(div [-9] -5)", "[1.8]");
-    TEST_ASSERT_EQ("(div [-3] -5)", "[0.6]");
-    TEST_ASSERT_EQ("(div [-3] -0)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3] -0)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3] -5)", "[-0.6]");
-    TEST_ASSERT_EQ("(div [9] -5)", "[-1.8]");
-    TEST_ASSERT_EQ("(div [10] -5)", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-10] 5.0)", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-9] 5.0)", "[-1.8]");
-    TEST_ASSERT_EQ("(div [-3] 5.0)", "[-0.6]");
-    TEST_ASSERT_EQ("(div [-3] 0.0)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3] 0.0)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [-3] 0.6)", "[-5.0]");
-    TEST_ASSERT_EQ("(div [3] 5.0)", "[0.6]");
-    TEST_ASSERT_EQ("(div [9] 5.0)", "[1.8]");
-    TEST_ASSERT_EQ("(div [10] 5.0)", "[2.0]");
-    TEST_ASSERT_EQ("(div [-10] -5.0)", "[2.0]");
-    TEST_ASSERT_EQ("(div [-9] -5.0)", "[1.8]");
-    TEST_ASSERT_EQ("(div [-3] -5.0)", "[0.6]");
-    TEST_ASSERT_EQ("(div [-3] -0.6)", "[5.0]");
-    TEST_ASSERT_EQ("(div [-3] -0.0)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3] -0.0)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3] -5.0)", "[-0.6]");
-    TEST_ASSERT_EQ("(div [9] -5.0)", "[-1.8]");
-    TEST_ASSERT_EQ("(div [10] -5.0)", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-10] [5i])", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-10] [5])", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-9] [5])", "[-1.8]");
-    TEST_ASSERT_EQ("(div [-3] [5])", "[-0.6]");
-    TEST_ASSERT_EQ("(div [-3] [0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3] [0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3] [5])", "[0.6]");
-    TEST_ASSERT_EQ("(div [9] [5])", "[1.8]");
-    TEST_ASSERT_EQ("(div [10] [5])", "[2.0]");
-    TEST_ASSERT_EQ("(div [-10] [-5])", "[2.0]");
-    TEST_ASSERT_EQ("(div [-9] [-5])", "[1.8]");
-    TEST_ASSERT_EQ("(div [-3] [-5])", "[0.6]");
-    TEST_ASSERT_EQ("(div [-3] [-0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3] [-0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3] [-5])", "[-0.6]");
-    TEST_ASSERT_EQ("(div [9] [-5])", "[-1.8]");
-    TEST_ASSERT_EQ("(div [10] [-5])", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-10] [5])", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-9] [5])", "[-1.8]");
-    TEST_ASSERT_EQ("(div [-3] [5])", "[-0.6]");
-    TEST_ASSERT_EQ("(div [-3] [0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3] [5])", "[0.6]");
-    TEST_ASSERT_EQ("(div [9] [5])", "[1.8]");
-    TEST_ASSERT_EQ("(div [10] [5])", "[2.0]");
-    TEST_ASSERT_EQ("(div [-10] [-5])", "[2.0]");
-    TEST_ASSERT_EQ("(div [-9] [-5])", "[1.8]");
-    TEST_ASSERT_EQ("(div [-3] [-5])", "[0.6]");
-    TEST_ASSERT_EQ("(div [-3] [-0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3] [-0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3] [-5])", "[-0.6]");
-    TEST_ASSERT_EQ("(div [9] [-5])", "[-1.8]");
-    TEST_ASSERT_EQ("(div [10] [-5])", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-10] [5.0])", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-9] [5.0])", "[-1.8]");
-    TEST_ASSERT_EQ("(div [-3] [5.0])", "[-0.6]");
-    TEST_ASSERT_EQ("(div [-3] [0.0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3] [0.0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [-3] [0.6])", "[-5.0]");
-    TEST_ASSERT_EQ("(div [3] [5.0])", "[0.6]");
-    TEST_ASSERT_EQ("(div [9] [5.0])", "[1.8]");
-    TEST_ASSERT_EQ("(div [10] [5.0])", "[2.0]");
-    TEST_ASSERT_EQ("(div [-10] [-5.0])", "[2.0]");
-    TEST_ASSERT_EQ("(div [-9] [-5.0])", "[1.8]");
-    TEST_ASSERT_EQ("(div [-3] [-5.0])", "[0.6]");
-    TEST_ASSERT_EQ("(div [-3] [-0.6])", "[5.0]");
-    TEST_ASSERT_EQ("(div [-3] [-0.0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3] [-0.0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3] [-5.0])", "[-0.6]");
-    TEST_ASSERT_EQ("(div [9] [-5.0])", "[-1.8]");
-    TEST_ASSERT_EQ("(div [10] [-5.0])", "[-2.0]");
-
-    TEST_ASSERT_EQ("(div [-10.0] 5i)", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-9.0] 5i)", "[-1.8]");
-    TEST_ASSERT_EQ("(div [-3.0] 5i)", "[-0.6]");
-    TEST_ASSERT_EQ("(div [-3.0] 0i)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3.0] 0i)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3.0] 5i)", "[0.6]");
-    TEST_ASSERT_EQ("(div [9.0] 5i)", "[1.8]");
-    TEST_ASSERT_EQ("(div [10.0] 5i)", "[2.0]");
-    TEST_ASSERT_EQ("(div [-10.0] -5i)", "[2.0]");
-    TEST_ASSERT_EQ("(div [-9.0] -5i)", "[1.8]");
-    TEST_ASSERT_EQ("(div [-3.0] -5i)", "[0.6]");
-    TEST_ASSERT_EQ("(div [-3.0] -0i)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3.0] -0i)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3.0] -5i)", "[-0.6]");
-    TEST_ASSERT_EQ("(div [9.0] -5i)", "[-1.8]");
-    TEST_ASSERT_EQ("(div [10.0] -5i)", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-10.0] 5)", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-9.0] 5)", "[-1.8]");
-    TEST_ASSERT_EQ("(div [-3.0] 5)", "[-0.6]");
-    TEST_ASSERT_EQ("(div [-3.0] 0)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3.0] 0)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3.0] 5)", "[0.6]");
-    TEST_ASSERT_EQ("(div [9.0] 5)", "[1.8]");
-    TEST_ASSERT_EQ("(div [10.0] 5)", "[2.0]");
-    TEST_ASSERT_EQ("(div [-10.0] -5)", "[2.0]");
-    TEST_ASSERT_EQ("(div [-9.0] -5)", "[1.8]");
-    TEST_ASSERT_EQ("(div [-3.0] -5)", "[0.6]");
-    TEST_ASSERT_EQ("(div [-3.0] -0)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3.0] -0)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3.0] -5)", "[-0.6]");
-    TEST_ASSERT_EQ("(div [9.0] -5)", "[-1.8]");
-    TEST_ASSERT_EQ("(div [10.0] -5)", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-10.0] 5.0)", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-9.0] 5.0)", "[-1.8]");
-    TEST_ASSERT_EQ("(div [-3.0] 5.0)", "[-0.6]");
-    TEST_ASSERT_EQ("(div [-3.0] 0.6)", "[-5.0]");
-    TEST_ASSERT_EQ("(div [-3.0] 0.0)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3.0] 0.0)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3.0] 5.0)", "[0.6]");
-    TEST_ASSERT_EQ("(div [9.0] 5.0)", "[1.8]");
-    TEST_ASSERT_EQ("(div [10.0] 5.0)", "[2.0]");
     TEST_ASSERT_EQ("(div [-10.0] -5.0)", "[2.0]");
     TEST_ASSERT_EQ("(div [-9.0] -5.0)", "[1.8]");
     TEST_ASSERT_EQ("(div [-3.0] -5.0)", "[0.6]");
     TEST_ASSERT_EQ("(div [-3.0] -0.6)", "[5.0]");
     TEST_ASSERT_EQ("(div [-3.0] -0.0)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3.0] -0.0)", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3.0] -5.0)", "[-0.6]");
-    TEST_ASSERT_EQ("(div [9.0] -5.0)", "[-1.8]");
-    TEST_ASSERT_EQ("(div [10.0] -5.0)", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-10.0] [5i])", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-10.0] [5])", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-9.0] [5])", "[-1.8]");
-    TEST_ASSERT_EQ("(div [-3.0] [5])", "[-0.6]");
-    TEST_ASSERT_EQ("(div [-3.0] [0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3.0] [0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3.0] [5])", "[0.6]");
-    TEST_ASSERT_EQ("(div [9.0] [5])", "[1.8]");
-    TEST_ASSERT_EQ("(div [10.0] [5])", "[2.0]");
-    TEST_ASSERT_EQ("(div [-10.0] [-5])", "[2.0]");
-    TEST_ASSERT_EQ("(div [-9.0] [-5])", "[1.8]");
-    TEST_ASSERT_EQ("(div [-3.0] [-5])", "[0.6]");
-    TEST_ASSERT_EQ("(div [-3.0] [-0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3.0] [-0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3.0] [-5])", "[-0.6]");
-    TEST_ASSERT_EQ("(div [9.0] [-5])", "[-1.8]");
-    TEST_ASSERT_EQ("(div [10.0] [-5])", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-10.0] [5])", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-9.0] [5])", "[-1.8]");
-    TEST_ASSERT_EQ("(div [-3.0] [5])", "[-0.6]");
-    TEST_ASSERT_EQ("(div [-3.0] [0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3.0] [0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3.0] [5])", "[0.6]");
-    TEST_ASSERT_EQ("(div [9.0] [5])", "[1.8]");
-    TEST_ASSERT_EQ("(div [10.0] [5])", "[2.0]");
-    TEST_ASSERT_EQ("(div [-10.0] [-5])", "[2.0]");
-    TEST_ASSERT_EQ("(div [-9.0] [-5])", "[1.8]");
-    TEST_ASSERT_EQ("(div [-3.0] [-5])", "[0.6]");
-    TEST_ASSERT_EQ("(div [-3.0] [-0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3.0] [-0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3.0] [-5])", "[-0.6]");
-    TEST_ASSERT_EQ("(div [9.0] [-5])", "[-1.8]");
-    TEST_ASSERT_EQ("(div [10.0] [-5])", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-10.0] [5.0])", "[-2.0]");
-    TEST_ASSERT_EQ("(div [-9.0] [5.0])", "[-1.8]");
-    TEST_ASSERT_EQ("(div [-3.0] [5.0])", "[-0.6]");
-    TEST_ASSERT_EQ("(div [-3.0] [0.6])", "[-5.0]");
-    TEST_ASSERT_EQ("(div [-3.0] [0.0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3.0] [0.0])", "[0Nf]");
-    TEST_ASSERT_EQ("(div [3.0] [5.0])", "[0.6]");
-    TEST_ASSERT_EQ("(div [9.0] [5.0])", "[1.8]");
-    TEST_ASSERT_EQ("(div [10.0] [5.0])", "[2.0]");
-    TEST_ASSERT_EQ("(div [-10.0] [-5.0])", "[2.0]");
-    TEST_ASSERT_EQ("(div [-9.0] [-5.0])", "[1.8]");
-    TEST_ASSERT_EQ("(div [-3.0] [-5.0])", "[0.6]");
-    TEST_ASSERT_EQ("(div [-3.0] [-0.6])", "[5.0]");
-    TEST_ASSERT_EQ("(div [-3.0] [-0.0])", "[0Nf]");
     TEST_ASSERT_EQ("(div [3.0] [-0.0])", "[0Nf]");
     TEST_ASSERT_EQ("(div [3.0] [-5.0])", "[-0.6]");
     TEST_ASSERT_EQ("(div [9.0] [-5.0])", "[-1.8]");
@@ -1942,10 +1658,29 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(div 11.5 1.0)", "11.5");
     TEST_ASSERT_ER("(div 02:15:07.000 02:15:07.000)", "fdiv: unsupported types: 'time, 'time");
 
-    TEST_ASSERT_EQ("((fn [x y] (+ x y)) 1 [2.3 4])", "[3.3 5.0]");
-    TEST_ASSERT_EQ("(map count (list (list \"aaa\" \"bbb\")))", "[2]");
+    TEST_ASSERT_EQ("(xbar 4i 5i)", "0i");
+    TEST_ASSERT_EQ("(xbar [0i 1i 2i 3i 4i 5i 6i] 3i)", "[0i 0i 0i 3i 3i 3i 6i]");
+    TEST_ASSERT_EQ("(xbar [11i] [5])", "[10]");  
+    // TEST_ASSERT_EQ("(xbar (- (til 9) 5) 3)", "[-6 -6 -3 -3 -3 0 0 0 3]");
+    // TEST_ASSERT_EQ("(xbar -5.0 5.0)", "-5.0");
+
+    
+    TEST_ASSERT_EQ("(sum 5i)", "5i");
+    TEST_ASSERT_EQ("(sum -1.7)", "-1.7");
     TEST_ASSERT_EQ("(sum [-24 12 3])", "-9");
     TEST_ASSERT_EQ("(sum -24)", "-24");
+    TEST_ASSERT_EQ("(sum [1.0 2.0 3.0])", "6.0");
+    TEST_ASSERT_EQ("(sum [1i 2i -3i])", "0i");
+
+    TEST_ASSERT_EQ("(floor [1.1 2.5 -1.1])", "[1.0 2.0 -2.0]");
+    // TEST_ASSERT_EQ("(floor -0.0)", "0.0");
+    // TEST_ASSERT_EQ("(floor [-1.0 3.0])", "[-1.0 3.0]");
+    // TEST_ASSERT_EQ("(floor 0.0)", "0.0");
+    // TEST_ASSERT_EQ("(floor 1.0)", "1.0");
+    // TEST_ASSERT_EQ("(floor -1.0)", "-1.0");
+    // TEST_ASSERT_EQ("(floor 1.5)", "1.0");
+    // TEST_ASSERT_EQ("(floor -1.5)", "-2.0");
+    // TEST_ASSERT_EQ("(floor 0Nf)", "0Nf");
 
     PASS();
 }

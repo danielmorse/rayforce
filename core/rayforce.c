@@ -1707,15 +1707,20 @@ i32_t cmp_obj(obj_p a, obj_p b) {
         case -TYPE_U8:
         case -TYPE_C8:
             return (i32_t)a->u8 - (i32_t)b->u8;
+        case -TYPE_F64:
+            return (ops_is_nan(a->f64) && ops_is_nan(b->f64))   ? 0
+                   : (ops_is_nan(a->f64) || ops_is_nan(b->f64)) ? 1
+                   : (ABSF64(a->f64 - b->f64) < 1e-16)          ? 0
+                                                                : (a->f64 - b->f64);
+        
         case -TYPE_I64:
+        case -TYPE_I32:
         case -TYPE_SYMBOL:
         case -TYPE_TIMESTAMP:
         case TYPE_UNARY:
         case TYPE_BINARY:
         case TYPE_VARY:
             return a->i64 - b->i64;
-        case -TYPE_F64:
-            return a->f64 - b->f64;
         case TYPE_I64:
         case TYPE_SYMBOL:
         case TYPE_TIMESTAMP:
