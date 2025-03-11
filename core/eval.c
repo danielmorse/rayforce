@@ -110,7 +110,7 @@ obj_p call(obj_p obj, u64_t arity) {
     lambda_p lambda;
     ctx_p ctx;
     obj_p res;
-    volatile i64_t sp;
+    i64_t sp;
 
     sp = __INTERPRETER->sp - arity;
 
