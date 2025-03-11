@@ -1942,6 +1942,11 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(div 11.5 1.0)", "11.5");
     TEST_ASSERT_ER("(div 02:15:07.000 02:15:07.000)", "fdiv: unsupported types: 'time, 'time");
 
+    TEST_ASSERT_EQ("((fn [x y] (+ x y)) 1 [2.3 4])", "[3.3 5.0]");
+    TEST_ASSERT_EQ("(map count (list (list \"aaa\" \"bbb\")))", "[2]");
+    TEST_ASSERT_EQ("(sum [-24 12 3])", "-9");
+    TEST_ASSERT_EQ("(sum -24)", "-24");
+
     PASS();
 }
 
