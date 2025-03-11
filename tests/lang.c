@@ -101,7 +101,8 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(div [6 8] [4 3])", "[1.50 2.67]");
     TEST_ASSERT_EQ("((fn [x y] (+ x y)) 1 [2.3 4])", "[3.3 5.0]");
     TEST_ASSERT_EQ("(map count (list (list \"aaa\" \"bbb\")))", "[2]");
-
+    TEST_ASSERT_EQ("(sum [-24 12 3])", "-9");
+    TEST_ASSERT_EQ("(sum -24)", "-24");
     PASS();
 }
 

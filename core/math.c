@@ -769,7 +769,7 @@ obj_p unop_fold(raw_p op, obj_p x) {
     obj_p v, res;
     raw_p argv[3];
 
-    l = x->len;
+    l = ops_count(x);
 
     pool = runtime_get()->pool;
     n = pool_split_by(pool, l, 0);
@@ -811,7 +811,7 @@ obj_p unop_map(raw_p op, obj_p x) {
     obj_p v, out;
     raw_p argv[4];
 
-    l = x->len;
+    l = ops_count(x);
 
     pool = runtime_get()->pool;
     n = pool_split_by(pool, l, 0);
