@@ -604,6 +604,8 @@ obj_p ray_round_partial(obj_p x, u64_t len, u64_t offset, obj_p out) {
 
 obj_p ray_floor_partial(obj_p x, u64_t len, u64_t offset, obj_p out) {
     switch (x->type) {
+        case -TYPE_F64:
+            return f64(FLOORF64(x->f64));
         case TYPE_F64:
             return __UNOP_MAP(x, f64, f64, FLOORF64, len, offset, out);
         // case TYPE_MAPGROUP:
@@ -768,6 +770,12 @@ obj_p unop_fold(raw_p op, obj_p x) {
     u64_t i, l, n, chunk;
     obj_p v, res;
     raw_p argv[3];
+    obj_p (*unop)(obj_p);
+
+    if (IS_ATOM(x)) {
+        unop = (obj_p(*)(obj_p))op;
+        return unop(x);
+    }
 
     l = ops_count(x);
 
@@ -810,6 +818,12 @@ obj_p unop_map(raw_p op, obj_p x) {
     u64_t i, l, n, chunk;
     obj_p v, out;
     raw_p argv[4];
+    obj_p (*unop)(obj_p);
+
+    if (IS_ATOM(x)) {
+        unop = (obj_p(*)(obj_p))op;
+        return unop(x);
+    }
 
     l = ops_count(x);
 
