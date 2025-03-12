@@ -1005,7 +1005,7 @@ obj_p ray_xbar_partial(obj_p x, obj_p y, u64_t len, u64_t offset, obj_p out) {
             return __BINOP_V_V(x, y, i32, i32, i32, i32, XBARI32, len, offset, out);
         case MTYPE2(TYPE_I32, TYPE_I64):
             return __BINOP_V_V(x, y, i32, i64, i32, i64, XBARI64, len, offset, out);
-        
+
         case MTYPE2(-TYPE_I64, -TYPE_I64):
             return i64(XBARI64(x->i64, y->i64));
         case MTYPE2(-TYPE_I64, -TYPE_I32):
@@ -1021,7 +1021,7 @@ obj_p ray_xbar_partial(obj_p x, obj_p y, u64_t len, u64_t offset, obj_p out) {
 
         case MTYPE2(-TYPE_F64, -TYPE_F64):
             return f64(XBARF64(x->i64, y->f64));
-        
+
         default:
             THROW(ERR_TYPE, "xbar: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }
@@ -1276,7 +1276,13 @@ obj_p unop_fold(raw_p op, obj_p x) {
     pool_p pool;
     u64_t i, l, n, chunk;
     obj_p v, res;
+    obj_p (*unop)(obj_p);
     raw_p argv[3];
+
+    if (IS_ATOM(x)) {
+        unop = (obj_p(*)(obj_p))op;
+        return unop(x);
+    }
 
     l = ops_count(x);
 
@@ -1318,7 +1324,13 @@ obj_p unop_map(raw_p op, obj_p x) {
     pool_p pool;
     u64_t i, l, n, chunk;
     obj_p v, out;
+    obj_p (*unop)(obj_p);
     raw_p argv[4];
+
+    if (IS_ATOM(x)) {
+        unop = (obj_p(*)(obj_p))op;
+        return unop(x);
+    }
 
     l = ops_count(x);
 
