@@ -1448,6 +1448,12 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(div 9i [-5.0])", "[-1.8]");
     TEST_ASSERT_EQ("(div 10i [-5.0])", "[-2.0]");
     TEST_ASSERT_EQ("(div 10i [])", "[]");
+    TEST_ASSERT_EQ("(div [10i] 0Ni)", "[0Nf]");
+    TEST_ASSERT_EQ("(div [10i 5i] 5)", "[2.0 1.0]");
+    TEST_ASSERT_EQ("(div [10i 5i] -5.0)", "[-2.0 -1.0]");
+    TEST_ASSERT_EQ("(div [10i] [0Ni])", "[0Nf]");
+    TEST_ASSERT_EQ("(div [10i] [5])", "[2.0]");
+    TEST_ASSERT_EQ("(div [10i] [-5.0])", "[-2.0]");
 
     TEST_ASSERT_EQ("(div -10 5i)", "-2.0");
     TEST_ASSERT_EQ("(div -9 5i)", "-1.8");
@@ -1551,6 +1557,12 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(div 9 [-5.0])", "[-1.8]");
     TEST_ASSERT_EQ("(div 10 [-5.0])", "[-2.0]");
     TEST_ASSERT_EQ("(div 10 [])", "[]");
+    TEST_ASSERT_EQ("(div [10] 0Ni)", "[0Nf]");
+    TEST_ASSERT_EQ("(div [10 5] 5)", "[2.0 1.0]");
+    TEST_ASSERT_EQ("(div [10 5] -5.0)", "[-2.0 -1.0]");
+    TEST_ASSERT_EQ("(div [10] [0Ni])", "[0Nf]");
+    TEST_ASSERT_EQ("(div [10] [5])", "[2.0]");
+    TEST_ASSERT_EQ("(div [10] [-5.0])", "[-2.0]");
 
     TEST_ASSERT_EQ("(div -10.0 5i)", "-2.0");
     TEST_ASSERT_EQ("(div -9.0 5i)", "-1.8");
@@ -1655,16 +1667,24 @@ test_result_t test_lang_math() {
     TEST_ASSERT_EQ("(div [10.0] [-5.0])", "[-2.0]");
     TEST_ASSERT_EQ("(div [11.5] [1.0])", "[11.5]");
     TEST_ASSERT_EQ("(div 11.5 1.0)", "11.5");
+    TEST_ASSERT_EQ("(div [10.0] 0Ni)", "[0Nf]");
+    TEST_ASSERT_EQ("(div [10.0 5.0] 5)", "[2.0 1.0]");
+    TEST_ASSERT_EQ("(div [10.0] [0Ni])", "[0Nf]");
+    TEST_ASSERT_EQ("(div [10.0] [5])", "[2.0]");
+
     TEST_ASSERT_ER("(div 02:15:07.000 02:15:07.000)", "fdiv: unsupported types: 'time, 'time");
 
-    TEST_ASSERT_EQ("(xbar 4i 5i)", "0i");
-    TEST_ASSERT_EQ("(xbar [0i 1i 2i 3i 4i 5i 6i] 3i)", "[0i 0i 0i 3i 3i 3i 6i]");
-    TEST_ASSERT_EQ("(xbar [11i] [5])", "[10]");
-    TEST_ASSERT_EQ("(xbar (- (til 9) 5i) 3i)", "[-6i -6i -3i -3i -3i 0i 0i 0i 3i]");
-    TEST_ASSERT_EQ("(xbar (- (til 9) 5) 3)", "[-6 -6 -3 -3 -3 0 0 0 3]");
+    TEST_ASSERT_EQ("(xbar (- (til 10) 5i) 3i)", "[-6i -6i -3i -3i -3i 0i 0i 0i 3i 3i]");
+    TEST_ASSERT_EQ("(xbar (- (til 15) 5) 3)", "[-6 -6 -3 -3 -3 0 0 0 3 3 3 6 6 6 9]");
     TEST_ASSERT_EQ("(xbar (- (as 'F64 (til 9)) 5.0) 3.0)", "[-6.0 -6.0 -3.0 -3.0 -3.0 0.0 0.0 0.0 3.0]");
-    TEST_ASSERT_EQ("(xbar -5.0 5.0)", "-5.0");
-
+    TEST_ASSERT_EQ(
+        "(xbar (list 10i 11i 12i 13i 14i [15i] [16i] [17i] [18i]) (list 4 4.0 [4i] [4] [4.0] 4i 4.0 [4i] [4.0]))",
+        "(list 8 8.00 [12i] [12] [12.00] [12i] [16.00] [16i] [16.00])");
+    TEST_ASSERT_EQ("(xbar (list [-3] [-2] [-1] [0] 1 2 3 4 5 6 ) (list [4.0] [4] [4i] 4.0 [4.0] [4] [4i] 4.0 4 4i))",
+                   "(list [-4.0] [-4] [-4i] [0.0] [0.0] [0] [0i] 4.0 4 4i)");
+    TEST_ASSERT_EQ("(xbar (list [-4i] [7i] [8i] 9i) (list [4] 4.0 4 4i))", "(list [-4i] [4.0] [8i] 8i)");
+    // TEST_ASSERT_EQ("(xbar (list -5.0 -6.0 -7.0 -8.0 -9.0 -10.0 ) (list [4i] [4] [4.0] 4i 4 4.0 ))",
+    //                "(list [-8i] [-8] [-8.00] -8i -12 -12.0)");
     TEST_ASSERT_EQ("(sum 5i)", "5i");
     TEST_ASSERT_EQ("(sum -1.7)", "-1.7");
     TEST_ASSERT_EQ("(sum [-24 12 3])", "-9");

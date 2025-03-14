@@ -141,10 +141,6 @@ extern struct obj_t __NULL_OBJECT;
 #define XBARI64(x, y) \
     (((y) == 0 || (x) == NULL_I64 || (y) == NULL_I64) ? NULL_I64 : (((x < 0) ? (x + 1 - y) : (x)) / (y) * (y)))
 #define XBARF64(x, y) (FLOORF64((x) / (y)) * (y))
-// ({                                                             \
-    //     volatile i64_t t = (i64_t)((x) / (y));                     \
-    //     (t == -1 - __LONG_LONG_MAX__) ? NULL_F64 : (y) * (f64_t)t; \
-    // })
 
 // Function types
 typedef u64_t (*hash_f)(i64_t, raw_p);
