@@ -553,17 +553,74 @@ nil_t term_redraw(term_p term) {
     drop_obj(out);
 }
 
+// Helper function to calculate display width of a UTF-8 character
+static u64_t utf8_char_width(const c8_t *str, u64_t pos) {
+    c8_t byte = str[pos];
+
+    // ASCII character
+    if ((byte & 0x80) == 0)
+        return 1;
+
+    // UTF-8 start byte
+    if ((byte & 0xE0) == 0xC0)
+        return 1;  // 2-byte sequence
+    if ((byte & 0xF0) == 0xE0)
+        return 1;  // 3-byte sequence
+    if ((byte & 0xF8) == 0xF0)
+        return 2;  // 4-byte sequence (emoji, etc)
+
+    return 1;  // Default fallback
+}
+
+// Helper function to find the start of the previous UTF-8 character
+static u64_t find_prev_utf8_char(const c8_t *str, u64_t pos) {
+    if (pos == 0)
+        return 0;
+
+    // Move back one byte
+    pos--;
+
+    // If we hit an ASCII character, we're done
+    if ((str[pos] & 0x80) == 0)
+        return pos;
+
+    // For UTF-8 continuation bytes (10xxxxxx), keep moving back
+    while (pos > 0 && (str[pos] & 0xC0) == 0x80) {
+        pos--;
+    }
+
+    return pos;
+}
+
 nil_t term_handle_backspace(term_p term) {
     if (term->buf_pos == 0)
         return;
     else if (term->buf_pos == term->buf_len) {
-        term->buf_pos--;
+        // Find the start of the previous UTF-8 character
+        u64_t prev_pos = find_prev_utf8_char(term->buf, term->buf_pos);
+        // Calculate display width of the character being removed
+        u64_t char_width = utf8_char_width(term->buf, prev_pos);
+
+        term->buf_pos = prev_pos;
         term->buf[term->buf_pos] = '\0';
-        term->buf_len--;
+        term->buf_len = prev_pos;
+
+        // Move cursor back by the display width
+        cursor_move_left(char_width);
     } else {
-        memmove(term->buf + term->buf_pos - 1, term->buf + term->buf_pos, term->buf_len - term->buf_pos);
-        term->buf_len--;
-        term->buf_pos--;
+        // Find the start of the previous UTF-8 character
+        u64_t prev_pos = find_prev_utf8_char(term->buf, term->buf_pos);
+        // Calculate display width of the character being removed
+        u64_t char_width = utf8_char_width(term->buf, prev_pos);
+
+        // Calculate how many bytes to move
+        u64_t bytes_to_move = term->buf_len - term->buf_pos;
+        memmove(term->buf + prev_pos, term->buf + term->buf_pos, bytes_to_move);
+        term->buf_len -= (term->buf_pos - prev_pos);
+        term->buf_pos = prev_pos;
+
+        // Move cursor back by the display width
+        cursor_move_left(char_width);
     }
 
     term_redraw(term);
@@ -974,6 +1031,21 @@ obj_p term_handle_symbol(term_p term) {
     return NULL;
 }
 
+nil_t term_handle_ctrl_u(term_p term) {
+    // Move cursor to start of line
+    cursor_move_left(term->buf_pos);
+    // Clear the entire line
+    line_clear();
+    // Reset buffer position and length
+    term->buf_pos = 0;
+    term->buf_len = 0;
+    term->buf[0] = '\0';
+    // Reset history state
+    hist_reset_current(term->hist);
+    // Redraw the prompt
+    term_prompt(term);
+}
+
 obj_p term_read(term_p term) {
     obj_p res = NULL;
 
@@ -996,12 +1068,15 @@ obj_p term_read(term_p term) {
         case KEYCODE_DELETE:
             hist_reset_current(term->hist);
             term_handle_backspace(term);
-            autocp_idx_reset(&term->autocp_idx);
             term->input_len = 0;
             break;
         case KEYCODE_TAB:
-            hist_save_current(term->hist, term->buf, term->buf_len);
+            hist_reset_current(term->hist);
             term_handle_tab(term);
+            term->input_len = 0;
+            break;
+        case KEYCODE_CTRL_U:
+            term_handle_ctrl_u(term);
             term->input_len = 0;
             break;
         case KEYCODE_CTRL_C:
@@ -1012,12 +1087,8 @@ obj_p term_read(term_p term) {
             res = term_handle_escape(term);
             break;
         default:
-            term->input_len = 0;
-            if (term->buf_len + 1 == TERM_BUF_SIZE)
-                return NULL;
-            hist_reset_current(term->hist);
-            autocp_idx_reset(&term->autocp_idx);
             res = term_handle_symbol(term);
+            term->input_len = 0;
             break;
     }
 
