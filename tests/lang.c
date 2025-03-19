@@ -2305,8 +2305,8 @@ test_result_t test_lang_cmp() {
 
     TEST_ASSERT_EQ("(set t (guid 2)) (== (at t 0) (at t 0))", "true");
     TEST_ASSERT_EQ("(set t (guid 2)) (!= (at t 0) (at t 1))", "true");
-    TEST_ASSERT_EQ("(set t (guid 2)) (== (at t 0) (enlist (at t 0)))", "true");
-    TEST_ASSERT_EQ("(set t (guid 2)) (== (enlist (at t 0)) (enlist (at t 0)))", "true");
+    TEST_ASSERT_EQ("(set t (guid 2)) (== (at t 0) (enlist (at t 0)))", "[true]");
+    TEST_ASSERT_EQ("(set t (guid 2)) (== (enlist (at t 0)) (enlist (at t 0)))", "[true]");
     TEST_ASSERT_EQ(
         "(set t1 (as 'guid \"d49f18a4-1969-49e8-9b8a-6bb9a4832eea\")) "
         "(set t2 (as 'guid \"d49f18a4-196a-49e8-9b8a-6bb9a4832eea\")) (< t1 t2)",
