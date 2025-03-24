@@ -123,21 +123,14 @@ extern struct obj_t __NULL_OBJECT;
 #define MULF64(x, y) (ops_is_nan(x) || ops_is_nan(y) ? NULL_F64 : ((x) * (y)))
 #define DIVI32(x, y) (((y) == 0 || (x) == NULL_I32 || (y) == NULL_I32) ? NULL_I32 : ((x) / (y)))
 #define DIVI64(x, y) (((y) == 0 || (x) == NULL_I64 || (y) == NULL_I64) ? NULL_I64 : ((x) / (y)))
-#define DIVF64(x, y)                                         \
-    ({                                                       \
-        volatile i64_t t = (i64_t)((x) / (y));               \
-        (t == -1 - __LONG_LONG_MAX__) ? NULL_F64 : (f64_t)t; \
-    })
+#define DIVF64(x, y) ((y) == 0.0 || ops_is_nan(x) || ops_is_nan(y) ? NULL_F64 : ((x) / (y)))
 #define FDIVI32(x, y) (((y) == 0 || (x) == NULL_I32 || (y) == NULL_I32) ? NULL_F64 : ((f64_t)(x) / (f64_t)(y)))
 #define FDIVI64(x, y) (((y) == 0 || (x) == NULL_I64 || (y) == NULL_I64) ? NULL_F64 : ((f64_t)(x) / (f64_t)(y)))
-#define FDIVF64(x, y)                                        \
-    ({                                                       \
-        volatile f64_t t = ((x) / (y));                      \
-        ((i64_t)t == -1 - __LONG_LONG_MAX__) ? NULL_F64 : t; \
-    })
+#define FDIVF64(x, y) ((y) == 0.0 || ops_is_nan(x) || ops_is_nan(y) ? NULL_F64 : ((x) / (y)))
 #define MODI32(x, y) (((y) == 0 || (x) == NULL_I32 || (y) == NULL_I32) ? NULL_I32 : ((x) % (y)))
 #define MODI64(x, y) (((y) == 0 || (x) == NULL_I64 || (y) == NULL_I64) ? NULL_I64 : ((x) % (y)))
-#define MODF64(x, y) ((x) - (y) * i64_to_f64(f64_to_i64((x) / (y))))
+#define MODF64(x, y) \
+    ((y) == 0.0 || ops_is_nan(x) || ops_is_nan(y) ? NULL_F64 : ((x) - (y) * i64_to_f64(f64_to_i64((x) / (y)))))
 #define MAXI32(x, y) (((x) == NULL_I32) ? (y) : ((y) == NULL_I32) ? (x) : ((x) > (y) ? (x) : (y)))
 #define MAXI64(x, y) (((x) == NULL_I64) ? (y) : ((y) == NULL_I64) ? (x) : ((x) > (y) ? (x) : (y)))
 #define MAXU64(x, y) ((x) > (y) ? (x) : (y))
