@@ -235,6 +235,9 @@ nil_t init_functions(obj_p functions)
     REGISTER_FN(functions,  "fold",                TYPE_VARY,     FN_NONE,                   ray_fold);
     REGISTER_FN(functions,  "fold-left",           TYPE_VARY,     FN_NONE,                   ray_fold_left);
     REGISTER_FN(functions,  "fold-right",          TYPE_VARY,     FN_NONE,                   ray_fold_right);
+    REGISTER_FN(functions,  "scan",                TYPE_VARY,     FN_NONE,                   ray_scan);
+    REGISTER_FN(functions,  "scan-left",           TYPE_VARY,     FN_NONE,                   ray_scan_left);
+    REGISTER_FN(functions,  "scan-right",          TYPE_VARY,     FN_NONE,                   ray_scan_right);
     REGISTER_FN(functions,  "args",                TYPE_VARY,     FN_NONE,                   ray_args);
     REGISTER_FN(functions,  "alter",               TYPE_VARY,     FN_NONE,                   ray_alter);
     REGISTER_FN(functions,  "modify",              TYPE_VARY,     FN_NONE,                   ray_modify);

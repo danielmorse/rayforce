@@ -734,8 +734,9 @@ obj_p ray_map_right(obj_p *x, u64_t n) {
 }
 
 obj_p ray_fold(obj_p *x, u64_t n) {
-    u64_t a, o, i, l;
-    obj_p f, v, *b, x1, x2;
+    u64_t i, j, l;
+    obj_p f, v, x1, x2;
+    i8_t xt, yt;
 
     if (n < 2)
         return LIST(0);
@@ -748,37 +749,137 @@ obj_p ray_fold(obj_p *x, u64_t n) {
         case TYPE_UNARY:
             if (n != 1)
                 THROW(ERR_LENGTH, "'fold': unary call with wrong arguments count");
-            return unary_call(f, x[0]);
+            return map_unary(f, x[0]);
         case TYPE_BINARY:
+            if (n < 2)
+                THROW(ERR_LENGTH, "'fold': binary call with wrong arguments count");
+
+            xt = x[0]->type;
+            yt = x[1]->type;
+            if (((xt == TYPE_LIST || xt == TYPE_MAPLIST) && IS_VECTOR(x[1])) ||
+                ((yt == TYPE_LIST || yt == TYPE_MAPLIST) && IS_VECTOR(x[0]))) {
+                l = ops_count(x[0]);
+
+                if (l != ops_count(x[1]))
+                    return error_str(ERR_LENGTH, "'fold': vectors must be of the same length");
+
+                if (l == 0)
+                    return LIST(0);
+
+                x1 = xt == TYPE_LIST ? AS_LIST(x[0])[0] : at_idx(x[0], 0);
+                x2 = yt == TYPE_LIST ? AS_LIST(x[1])[0] : at_idx(x[1], 0);
+                v = binary_call(f, x1, x2);
+
+                if (xt != TYPE_LIST)
+                    drop_obj(x1);
+                if (yt != TYPE_LIST)
+                    drop_obj(x2);
+
+                if (IS_ERROR(v))
+                    return v;
+
+                for (i = 1; i < l; i++) {
+                    x1 = xt == TYPE_LIST ? AS_LIST(x[0])[i] : at_idx(x[0], i);
+                    x2 = yt == TYPE_LIST ? AS_LIST(x[1])[i] : at_idx(x[1], i);
+                    v = binary_call(f, v, x2);  // Use accumulated value as first argument
+
+                    if (xt != TYPE_LIST)
+                        drop_obj(x1);
+                    if (yt != TYPE_LIST)
+                        drop_obj(x2);
+
+                    if (IS_ERROR(v))
+                        return v;
+                }
+
+                return v;
+            } else if (xt == TYPE_LIST || xt == TYPE_MAPLIST) {
+                l = ops_count(x[0]);
+                if (l == 0)
+                    return clone_obj(x[1]);
+
+                x1 = xt == TYPE_LIST ? AS_LIST(x[0])[0] : at_idx(x[0], 0);
+                v = binary_call(f, x1, x[1]);
+                if (xt != TYPE_LIST)
+                    drop_obj(x1);
+
+                if (IS_ERROR(v))
+                    return v;
+
+                for (i = 1; i < l; i++) {
+                    x1 = xt == TYPE_LIST ? AS_LIST(x[0])[i] : at_idx(x[0], i);
+                    v = binary_call(f, v, x1);  // Use accumulated value as first argument
+                    if (xt != TYPE_LIST)
+                        drop_obj(x1);
+
+                    if (IS_ERROR(v))
+                        return v;
+                }
+
+                return v;
+            } else if (yt == TYPE_LIST || yt == TYPE_MAPLIST) {
+                l = ops_count(x[1]);
+                if (l == 0)
+                    return clone_obj(x[0]);
+
+                x2 = yt == TYPE_LIST ? AS_LIST(x[1])[0] : at_idx(x[1], 0);
+                v = binary_call(f, x[0], x2);
+                if (yt != TYPE_LIST)
+                    drop_obj(x2);
+
+                if (IS_ERROR(v))
+                    return v;
+
+                for (i = 1; i < l; i++) {
+                    x2 = yt == TYPE_LIST ? AS_LIST(x[1])[i] : at_idx(x[1], i);
+                    v = binary_call(f, v, x2);  // Use accumulated value as first argument
+                    if (yt != TYPE_LIST)
+                        drop_obj(x2);
+
+                    if (IS_ERROR(v))
+                        return v;
+                }
+
+                return v;
+            }
+
+            return binary_call(f, x[0], x[1]);
+
+        case TYPE_VARY:
+            if (n == 0)
+                return NULL_OBJ;
+
             l = ops_rank(x, n);
             if (l == 0xfffffffffffffffful)
                 THROW(ERR_LENGTH, "'fold': arguments have different lengths");
 
-            if (n == 1) {
-                o = 1;
-                b = x;
-                v = at_idx(x[0], 0);
-            } else if (n == 2) {
-                o = 0;
-                b = x + 1;
-                v = clone_obj(x[0]);
-            } else
-                THROW(ERR_LENGTH, "'fold': binary call with wrong arguments count");
+            for (i = 0; i < n; i++)
+                stack_push(at_idx(x[i], 0));
 
-            for (i = o; i < l; i++) {
-                x1 = v;
-                x2 = at_idx(*b, i);
-                v = binary_call(f, x1, x2);
-                drop_obj(x1);
-                drop_obj(x2);
+            v = vary_call(f, x, n);
+
+            // cleanup stack
+            for (i = 0; i < n; i++)
+                drop_obj(stack_pop());
+
+            if (IS_ERROR(v))
+                return v;
+
+            for (i = 1; i < l; i++) {
+                for (j = 0; j < n; j++)
+                    stack_push(at_idx(x[j], i));
+
+                v = vary_call(f, x, n);
+
+                // cleanup stack
+                for (j = 0; j < n; j++)
+                    drop_obj(stack_pop());
 
                 if (IS_ERROR(v))
                     return v;
             }
 
             return v;
-        case TYPE_VARY:
-            return vary_call(f, x, n);
         case TYPE_LAMBDA:
             l = ops_rank(x, n);
             if (l == 0xfffffffffffffffful)
@@ -787,42 +888,52 @@ obj_p ray_fold(obj_p *x, u64_t n) {
             if (n != 1 && n != AS_LAMBDA(f)->args->len)
                 THROW(ERR_LENGTH, "'fold': lambda call with wrong arguments count");
 
-            // interpret first arg as an initial value
             if (n == 1) {
-                a = 2;
-                o = 1;
-                b = x;
+                l = ops_count(x[0]);
+                if (l == 0)
+                    return LIST(0);
+
                 v = at_idx(x[0], 0);
+
+                for (i = 1; i < l; i++) {
+                    stack_push(clone_obj(v));
+                    x2 = at_idx(x[0], i);
+                    stack_push(x2);
+
+                    v = call(f, 2);
+
+                    drop_obj(stack_pop());
+                    drop_obj(stack_pop());
+
+                    if (IS_ERROR(v))
+                        return v;
+                }
+
+                return v;
             } else if (n == 2) {
-                a = 2;
-                o = 0;
-                b = x + 1;
-                v = clone_obj(x[0]);
+                l = ops_count(x[0]);
+                if (l == 0)
+                    return LIST(0);
+
+                v = at_idx(x[0], 0);
+
+                for (i = 1; i < l; i++) {
+                    stack_push(clone_obj(v));
+                    x2 = at_idx(x[1], i);
+                    stack_push(x2);
+
+                    v = call(f, 2);
+
+                    drop_obj(stack_pop());
+                    drop_obj(stack_pop());
+
+                    if (IS_ERROR(v))
+                        return v;
+                }
+
+                return v;
             } else
                 THROW(ERR_LENGTH, "'fold': binary call with wrong arguments count");
-
-            for (i = o; i < l; i++) {
-                stack_push(v);
-                x2 = at_idx(*b, i);
-                stack_push(x2);
-
-                // for (j = o; j < n; j++) {
-                //     b = x + j;
-                //     v = at_idx(*b, i);
-                //     stack_push(v);
-                // }
-
-                v = call(f, a);
-
-                // cleanup stack
-                drop_obj(stack_pop());
-                drop_obj(stack_pop());
-
-                if (IS_ERROR(v))
-                    return v;
-            }
-
-            return v;
         default:
             THROW(ERR_TYPE, "'fold': unsupported function type: '%s", type_name(f->type));
     }
@@ -830,7 +941,7 @@ obj_p ray_fold(obj_p *x, u64_t n) {
 
 obj_p ray_fold_left(obj_p *x, u64_t n) {
     u64_t i, j, l;
-    obj_p f, v, x1, x2;
+    obj_p f, v, x1, x2, res;
 
     if (n < 2)
         return LIST(0);
@@ -854,11 +965,23 @@ obj_p ray_fold_left(obj_p *x, u64_t n) {
 
             v = clone_obj(x[1]);  // Use rightmost argument as initial value
             for (i = 0; i < l; i++) {
-                x1 = at_idx(x[0], i);        // Current element from leftmost argument
-                x2 = v;                      // Result of previous iteration
-                v = binary_call(f, x1, x2);  // Pass current element as first argument
-                drop_obj(x1);
-                drop_obj(x2);
+                // Push current element from the leftmost argument first
+                x1 = at_idx(x[0], i);
+                stack_push(x1);
+                // Push result of previous iteration as second argument
+                x2 = clone_obj(v);
+                stack_push(x2);
+                // Push all other arguments in between
+                for (j = 1; j < n - 1; j++) {
+                    stack_push(clone_obj(x[j]));
+                }
+
+                v = call(f, n);
+
+                // Cleanup stack
+                for (j = 0; j < n; j++) {
+                    drop_obj(stack_pop());
+                }
 
                 if (IS_ERROR(v))
                     return v;
@@ -881,7 +1004,8 @@ obj_p ray_fold_left(obj_p *x, u64_t n) {
                 x1 = at_idx(x[0], i);
                 stack_push(x1);
                 // Push result of previous iteration as second argument
-                stack_push(v);
+                x2 = clone_obj(v);
+                stack_push(x2);
                 // Push all other arguments in between
                 for (j = 1; j < n - 1; j++) {
                     stack_push(clone_obj(x[j]));
@@ -980,5 +1104,469 @@ obj_p ray_fold_right(obj_p *x, u64_t n) {
             return v;
         default:
             THROW(ERR_TYPE, "'fold-right': unsupported function type: '%s", type_name(f->type));
+    }
+}
+
+obj_p ray_scan(obj_p *x, u64_t n) {
+    u64_t i, j, l;
+    obj_p f, v, x1, x2, res;
+    i8_t xt, yt;
+
+    if (n < 2)
+        return LIST(0);
+
+    f = x[0];
+    x++;
+    n--;
+
+    switch (f->type) {
+        case TYPE_UNARY:
+            if (n != 1)
+                THROW(ERR_LENGTH, "'scan': unary call with wrong arguments count");
+            return map_unary(f, x[0]);
+        case TYPE_BINARY:
+            if (n < 2)
+                THROW(ERR_LENGTH, "'scan': binary call with wrong arguments count");
+
+            xt = x[0]->type;
+            yt = x[1]->type;
+            if (((xt == TYPE_LIST || xt == TYPE_MAPLIST) && IS_VECTOR(x[1])) ||
+                ((yt == TYPE_LIST || yt == TYPE_MAPLIST) && IS_VECTOR(x[0]))) {
+                l = ops_count(x[0]);
+
+                if (l != ops_count(x[1]))
+                    return error_str(ERR_LENGTH, "'scan': vectors must be of the same length");
+
+                if (l == 0)
+                    return LIST(0);
+
+                x1 = xt == TYPE_LIST ? AS_LIST(x[0])[0] : at_idx(x[0], 0);
+                x2 = yt == TYPE_LIST ? AS_LIST(x[1])[0] : at_idx(x[1], 0);
+                v = binary_call(f, x1, x2);
+
+                if (xt != TYPE_LIST)
+                    drop_obj(x1);
+                if (yt != TYPE_LIST)
+                    drop_obj(x2);
+
+                if (IS_ERROR(v))
+                    return v;
+
+                res = LIST(l);
+                ins_obj(&res, 0, v);
+
+                for (i = 1; i < l; i++) {
+                    x1 = xt == TYPE_LIST ? AS_LIST(x[0])[i] : at_idx(x[0], i);
+                    x2 = yt == TYPE_LIST ? AS_LIST(x[1])[i] : at_idx(x[1], i);
+                    v = binary_call(f, x1, x2);
+
+                    if (xt != TYPE_LIST)
+                        drop_obj(x1);
+                    if (yt != TYPE_LIST)
+                        drop_obj(x2);
+
+                    if (IS_ERROR(v)) {
+                        res->len = i;
+                        drop_obj(res);
+                        return v;
+                    }
+
+                    v = clone_obj(v);  // Clone result before storing
+                    ins_obj(&res, i, v);
+                    drop_obj(v);  // Drop the original result
+                }
+
+                return res;
+            } else if (xt == TYPE_LIST || xt == TYPE_MAPLIST) {
+                l = ops_count(x[0]);
+                if (l == 0)
+                    return LIST(0);
+
+                x1 = xt == TYPE_LIST ? AS_LIST(x[0])[0] : at_idx(x[0], 0);
+                v = binary_call(f, x1, x[1]);
+                if (xt != TYPE_LIST)
+                    drop_obj(x1);
+
+                if (IS_ERROR(v))
+                    return v;
+
+                res = LIST(l);
+                ins_obj(&res, 0, v);
+
+                for (i = 1; i < l; i++) {
+                    x1 = xt == TYPE_LIST ? AS_LIST(x[0])[i] : at_idx(x[0], i);
+                    v = binary_call(f, x1, v);
+                    if (xt != TYPE_LIST)
+                        drop_obj(x1);
+
+                    if (IS_ERROR(v)) {
+                        res->len = i;
+                        drop_obj(res);
+                        return v;
+                    }
+
+                    v = clone_obj(v);  // Clone result before storing
+                    ins_obj(&res, i, v);
+                    drop_obj(v);  // Drop the original result
+                }
+
+                return res;
+            } else if (yt == TYPE_LIST || yt == TYPE_MAPLIST) {
+                l = ops_count(x[1]);
+                if (l == 0)
+                    return LIST(0);
+
+                x2 = yt == TYPE_LIST ? AS_LIST(x[1])[0] : at_idx(x[1], 0);
+                v = binary_call(f, x[0], x2);
+                if (yt != TYPE_LIST)
+                    drop_obj(x2);
+
+                if (IS_ERROR(v))
+                    return v;
+
+                res = LIST(l);
+                ins_obj(&res, 0, v);
+
+                for (i = 1; i < l; i++) {
+                    x2 = yt == TYPE_LIST ? AS_LIST(x[1])[i] : at_idx(x[1], i);
+                    v = binary_call(f, v, x2);
+                    if (yt != TYPE_LIST)
+                        drop_obj(x2);
+
+                    if (IS_ERROR(v)) {
+                        res->len = i;
+                        drop_obj(res);
+                        return v;
+                    }
+
+                    v = clone_obj(v);  // Clone result before storing
+                    ins_obj(&res, i, v);
+                    drop_obj(v);  // Drop the original result
+                }
+
+                return res;
+            }
+
+            v = binary_call(f, x[0], x[1]);
+            if (IS_ERROR(v))
+                return v;
+
+            res = LIST(1);
+            ins_obj(&res, 0, v);
+            return res;
+
+        case TYPE_VARY:
+            if (n == 0)
+                return NULL_OBJ;
+
+            l = ops_rank(x, n);
+            if (l == 0xfffffffffffffffful)
+                THROW(ERR_LENGTH, "'scan': arguments have different lengths");
+
+            for (i = 0; i < n; i++)
+                stack_push(at_idx(x[i], 0));
+
+            v = vary_call(f, x, n);
+
+            // cleanup stack
+            for (i = 0; i < n; i++)
+                drop_obj(stack_pop());
+
+            if (IS_ERROR(v))
+                return v;
+
+            res = v->type < 0 ? vector(v->type, l) : LIST(l);
+            ins_obj(&res, 0, v);
+
+            for (i = 1; i < l; i++) {
+                for (j = 0; j < n; j++)
+                    stack_push(at_idx(x[j], i));
+
+                v = vary_call(f, x, n);
+
+                // cleanup stack
+                for (j = 0; j < n; j++)
+                    drop_obj(stack_pop());
+
+                if (IS_ERROR(v)) {
+                    res->len = i;
+                    drop_obj(res);
+                    return v;
+                }
+
+                v = clone_obj(v);  // Clone result before storing
+                ins_obj(&res, i, v);
+                drop_obj(v);  // Drop the original result
+            }
+
+            return res;
+        case TYPE_LAMBDA:
+            l = ops_rank(x, n);
+            if (l == 0xfffffffffffffffful)
+                THROW(ERR_LENGTH, "'scan': arguments have different lengths");
+
+            if (n != 1 && n != AS_LAMBDA(f)->args->len)
+                THROW(ERR_LENGTH, "'scan': lambda call with wrong arguments count");
+
+            if (n == 1) {
+                l = ops_count(x[0]);
+                if (l == 0)
+                    return LIST(0);
+
+                v = at_idx(x[0], 0);
+                res = LIST(l);
+                ins_obj(&res, 0, v);
+
+                for (i = 1; i < l; i++) {
+                    stack_push(clone_obj(v));
+                    x2 = at_idx(x[0], i);
+                    stack_push(x2);
+
+                    v = call(f, 2);
+
+                    drop_obj(stack_pop());
+                    drop_obj(stack_pop());
+
+                    if (IS_ERROR(v)) {
+                        res->len = i;
+                        drop_obj(res);
+                        return v;
+                    }
+
+                    v = clone_obj(v);  // Clone result before storing
+                    ins_obj(&res, i, v);
+                    drop_obj(v);  // Drop the original result
+                }
+
+                return res;
+            } else if (n == 2) {
+                l = ops_count(x[0]);
+                if (l == 0)
+                    return LIST(0);
+
+                v = at_idx(x[0], 0);
+                res = LIST(l);
+                ins_obj(&res, 0, v);
+
+                for (i = 1; i < l; i++) {
+                    stack_push(clone_obj(v));
+                    x2 = at_idx(x[1], i);
+                    stack_push(x2);
+
+                    v = call(f, 2);
+
+                    drop_obj(stack_pop());
+                    drop_obj(stack_pop());
+
+                    if (IS_ERROR(v)) {
+                        res->len = i;
+                        drop_obj(res);
+                        return v;
+                    }
+
+                    v = clone_obj(v);  // Clone result before storing
+                    ins_obj(&res, i, v);
+                    drop_obj(v);  // Drop the original result
+                }
+
+                return res;
+            } else
+                THROW(ERR_LENGTH, "'scan': binary call with wrong arguments count");
+        default:
+            THROW(ERR_TYPE, "'scan': unsupported function type: '%s", type_name(f->type));
+    }
+}
+
+obj_p ray_scan_left(obj_p *x, u64_t n) {
+    u64_t i, j, l;
+    obj_p f, v, x1, x2, res;
+
+    if (n < 2)
+        return LIST(0);
+
+    f = x[0];
+    x++;
+    n--;
+
+    switch (f->type) {
+        case TYPE_UNARY:
+            if (n != 1)
+                THROW(ERR_LENGTH, "'scan-left': unary call with wrong arguments count");
+            return unary_call(f, x[0]);
+        case TYPE_BINARY:
+            if (n < 2)
+                THROW(ERR_LENGTH, "'scan-left': binary call with wrong arguments count");
+
+            l = ops_count(x[0]);
+            if (l == 0)
+                return LIST(0);
+
+            v = clone_obj(x[1]);  // Use rightmost argument as initial value
+            res = LIST(l + 1);
+            ins_obj(&res, 0, v);
+
+            for (i = 0; i < l; i++) {
+                x1 = at_idx(x[0], i);        // Current element from leftmost argument
+                x2 = clone_obj(v);           // Clone previous result
+                v = binary_call(f, x1, x2);  // Pass current element as first argument
+                drop_obj(x1);
+                drop_obj(x2);
+
+                if (IS_ERROR(v)) {
+                    res->len = i + 1;
+                    drop_obj(res);
+                    return v;
+                }
+
+                v = clone_obj(v);  // Clone result before storing
+                ins_obj(&res, i + 1, v);
+                drop_obj(v);  // Drop the original result
+            }
+
+            return res;
+        case TYPE_VARY:
+            return vary_call(f, x, n);
+        case TYPE_LAMBDA:
+            if (n < 2 || AS_LAMBDA(f)->args->len != n)
+                THROW(ERR_LENGTH, "'scan-left': lambda call with wrong arguments count");
+
+            l = ops_count(x[0]);
+            if (l == 0)
+                return LIST(0);
+
+            v = clone_obj(x[1]);  // Use rightmost argument as initial value
+            res = LIST(l + 1);
+            ins_obj(&res, 0, v);
+
+            for (i = 0; i < l; i++) {
+                // Push current element from the leftmost argument first
+                x1 = at_idx(x[0], i);
+                stack_push(x1);
+                // Push result of previous iteration as second argument
+                x2 = clone_obj(v);
+                stack_push(x2);
+                // Push all other arguments in between
+                for (j = 1; j < n - 1; j++) {
+                    stack_push(clone_obj(x[j]));
+                }
+
+                v = call(f, n);
+
+                // Cleanup stack
+                for (j = 0; j < n; j++) {
+                    drop_obj(stack_pop());
+                }
+
+                if (IS_ERROR(v)) {
+                    res->len = i + 1;
+                    drop_obj(res);
+                    return v;
+                }
+
+                v = clone_obj(v);  // Clone result before storing
+                ins_obj(&res, i + 1, v);
+                drop_obj(v);  // Drop the original result
+            }
+
+            return res;
+        default:
+            THROW(ERR_TYPE, "'scan-left': unsupported function type: '%s", type_name(f->type));
+    }
+}
+
+obj_p ray_scan_right(obj_p *x, u64_t n) {
+    u64_t i, j, l;
+    obj_p f, v, x1, x2, res;
+
+    if (n < 2)
+        return LIST(0);
+
+    f = x[0];
+    x++;
+    n--;
+
+    switch (f->type) {
+        case TYPE_UNARY:
+            if (n != 1)
+                THROW(ERR_LENGTH, "'scan-right': unary call with wrong arguments count");
+            return unary_call(f, x[0]);
+        case TYPE_BINARY:
+            if (n < 2)
+                THROW(ERR_LENGTH, "'scan-right': binary call with wrong arguments count");
+
+            l = ops_count(x[n - 1]);  // Last argument is the one we iterate over
+            if (l == 0)
+                return LIST(0);
+
+            v = clone_obj(x[0]);  // Use leftmost argument as initial value
+            res = LIST(l + 1);
+            ins_obj(&res, 0, v);
+
+            for (i = 0; i < l; i++) {
+                x1 = at_idx(x[n - 1], i);  // Current element from rightmost argument
+                x2 = clone_obj(v);         // Clone previous result
+                v = binary_call(f, x1, x2);
+                drop_obj(x1);
+                drop_obj(x2);
+
+                if (IS_ERROR(v)) {
+                    res->len = i + 1;
+                    drop_obj(res);
+                    return v;
+                }
+
+                v = clone_obj(v);  // Clone result before storing
+                ins_obj(&res, i + 1, v);
+                drop_obj(v);  // Drop the original result
+            }
+
+            return res;
+        case TYPE_VARY:
+            return vary_call(f, x, n);
+        case TYPE_LAMBDA:
+            if (n < 2 || AS_LAMBDA(f)->args->len != n)
+                THROW(ERR_LENGTH, "'scan-right': lambda call with wrong arguments count");
+
+            l = ops_count(x[n - 1]);  // Last argument is the one we iterate over
+            if (l == 0)
+                return LIST(0);
+
+            v = clone_obj(x[0]);  // Use leftmost argument as initial value
+            res = LIST(l + 1);
+            ins_obj(&res, 0, v);
+
+            for (i = 0; i < l; i++) {
+                // Push current element from the rightmost argument
+                x1 = at_idx(x[n - 1], i);
+                stack_push(x1);
+                // Push result of previous iteration
+                x2 = clone_obj(v);
+                stack_push(x2);
+                // Push all other arguments in between
+                for (j = 0; j < n - 1; j++) {
+                    stack_push(clone_obj(x[j]));
+                }
+
+                v = call(f, n);
+
+                // Cleanup stack
+                for (j = 0; j < n; j++) {
+                    drop_obj(stack_pop());
+                }
+
+                if (IS_ERROR(v)) {
+                    res->len = i + 1;
+                    drop_obj(res);
+                    return v;
+                }
+
+                v = clone_obj(v);  // Clone result before storing
+                ins_obj(&res, i + 1, v);
+                drop_obj(v);  // Drop the original result
+            }
+
+            return res;
+        default:
+            THROW(ERR_TYPE, "'scan-right': unsupported function type: '%s", type_name(f->type));
     }
 }
