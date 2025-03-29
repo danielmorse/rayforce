@@ -402,7 +402,7 @@ obj_p ray_rand(obj_p x, obj_p y) {
 
 obj_p ray_concat(obj_p x, obj_p y) {
     i64_t i, xl, yl;
-    obj_p vec;
+    obj_p vec, kx, kxy, ix, iy, dx, dy;
 
     if (!x || !y)
         return vn_list(2, clone_obj(x), clone_obj(y));
@@ -662,6 +662,69 @@ obj_p ray_concat(obj_p x, obj_p y) {
             for (i = 0; i < yl; i++)
                 memcpy(AS_GUID(vec)[i + xl], AS_GUID(y)[i], sizeof(guid_t));
             return vec;
+
+        case MTYPE2(TYPE_DICT, TYPE_DICT):
+            kxy = ray_sect(AS_LIST(x)[0], AS_LIST(y)[0]);
+            dx = ray_except(AS_LIST(x)[0], kxy);
+            dy = ray_except(AS_LIST(y)[0], kxy);
+
+            vec = vector(TYPE_LIST, dx->len + kxy->len + dy->len);
+
+            // add items in x that are not in y
+            ix = ray_find(AS_LIST(x)[0], dx);
+            for (i = 0; i < (i64_t)dx->len; i++) {
+                AS_LIST(vec)[AS_I64(ix)[i]] = clone_obj(AS_LIST(AS_LIST(x)[1])[AS_I64(ix)[i]]);
+            }
+            drop_obj(ix);
+
+            // add items in x and y with the same key
+            ix = ray_find(AS_LIST(x)[0], kxy);
+            iy = ray_find(AS_LIST(y)[0], kxy);
+            for (i = 0; i < (i64_t)kxy->len; i++) {
+                AS_LIST(vec)[AS_I64(ix)[i]] = clone_obj(AS_LIST(AS_LIST(y)[1])[AS_I64(iy)[i]]);
+            }
+            drop_obj(ix);
+            drop_obj(iy);
+
+            // add items in y that are not in x
+            iy = ray_find(AS_LIST(y)[0], dy);
+            for (i = 0; i < (i64_t)dy->len; i++) {
+                AS_LIST(vec)[i + dx->len + kxy->len] = clone_obj(AS_LIST(AS_LIST(y)[1])[AS_I64(iy)[i]]);
+            }
+            drop_obj(iy);
+
+            vec = dict(ray_concat(AS_LIST(x)[0], dy), vec);
+            drop_obj(kxy);
+            drop_obj(dx);
+            drop_obj(dy);
+            return vec;
+
+        case MTYPE2(TYPE_TABLE, TYPE_TABLE):
+            kx = ray_key(x);
+            kxy = ray_sect(AS_LIST(x)[0], AS_LIST(y)[0]);
+            if (kx->len != kxy->len || cmp_obj(kx, kxy) != 0) {
+                drop_obj(kx);
+                drop_obj(kxy);
+                THROW(ERR_TYPE, "concat: keys a not compatible");
+            }
+            iy = ray_find(AS_LIST(y)[0], AS_LIST(x)[0]);
+
+            for (i = 0; i < (i64_t)kx->len; i++) {
+                if (AS_LIST(AS_LIST(x)[1])[i]->type != AS_LIST(AS_LIST(y)[1])[AS_I64(iy)[i]]->type) {
+                    drop_obj(kx);
+                    drop_obj(kxy);
+                    drop_obj(iy);
+                    THROW(ERR_TYPE, "concat: values a not compatible");
+                }
+            }
+            vec = vector(TYPE_LIST, kx->len);
+            for (i = 0; i < (i64_t)kx->len; i++) {
+                AS_LIST(vec)[i] = ray_concat(AS_LIST(AS_LIST(x)[1])[i], AS_LIST(AS_LIST(y)[1])[AS_I64(iy)[i]]);
+            }
+            drop_obj(kx);
+            drop_obj(kxy);
+            drop_obj(iy);
+            return table(clone_obj(AS_LIST(x)[0]), vec);
 
         case MTYPE2(TYPE_LIST, TYPE_LIST):
             xl = x->len;

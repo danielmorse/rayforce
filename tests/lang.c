@@ -3156,5 +3156,22 @@ test_result_t test_lang_concat() {
     TEST_ASSERT_EQ("(concat 1.0 [2.0])", "[1.0 2.0]");
     TEST_ASSERT_EQ("(concat [1.0] [2.0])", "[1.0 2.0]");
 
+    TEST_ASSERT_EQ(
+        "(concat (dict [A B] (list (+ (til 4) 10) [16 17 18 19])) "
+        "(dict [C A] (list (list \"A\" \"B\" \"C\" \"D\" \"E\") (til 5))))",
+        "(dict [A B C] (list (til 5) [16 17 18 19] (list \"A\" \"B\" \"C\" \"D\" \"E\")))");
+    TEST_ASSERT_EQ(
+        "(concat (table [A C] (list (+ (til 4) 10) (list \"a\" \"b\" \"c\" \"d\"))) (table [C B A] "
+        "(list (list \"A\" \"B\" \"C\" \"D\" \"E\") [100 200 300 400 500] (til 5))))",
+        "(table [A C] (list [10 11 12 13 0 1 2 3 4] (list \"a\" \"b\" \"c\" \"d\" \"A\" \"B\" \"C\" \"D\" \"E\")))");
+    TEST_ASSERT_ER(
+        "(concat (table [D C] (list (+ (til 4) 10) (list \"a\" \"b\" \"c\" \"d\"))) (table [C B A] "
+        "(list (list \"A\" \"B\" \"C\" \"D\" \"E\") [100 200 300 400 500] (til 5))))",
+        "concat: keys a not compatible");
+    TEST_ASSERT_ER(
+        "(concat (table [C A] (list (+ (til 4) 10) (list \"a\" \"b\" \"c\" \"d\"))) (table [C B A] "
+        "(list (list \"A\" \"B\" \"C\" \"D\" \"E\") [100 200 300 400 500] (til 5))))",
+        "concat: values a not compatible");
+
     PASS();
 }
