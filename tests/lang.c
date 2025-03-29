@@ -3105,3 +3105,56 @@ test_result_t test_lang_distinct() {
 
     PASS();
 }
+
+test_result_t test_lang_concat() {
+    TEST_ASSERT_EQ("(concat true false)", "[true false]");
+    TEST_ASSERT_EQ("(concat [true] false)", "[true false]");
+    TEST_ASSERT_EQ("(concat true [false])", "[true false]");
+    TEST_ASSERT_EQ("(concat [true] [false])", "[true false]");
+    TEST_ASSERT_EQ("(concat 0x0d 0x0a)", "[0x0d 0x0a]");
+    TEST_ASSERT_EQ("(concat [0x0d] 0x0a)", "[0x0d 0x0a]");
+    TEST_ASSERT_EQ("(concat 0x0d [0x0a])", "[0x0d 0x0a]");
+    TEST_ASSERT_EQ("(concat [0x0d] [0x0a])", "[0x0d 0x0a]");
+    TEST_ASSERT_EQ("(concat 't' 's')", "\"ts\"");
+    TEST_ASSERT_EQ("(concat 't' \"est\")", "\"test\"");
+    TEST_ASSERT_EQ("(concat \"tes\" 't')", "\"test\"");
+    TEST_ASSERT_EQ("(concat \"te\" \"st\")", "\"test\"");
+    TEST_ASSERT_EQ("(concat 1h 2h)", "[1h 2h]");
+    TEST_ASSERT_EQ("(concat [1h] 2h)", "[1h 2h]");
+    TEST_ASSERT_EQ("(concat 1h [2h])", "[1h 2h]");
+    TEST_ASSERT_EQ("(concat [1h] [2h])", "[1h 2h]");
+    TEST_ASSERT_EQ("(concat 1i 2i)", "[1i 2i]");
+    TEST_ASSERT_EQ("(concat [1i] 2i)", "[1i 2i]");
+    TEST_ASSERT_EQ("(concat 1i [2i])", "[1i 2i]");
+    TEST_ASSERT_EQ("(concat [1i] [2i])", "[1i 2i]");
+    TEST_ASSERT_EQ("(concat 2020.10.10 2020.10.12)", "[2020.10.10 2020.10.12]");
+    TEST_ASSERT_EQ("(concat [2020.10.10] 2020.10.12)", "[2020.10.10 2020.10.12]");
+    TEST_ASSERT_EQ("(concat 2020.10.10 [2020.10.12])", "[2020.10.10 2020.10.12]");
+    TEST_ASSERT_EQ("(concat [2020.10.10] [2020.10.12])", "[2020.10.10 2020.10.12]");
+    TEST_ASSERT_EQ("(concat 10:00:00.000 10:00:00.001)", "[10:00:00.000 10:00:00.001]");
+    TEST_ASSERT_EQ("(concat [10:00:00.000] 10:00:00.001)", "[10:00:00.000 10:00:00.001]");
+    TEST_ASSERT_EQ("(concat 10:00:00.000 [10:00:00.001])", "[10:00:00.000 10:00:00.001]");
+    TEST_ASSERT_EQ("(concat [10:00:00.000] [10:00:00.001])", "[10:00:00.000 10:00:00.001]");
+    TEST_ASSERT_EQ("(concat 1 2)", "[1 2]");
+    TEST_ASSERT_EQ("(concat [1] 2)", "[1 2]");
+    TEST_ASSERT_EQ("(concat 1 [2])", "[1 2]");
+    TEST_ASSERT_EQ("(concat [1] [2])", "[1 2]");
+    TEST_ASSERT_EQ("(concat 'a 'b)", "['a 'b]");
+    TEST_ASSERT_EQ("(concat 'a ['b])", "['a 'b]");
+    TEST_ASSERT_EQ("(concat ['a] 'b)", "['a 'b]");
+    TEST_ASSERT_EQ("(concat ['a] ['b])", "['a 'b]");
+    TEST_ASSERT_EQ("(concat 2025.01.01D15:17:19.000000000 2025.01.02D15:17:19.000000002)",
+                   "[2025.01.01D15:17:19.000000000 2025.01.02D15:17:19.000000002]");
+    TEST_ASSERT_EQ("(concat [2025.01.01D15:17:19.000000000] 2025.01.02D15:17:19.000000002)",
+                   "[2025.01.01D15:17:19.000000000 2025.01.02D15:17:19.000000002]");
+    TEST_ASSERT_EQ("(concat 2025.01.01D15:17:19.000000000 [2025.01.02D15:17:19.000000002])",
+                   "[2025.01.01D15:17:19.000000000 2025.01.02D15:17:19.000000002]");
+    TEST_ASSERT_EQ("(concat [2025.01.01D15:17:19.000000000] [2025.01.02D15:17:19.000000002])",
+                   "[2025.01.01D15:17:19.000000000 2025.01.02D15:17:19.000000002]");
+    TEST_ASSERT_EQ("(concat 1.0 2.0)", "[1.0 2.0]");
+    TEST_ASSERT_EQ("(concat [1.0] 2.0)", "[1.0 2.0]");
+    TEST_ASSERT_EQ("(concat 1.0 [2.0])", "[1.0 2.0]");
+    TEST_ASSERT_EQ("(concat [1.0] [2.0])", "[1.0 2.0]");
+
+    PASS();
+}
