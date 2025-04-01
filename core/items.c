@@ -661,7 +661,7 @@ obj_p ray_take(obj_p x, obj_p y) {
 
 obj_p ray_in(obj_p x, obj_p y) {
     i64_t i, xl, yl, p, k;
-    obj_p vec, set;
+    obj_p v, vec, set;
     i16_t min16;
     u64_t range;
 
@@ -746,6 +746,48 @@ obj_p ray_in(obj_p x, obj_p y) {
             return vec;
 
         default:
+            if (x->type == TYPE_LIST) {
+                xl = x->len;
+                vec = LIST(xl);
+
+                for (i = 0; i < xl; i++) {
+                    v = ray_in(AS_LIST(x)[i], y);
+                    if (IS_ERROR(v)) {
+                        vec->len = i;
+                        drop_obj(vec);
+                        return v;
+                    }
+
+                    AS_LIST(vec)[i] = v;
+                }
+
+                return vec;
+            }
+
+            if (y->type == TYPE_LIST) {
+                yl = y->len;
+                vec = B8(yl);
+
+                for (i = 0; i < yl; i++) {
+                    v = ray_eq(x, AS_LIST(y)[i]);
+                    if (IS_ERROR(v)) {
+                        drop_obj(vec);
+                        return v;
+                    }
+
+                    if (v->type != -TYPE_B8) {
+                        drop_obj(v);
+                        drop_obj(vec);
+                        THROW(ERR_TYPE, "in: returned vector instead of atom");
+                    }
+
+                    AS_B8(vec)[i] = v->b8;
+                    drop_obj(v);
+                }
+
+                return vec;
+            }
+
             THROW(ERR_TYPE, "in: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }
 
