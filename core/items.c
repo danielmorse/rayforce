@@ -853,24 +853,6 @@ obj_p ray_in(obj_p x, obj_p y) {
             return vec;
 
         default:
-            if (x->type == TYPE_LIST) {
-                xl = x->len;
-                vec = LIST(xl);
-
-                for (i = 0; i < xl; i++) {
-                    v = ray_in(AS_LIST(x)[i], y);
-                    if (IS_ERROR(v)) {
-                        vec->len = i;
-                        drop_obj(vec);
-                        return v;
-                    }
-
-                    AS_LIST(vec)[i] = v;
-                }
-
-                return vec;
-            }
-
             if (y->type == TYPE_LIST) {
                 yl = y->len;
                 vec = B8(yl);
