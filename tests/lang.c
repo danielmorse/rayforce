@@ -3259,6 +3259,7 @@ test_result_t test_lang_in() {
     TEST_ASSERT_EQ("(in \"asd\" (list 'd' \"asd\"))", "[false false true]");
     TEST_ASSERT_EQ("(in (list \"asd\") (list \"iu\" \"asd\"))", "(list [false false false])");      //(list true)
     TEST_ASSERT_EQ("(in (list \"asd\" \"iu\") \"asd\")", "(list [true true true] [false false])");  //(list false false)
+    TEST_ASSERT_EQ("(set l (guid 2)) (in l l)", "[true true]");
     TEST_ASSERT_EQ("(set l (guid 2)) (in (first l) l)", "true");
     TEST_ASSERT_EQ("(set l (guid 2)) (in l (first l))", "[true false]");
     TEST_ASSERT_EQ("(set l (guid 2)) (in (first l) (list (first l)))", "true");

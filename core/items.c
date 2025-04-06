@@ -661,8 +661,8 @@ obj_p ray_take(obj_p x, obj_p y) {
 }
 
 obj_p ray_in(obj_p x, obj_p y) {
-    i64_t i, yl;
-    obj_p v, vec;
+    i64_t i;
+    obj_p vec;
 
     if (IS_ATOM(x) && IS_ATOM(y))
         return b8(cmp_obj(x, y) == 0);
@@ -733,21 +733,6 @@ obj_p ray_in(obj_p x, obj_p y) {
 
             if (!IS_VECTOR(x))
                 return b8(find_obj_idx(y, x) != NULL_I64);
-
-            if (y->type == TYPE_LIST) {
-                yl = y->len;
-
-                for (i = 0; i < yl; i++) {
-                    v = ray_eq(x, AS_LIST(y)[i]);
-                    if (v->type == -TYPE_B8 && v->b8 == B8_TRUE) {
-                        drop_obj(v);
-                        return b8(B8_TRUE);
-                    }
-                    drop_obj(v);
-                }
-
-                return b8(B8_FALSE);
-            }
 
             THROW(ERR_TYPE, "in: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }
