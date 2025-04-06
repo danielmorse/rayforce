@@ -709,6 +709,8 @@ obj_p ray_in(obj_p x, obj_p y) {
         case MTYPE2(TYPE_SYMBOL, TYPE_SYMBOL):
         case MTYPE2(TYPE_TIMESTAMP, TYPE_TIMESTAMP):
             return index_in_i64_i64(AS_I64(x), x->len, AS_I64(y), y->len);
+        case MTYPE2(TYPE_GUID, TYPE_GUID):
+            return index_in_guid_guid(AS_GUID(x), x->len, AS_GUID(y), y->len);
         default:
             if ((IS_VECTOR(y) || y->type == TYPE_LIST) && y->len == 0) {
                 if (IS_VECTOR(x) || x->type == TYPE_LIST) {

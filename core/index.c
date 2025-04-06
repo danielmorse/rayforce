@@ -1271,6 +1271,45 @@ obj_p index_in_i64_i64(i64_t x[], u64_t xl, i64_t y[], u64_t yl) {
     return vec;
 }
 
+obj_p index_in_guid_guid(guid_t x[], u64_t xl, guid_t y[], u64_t yl) {
+    u64_t i, *hashes;
+    obj_p ht, hs, res;
+    i64_t idx;
+    __index_find_ctx_t ctx;
+
+    // calc hashes
+    hs = I64(xl);
+    ht = ht_oa_create(xl, -1);
+
+    hashes = (u64_t *)AS_I64(hs);
+
+    for (i = 0; i < xl; i++)
+        hashes[i] = hash_index_u64(*(u64_t *)(x + i), *((u64_t *)(x + i) + 1));
+
+    ctx = (__index_find_ctx_t){.lobj = x, .robj = x, .hashes = hashes};
+    for (i = 0; i < xl; i++) {
+        idx = ht_oa_tab_next_with(&ht, i, &__hash_get, &__hash_cmp_guid, &ctx);
+        if (AS_I64(AS_LIST(ht)[0])[idx] == NULL_I64)
+            AS_I64(AS_LIST(ht)[0])[idx] = i;
+    }
+
+    for (i = 0; i < yl; i++)
+        hashes[i] = hash_index_u64(*(u64_t *)(y + i), *((u64_t *)(y + i) + 1));
+
+    res = B8(yl);
+
+    ctx = (__index_find_ctx_t){.lobj = x, .robj = y, .hashes = hashes};
+    for (i = 0; i < yl; i++) {
+        idx = ht_oa_tab_get_with(ht, i, &__hash_get, &__hash_cmp_guid, &ctx);
+        AS_B8(res)[i] = idx != NULL_I64;
+    }
+
+    drop_obj(ht);
+    drop_obj(hs);
+
+    return res;
+}
+
 obj_p index_find_i8(i8_t x[], u64_t xl, i8_t y[], u64_t yl) {
     u64_t i, range;
     i64_t min, val, *d, *r;

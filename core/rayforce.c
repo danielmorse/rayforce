@@ -1799,6 +1799,8 @@ i64_t cmp_obj(obj_p a, obj_p b) {
                    : (ops_is_nan(a->f64) || ops_is_nan(b->f64)) ? 1
                    : (ABSF64(a->f64 - b->f64) < 1e-16)          ? 0
                                                                 : 1;
+        case -TYPE_GUID:
+            return memcmp(AS_GUID(a), AS_GUID(b), sizeof(guid_t));
         case TYPE_I16:
             if (a->len != b->len)
                 return a->len - b->len;

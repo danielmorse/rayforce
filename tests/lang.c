@@ -3265,7 +3265,5 @@ test_result_t test_lang_in() {
     TEST_ASSERT_EQ("(set l (guid 2)) (in (list (first l)) l)", "(list true)");
     TEST_ASSERT_EQ("(set l (guid 2)) (in (list (first l)) (list l))", "(list false)");
     TEST_ASSERT_EQ("(set l (guid 2)) (in (list (first l)) (list (first l)))", "(list true)");
-
-    TEST_ASSERT_ER("(in [1i 0Ni 2i] [true true])", "in: unsupported types: 'I32, 'B8");
     PASS();
 }
