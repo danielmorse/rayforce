@@ -7,6 +7,9 @@ on:
     branches: [ master ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   coverage:
     runs-on: ubuntu-latest
@@ -40,7 +43,11 @@ jobs:
     - name: Update README badge
       run: |
         if [ -f coverage.info ]; then
-          COVERAGE=$(lcov --summary coverage.info | grep "lines" | awk '{print $4}' | cut -d'%' -f1)
+          # Extract coverage percentage using a more robust method
+          COVERAGE=$(lcov --summary coverage.info | grep "lines" | sed 's/.*: \([0-9.]*\)%.*/\1/' | cut -d. -f1)
+          if [ -z "$COVERAGE" ]; then
+            COVERAGE=0
+          fi
         else
           COVERAGE=0
         fi
