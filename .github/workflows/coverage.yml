@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   coverage:
@@ -16,6 +17,9 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
+      with:
+        ref: coverage-badge-update
+        token: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Install dependencies
       run: |
@@ -80,4 +84,14 @@ jobs:
           git add README.md
           git commit -m "Update coverage badge" || echo "No changes to commit"
           git push
-        fi 
+        fi
+        
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        branch: coverage-badge-update
+        base: master
+        title: 'Update coverage badge'
+        body: 'Automatically update coverage badge'
+        delete-branch: true 
