@@ -9,15 +9,10 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 jobs:
   tests:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
     - uses: actions/checkout@v4
     
@@ -30,10 +25,6 @@ jobs:
       run: |
         # Create site directories
         mkdir -p _site/tests_report
-        mkdir -p _site/coverage_report
-        
-        # Try to download existing coverage report
-        curl -L "https://singaraiona.github.io/rayforce/coverage_report/index.html" -o _site/coverage_report/index.html || true
         
     - name: Run tests and generate report
       run: |
@@ -138,14 +129,7 @@ jobs:
         # Close HTML
         echo '</div></body></html>' >> _site/tests_report/index.html
 
-    - name: Setup Pages
-      uses: actions/configure-pages@v4
-      
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
       with:
-        path: _site
-        
-    - name: Deploy to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v4 
+        path: _site 

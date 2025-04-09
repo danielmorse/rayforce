@@ -9,16 +9,10 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 jobs:
   coverage:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    
     steps:
     - uses: actions/checkout@v4
     
@@ -46,64 +40,34 @@ jobs:
     - name: Generate coverage
       run: |
         make clean
-        make coverage || echo "Coverage generation failed but continuing..."
+        make coverage || echo "No tests available yet"
         
-    - name: Setup site structure
+    - name: Create site directories
       run: |
         # Create site directories
-        rm -rf site
-        mkdir -p site
+        mkdir -p _site/coverage_report
         
-        # Copy existing docs to site root
-        if [ -d "docs" ]; then
-          cp -r docs/* site/
-        fi
-        
-        # Create coverage directory
-        mkdir -p site/coverage
-        mkdir -p site/badges
-        
-    - name: Generate coverage report and badge
+    - name: Generate coverage report
       id: coverage
       run: |
         if [ -f coverage.info ]; then
-          # Generate HTML report directly in the site/coverage directory
-          genhtml coverage.info -o site/coverage --no-function-coverage --prefix $(pwd)
-          
-          # Extract coverage percentages
-          LINE_COVERAGE=$(lcov --summary coverage.info 2>&1 | grep "lines" | awk '{print $4}' | cut -d'%' -f1)
-          FUNC_COVERAGE=$(lcov --summary coverage.info 2>&1 | grep "functions" | awk '{print $4}' | cut -d'%' -f1)
-          
-          # Create coverage badge
-          mkdir -p site/badges
-          echo "<svg xmlns='http://www.w3.org/2000/svg' width='96' height='20'><rect width='96' height='20' rx='3' fill='#555'/><rect x='61' width='35' height='20' fill='#97ca00'/><g fill='#fff' text-anchor='middle' font-family='DejaVu Sans,Verdana,sans-serif' font-size='11'><text x='31' y='14'>coverage</text><text x='78' y='14'>${LINE_COVERAGE}%</text></g></svg>" > site/badges/coverage.svg
-          
-          echo "line_coverage=$LINE_COVERAGE" >> $GITHUB_OUTPUT
-          echo "func_coverage=$FUNC_COVERAGE" >> $GITHUB_OUTPUT
-          
-          # Set warning threshold at 40%
-          if [ "$LINE_COVERAGE" -lt 40 ]; then
-            echo "::warning::Coverage is below 40% (current: ${LINE_COVERAGE}%). Consider adding more tests."
+          genhtml coverage.info -o _site/coverage_report
+          # Extract coverage percentage for the badge
+          COVERAGE=$(lcov --summary coverage.info | grep "lines" | awk '{print $4}' | cut -d'%' -f1)
+          echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+          # Set job status based on coverage
+          if [ "$COVERAGE" -lt 70 ]; then
+            echo "Coverage is below 70%"
+            exit 1
           fi
         else
-          mkdir -p site/coverage
-          echo "<html><body><h1>Coverage Report</h1><p>No coverage data available. Coverage generation may have failed.</p></body></html>" > site/coverage/index.html
-          echo "line_coverage=0" >> $GITHUB_OUTPUT
-          echo "func_coverage=0" >> $GITHUB_OUTPUT
-          echo "::warning::No coverage data was generated"
+          echo "<html><body><h1>Coverage Report</h1><p>No tests available yet.</p></body></html>" > _site/coverage_report/index.html
+          echo "coverage=0" >> $GITHUB_OUTPUT
+          exit 1
         fi
 
-    - name: Setup Pages
-      if: success() || failure()  # Continue even if coverage check fails
-      uses: actions/configure-pages@v4
-      
     - name: Upload artifact
       if: success() || failure()  # Continue even if coverage check fails
       uses: actions/upload-pages-artifact@v3
       with:
-        path: site
-        
-    - name: Deploy to GitHub Pages
-      if: success() || failure()  # Continue even if coverage check fails
-      id: deployment
-      uses: actions/deploy-pages@v4 
+        path: _site 
