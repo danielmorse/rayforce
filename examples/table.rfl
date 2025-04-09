@@ -10,8 +10,8 @@
     ))
 )
 
-;; (select 
-;;    { from: t
-;;      by: Symbol
-;;      m: (sum Price)
-;;    })
+(select 
+  { from: t
+    by: Symbol
+    m: (sum Price)
+  })

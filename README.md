@@ -1,7 +1,7 @@
 # RayforceDB: Redefining Speed and Simplicity in Data Management
 
 
-![RayforceDB Cover](docs/assets/images/cover-image.jpg)
+![RayforceDB Cover](docs/assets/images/cover.png)
 
 
 [![Tests](https://img.shields.io/badge/Tests-passing-success?logo=github&style=flat)](https://singaraiona.github.io/rayforce/tests_report/) [![Coverage](https://img.shields.io/badge/Coverage-passing-brightgreen?style=flat&logo=github)](https://singaraiona.github.io/rayforce/coverage_report/) [![Release](https://img.shields.io/badge/Release-latest-blue?logo=github&style=flat)](https://github.com/singaraiona/rayforce/releases) [![Documentation](https://img.shields.io/badge/Documentation-latest-blue?logo=github&style=flat)](https://singaraiona.github.io/rayforce/)
