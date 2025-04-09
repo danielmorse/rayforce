@@ -74,14 +74,3 @@ jobs:
     - name: Deploy to GitHub Pages
       id: deployment
       uses: actions/deploy-pages@v4
-
-    - name: Extract Coverage Percentage
-      run: |
-        COVERAGE=$(lcov --summary coverage.info | grep 'lines\.*' | awk '{print $2}')
-        echo "Coverage: $COVERAGE"
-
-    - name: Update Coverage Badge
-      run: |
-        COVERAGE=$(lcov --summary coverage.info | grep 'lines\.*' | awk '{print $2}')
-        BADGE_URL="https://img.shields.io/badge/Coverage-${COVERAGE}%25-brightgreen?style=flat&logo=github"
-        sed -i "s|https://img.shields.io/badge/Coverage-[0-9]*%25-brightgreen|$BADGE_URL|g" README.md 
