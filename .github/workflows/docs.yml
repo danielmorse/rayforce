@@ -58,6 +58,13 @@ jobs:
       run: |
         echo '<html><body><h1>Coverage Report</h1><p>No coverage data available yet.</p></body></html>' > site/coverage_report/index.html
 
+    - name: Run Coverage
+      run: make coverage
+
+    - name: Include Coverage Report in Site
+      run: |
+        cp -r coverage_report/* site/coverage_report/
+
     - name: Build documentation
       run: mkdocs build
 
