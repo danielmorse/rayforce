@@ -34,7 +34,7 @@ jobs:
         
     - name: Run Tests
       run: |
-        # Run tests and capture output, stripping ANSI escape sequences
+        make clean
         make tests | sed 's/\x1b\[[0-9;]*m//g' | tee test_output.txt
 
     - name: Upload Test Report
@@ -62,7 +62,9 @@ jobs:
       run: sudo apt-get update && sudo apt-get install -y lcov
 
     - name: Run Coverage
-      run: make coverage
+      run: |
+        make clean
+        make coverage
 
     - name: Include Coverage Report in Site
       run: |
