@@ -281,46 +281,24 @@ obj_p ops_where_partial(b8_t *mask, u64_t len, i64_t *ids, u64_t offset) {
 }
 
 obj_p ops_where(b8_t *mask, u64_t len) {
-    u64_t i, j, ids_len, n, chunk, count;
+    u64_t i, j,count;
     i64_t *ids;
-    obj_p res, parts;
-    pool_p pool = runtime_get()->pool;
+    obj_p res;
 
-    n = pool_split_by(pool, len, 0);
+    count = 0;
+    for (i = 0; i < len; i++) 
+        count += mask[i];
 
-    res = I64(len);
+    res = I64(count);
     ids = AS_I64(res);
 
-    if (n == 1) {
-        parts = ops_where_partial(mask, len, ids, 0);
-        ids_len = parts->i64;
-        drop_obj(parts);
-        resize_obj(&res, ids_len);
-        return res;
+    for (i = 0, j = 0; i < len; i++) {
+        if (mask[i])
+            ids[j++] = i;
     }
-
-    pool_prepare(pool);
-
-    chunk = len / n;
-
-    for (i = 0; i < n - 1; i++)
-        pool_add_task(pool, (raw_p)ops_where_partial, 4, mask, chunk, ids, i * chunk);
-
-    pool_add_task(pool, (raw_p)ops_where_partial, 4, mask, len - i * chunk, ids, i * chunk);
-
-    parts = pool_run(pool);
-
-    // Now collapse the results
-    for (i = 0, j = 0; i < n; i++) {
-        count = AS_LIST(parts)[i]->i64;
-        memmove(ids + j, ids + i * chunk, count * sizeof(i64_t));
-        j += count;
-    }
-
-    drop_obj(parts);
-    resize_obj(&res, j);
 
     return res;
+
 }
 
 #if defined(OS_WINDOWS)

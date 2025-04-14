@@ -253,24 +253,28 @@ obj_p select_fetch_table(obj_p obj, query_ctx_p ctx) {
 obj_p select_apply_filters(obj_p obj, query_ctx_p ctx) {
     obj_p prm, val, fil;
 
+    timeit_span_start("filters");
+
     prm = at_sym(obj, "where", 5);
     if (prm != NULL_OBJ) {
         val = eval(prm);
+        timeit_tick("eval filters");
         drop_obj(prm);
 
         if (IS_ERR(val))
             return val;
 
         fil = ray_where(val);
+        timeit_tick("find indices");
         drop_obj(val);
 
         if (IS_ERR(fil))
             return fil;
 
         ctx->filter = fil;
-
-        timeit_tick("apply filters");
     }
+
+    timeit_span_end("filters");
 
     return NULL_OBJ;
 }
