@@ -162,7 +162,6 @@ nil_t init_functions(obj_p functions)
     REGISTER_FN(functions,  "hclose",              TYPE_UNARY,    FN_NONE,                   ray_hclose);
     REGISTER_FN(functions,  "rc",                  TYPE_UNARY,    FN_NONE,                   ray_rc);
     REGISTER_FN(functions,  "select",              TYPE_UNARY,    FN_NONE,                   ray_select);
-    REGISTER_FN(functions,  "timeit",              TYPE_UNARY,    FN_NONE | FN_SPECIAL_FORM, ray_timeit);
     REGISTER_FN(functions,  "update",              TYPE_UNARY,    FN_NONE,                   ray_update);
     REGISTER_FN(functions,  "date",                TYPE_UNARY,    FN_NONE,                   ray_date);
     REGISTER_FN(functions,  "time",                TYPE_UNARY,    FN_NONE,                   ray_time);
@@ -221,6 +220,7 @@ nil_t init_functions(obj_p functions)
     REGISTER_FN(functions,  "do",                  TYPE_VARY,     FN_NONE | FN_SPECIAL_FORM, ray_do);
     REGISTER_FN(functions,  "and",                 TYPE_VARY,     FN_NONE | FN_SPECIAL_FORM, ray_and);
     REGISTER_FN(functions,  "env",                 TYPE_VARY,     FN_NONE,                   ray_env);
+    REGISTER_FN(functions,  "timeit",              TYPE_VARY,     FN_NONE | FN_SPECIAL_FORM, ray_timeit);
     REGISTER_FN(functions,  "memstat",             TYPE_VARY,     FN_NONE,                   ray_memstat);
     REGISTER_FN(functions,  "gc",                  TYPE_VARY,     FN_NONE,                   ray_gc);
     REGISTER_FN(functions,  "list",                TYPE_VARY,     FN_NONE,                   ray_list);

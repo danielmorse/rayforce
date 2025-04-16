@@ -89,6 +89,6 @@ i64_t timer_next_timeout(timers_p timers);
 nil_t timer_sleep(u64_t ms);
 
 obj_p ray_timer(obj_p *x, u64_t n);
-obj_p ray_timeit(obj_p x);
+obj_p ray_timeit(obj_p *x, u64_t n);
 
 #endif  // CHRONO_H

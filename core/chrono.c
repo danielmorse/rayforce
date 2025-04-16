@@ -131,19 +131,47 @@ nil_t timeit_print(nil_t) {
     drop_obj(fmt);
 }
 
-obj_p ray_timeit(obj_p x) {
+obj_p ray_timeit(obj_p *x, u64_t n) {
+    i64_t i, l;
     ray_clock_t start, end;
+    obj_p v;
 
-    ray_clock_get_time(&start);
+    switch (n) {
+        case 1:
+            ray_clock_get_time(&start);
 
-    x = eval(x);
-    if (IS_ERR(x))
-        return x;
-    drop_obj(x);
+            v = eval(x[0]);
+            if (IS_ERR(v))
+                return v;
+            drop_obj(v);
 
-    ray_clock_get_time(&end);
+            ray_clock_get_time(&end);
 
-    return f64(ray_clock_elapsed_ms(&start, &end));
+            return f64(ray_clock_elapsed_ms(&start, &end));
+        case 2:
+            if (x[0]->type != -TYPE_I64)
+                THROW(ERR_TYPE, "timeit: expected 'i64");
+
+            l = x[0]->i64;
+
+            if (l < 1)
+                THROW(ERR_IO, "timeit: expected 'i64' > 0 as argument");
+
+            ray_clock_get_time(&start);
+
+            for (i = 0; i < l; i++) {
+                v = eval(x[1]);
+                if (IS_ERR(v))
+                    return v;
+                drop_obj(v);
+            }
+
+            ray_clock_get_time(&end);
+
+            return f64(ray_clock_elapsed_ms(&start, &end));
+        default:
+            THROW(ERR_IO, "timeit: expected 0 or 1 argument");
+    }
 }
 
 ray_timer_p ray_timer_create(i64_t id, u64_t tic, u64_t exp, i64_t num, obj_p clb) {
