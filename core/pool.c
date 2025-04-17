@@ -33,6 +33,8 @@
 #include "string.h"
 
 #define DEFAULT_MPMC_SIZE 2048
+#define POOL_SPLIT_THRESHOLD (RAY_PAGE_SIZE * 4)
+#define GROUP_SPLIT_THRESHOLD 100000
 
 mpmc_p mpmc_create(u64_t size) {
     size = next_power_of_two_u64(size);
@@ -436,13 +438,13 @@ obj_p pool_run(pool_p pool) {
 }
 
 u64_t pool_split_by(pool_p pool, u64_t input_len, u64_t groups_len) {
-    if (pool == NULL)
+    if (pool == NULL || input_len < POOL_SPLIT_THRESHOLD)
         return 1;
     else if (rc_sync_get())
         return 1;
     else if (input_len <= pool->executors_count + 1)
         return 1;
-    else if (groups_len >= 100000)
+    else if (groups_len >= GROUP_SPLIT_THRESHOLD)
         return 1;
     else
         return pool->executors_count + 1;
