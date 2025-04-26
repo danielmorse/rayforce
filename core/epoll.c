@@ -165,7 +165,8 @@ poll_result_t poll_recv(poll_p poll, selector_p selector) {
         selector->rx.bytes_transfered += size;
 
         printf("tf: %lld, buf len: %lld\n", selector->rx.bytes_transfered, selector->rx.buf->len);
-        }
+        fflush(stdout);
+    }
 
     return POLL_READY;
 }
@@ -264,8 +265,8 @@ i64_t poll_run(poll_p poll) {
                 if (poll_result == POLL_READY && selector->rx.read_fn != NULL)
                     poll_result = selector->rx.read_fn(poll, selector);
 
-                if (poll_result == POLL_ERROR)
-                    poll_deregister(poll, selector->id);
+                // if (poll_result == POLL_ERROR)
+                poll_deregister(poll, selector->id);
             }
 
             // write
