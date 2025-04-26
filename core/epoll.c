@@ -72,7 +72,6 @@ poll_p poll_create() {
     poll = (poll_p)heap_alloc(sizeof(struct poll_t));
     poll->code = NULL_I64;
     poll->fd = fd;
-    poll->term = term_create();
     poll->selectors = freelist_create(128);
     poll->timers = timers_create(16);
 
@@ -88,8 +87,6 @@ nil_t poll_destroy(poll_p poll) {
         if (poll->selectors->data[i] != NULL_I64)
             poll_deregister(poll, i + SELECTOR_ID_OFFSET);
     }
-
-    term_destroy(poll->term);
 
     freelist_free(poll->selectors);
     timers_destroy(poll->timers);

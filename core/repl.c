@@ -93,15 +93,15 @@ poll_result_t repl_on_error(poll_p poll, selector_p selector) {
 
 poll_result_t repl_recv(poll_p poll, selector_p selector) {
     b8_t error;
-    obj_p str, res;
     repl_p repl = (repl_p)selector->data;
+    obj_p str, res;
 
-    if (!term_getc(poll->term)) {
+    if (!term_getc(repl->term)) {
         poll->code = 1;
         return POLL_EXIT;
     }
 
-    str = term_read(poll->term);
+    str = term_read(repl->term);
     if (str != NULL) {
         if (IS_ERR(str))
             io_write(STDOUT_FILENO, 2, str);
@@ -115,7 +115,7 @@ poll_result_t repl_recv(poll_p poll, selector_p selector) {
                 timeit_print();
         }
 
-        term_prompt(poll->term);
+        term_prompt(repl->term);
     }
 
     return POLL_READY;

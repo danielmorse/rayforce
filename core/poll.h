@@ -136,7 +136,6 @@ typedef enum poll_events_t {
 typedef struct poll_t {
     i64_t code;
     i64_t fd;
-    term_p term;
     freelist_p selectors;  // freelist of selectors
     timers_p timers;       // timers heap
 } *poll_p;
