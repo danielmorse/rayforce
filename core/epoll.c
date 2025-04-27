@@ -313,7 +313,7 @@ poll_result_t poll_run(poll_p poll) {
 poll_result_t poll_rx_buf_request(poll_p poll, selector_p selector, i64_t size) {
     UNUSED(poll);
 
-    if (selector->rx.buf->size < size) {
+    if (selector->rx.buf == NULL || selector->rx.buf->size < size) {
         selector->rx.buf = heap_realloc(selector->rx.buf, sizeof(struct poll_buffer_t) + size);
 
         if (selector->rx.buf == NULL)

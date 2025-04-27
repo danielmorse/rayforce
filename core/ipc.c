@@ -147,8 +147,7 @@ poll_result_t ipc_call_usr_cb(poll_p poll, selector_p selector, lit_p sym, i64_t
 poll_result_t ipc_read_handshake(poll_p poll, selector_p selector) {
     UNUSED(poll);
 
-    if (selector->rx.buf->data[selector->rx.buf->size - 1] == '\0') {
-        printf("ipc_read_handshake: %lld\n", selector->rx.buf->size);
+    if (selector->rx.buf->data[selector->rx.buf->offset - 1] == '\0') {
         // send handshake response
         if (ipc_send_handshake(poll, selector) == POLL_ERROR)
             return POLL_ERROR;
@@ -156,8 +155,9 @@ poll_result_t ipc_read_handshake(poll_p poll, selector_p selector) {
         // Now we are ready for income messages and can call userspace callback (if any)
         ipc_call_usr_cb(poll, selector, ".z.po", 5);
 
+        poll_rx_buf_request(poll, selector, ISIZEOF(struct header_t));
+
         selector->rx.read_fn = ipc_read_header;
-        selector->rx.buf->size = 0;
 
         return ipc_read_header(poll, selector);
     }
@@ -232,9 +232,7 @@ poll_result_t ipc_read_msg_async(poll_p poll, selector_p selector) {
     return POLL_OK;
 }
 
-poll_result_t ipc_on_open(poll_p poll, selector_p selector) {
-    return poll_rx_buf_request(poll, selector, ISIZEOF(struct header_t));
-}
+poll_result_t ipc_on_open(poll_p poll, selector_p selector) { return poll_rx_buf_request(poll, selector, 2); }
 
 poll_result_t ipc_on_error(poll_p poll, selector_p selector) {
     UNUSED(poll);
