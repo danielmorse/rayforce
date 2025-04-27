@@ -229,7 +229,8 @@ poll_result_t ipc_read_msg_sync(poll_p poll, selector_p selector) {
     //     if (poll_result == POLL_ERROR)
     //         poll_deregister(poll, selector->id);
     // } else
-    //     drop_obj(v);
+
+    drop_obj(v);
 
     return POLL_READY;
 }

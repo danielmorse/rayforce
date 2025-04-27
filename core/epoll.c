@@ -119,7 +119,6 @@ poll_result_t poll_register(poll_p poll, poll_registry_p registry) {
     selector->tx.isset = B8_FALSE;
     selector->rx.buf = NULL;
     selector->tx.buf = NULL;
-    selector->tx.queue = queue_create(TX_QUEUE_SIZE);
 
     ev.events = registry->events;
     ev.data.ptr = selector;
@@ -156,12 +155,13 @@ poll_result_t poll_deregister(poll_p poll, i64_t id) {
         heap_free(selector->rx.buf);
         selector->rx.buf = NULL;
     }
+
     while (selector->tx.buf != NULL) {
         buf = selector->tx.buf->next;
         heap_free(selector->tx.buf);
         selector->tx.buf = buf;
     }
-    queue_free(selector->tx.queue);
+
     heap_free(selector);
 
     return POLL_OK;

@@ -29,7 +29,6 @@
 #include "parse.h"
 #include "serde.h"
 #include "format.h"
-#include "queue.h"
 #include "freelist.h"
 #include "chrono.h"
 #include "term.h"
@@ -141,7 +140,6 @@ typedef struct selector_t {
         poll_buffer_p buf;   // pointer to the buffer
         poll_io_fn send_fn;  // to be called when the selector is ready to send
         poll_fn write_fn;    // to be called when the selector is ready to send
-        queue_p queue;       // queue for buffers waiting to be sent
     } tx;
 
 } *selector_p;

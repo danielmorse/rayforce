@@ -50,8 +50,10 @@ poll_result_t poll_rx_buf_request(poll_p poll, selector_p selector, i64_t size) 
         if (selector->rx.buf == NULL)
             return POLL_ERROR;
 
+        selector->rx.buf->next = NULL;
         selector->rx.buf->size = size;
         selector->rx.buf->offset = 0;
+
     } else if (selector->rx.buf->size < size) {
         selector->rx.buf = heap_realloc(selector->rx.buf, ISIZEOF(struct poll_buffer_t) + size);
 
