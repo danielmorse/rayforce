@@ -183,6 +183,7 @@ poll_result_t poll_deregister(poll_p poll, i64_t id);
 selector_p poll_get_selector(poll_p poll, i64_t id);
 poll_result_t poll_rx_buf_request(poll_p poll, selector_p selector, i64_t size);
 poll_result_t poll_rx_buf_release(poll_p poll, selector_p selector);
+poll_result_t poll_rx_buf_reset(poll_p poll, selector_p selector);
 
 // Exit the app
 nil_t poll_exit(poll_p poll, i64_t code);

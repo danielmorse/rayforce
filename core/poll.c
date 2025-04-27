@@ -40,3 +40,43 @@ selector_p poll_get_selector(poll_p poll, i64_t id) {
 }
 
 nil_t poll_exit(poll_p poll, i64_t code) { poll->code = code; }
+
+poll_result_t poll_rx_buf_request(poll_p poll, selector_p selector, i64_t size) {
+    UNUSED(poll);
+
+    if (selector->rx.buf == NULL) {
+        selector->rx.buf = heap_alloc(ISIZEOF(struct poll_buffer_t) + size);
+
+        if (selector->rx.buf == NULL)
+            return POLL_ERROR;
+
+        selector->rx.buf->size = size;
+        selector->rx.buf->offset = 0;
+    } else if (selector->rx.buf->size < size) {
+        selector->rx.buf = heap_realloc(selector->rx.buf, ISIZEOF(struct poll_buffer_t) + size);
+
+        if (selector->rx.buf == NULL)
+            return POLL_ERROR;
+
+        selector->rx.buf->size = size;
+    }
+
+    return POLL_OK;
+}
+
+poll_result_t poll_rx_buf_release(poll_p poll, selector_p selector) {
+    UNUSED(poll);
+
+    heap_free(selector->rx.buf);
+    selector->rx.buf = NULL;
+
+    return POLL_OK;
+}
+
+poll_result_t poll_rx_buf_reset(poll_p poll, selector_p selector) {
+    UNUSED(poll);
+
+    selector->rx.buf->offset = 0;
+
+    return POLL_OK;
+}

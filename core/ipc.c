@@ -147,19 +147,30 @@ poll_result_t ipc_call_usr_cb(poll_p poll, selector_p selector, lit_p sym, i64_t
 poll_result_t ipc_read_handshake(poll_p poll, selector_p selector) {
     UNUSED(poll);
 
-    if (selector->rx.buf->data[selector->rx.buf->offset - 1] == '\0') {
+    i64_t sz, size;
+    u8_t handshake[2] = {RAYFORCE_VERSION, 0x00};
+
+    if (selector->rx.buf->offset > 0 && selector->rx.buf->data[selector->rx.buf->offset - 1] == '\0') {
         // send handshake response
-        if (ipc_send_handshake(poll, selector) == POLL_ERROR)
-            return POLL_ERROR;
+        size = 0;
+        while (size < ISIZEOF(handshake)) {
+            sz = sock_send(selector->fd, &handshake[size], ISIZEOF(handshake) - size);
+
+            if (sz == -1)
+                return POLL_ERROR;
+
+            size += sz;
+        }
 
         // Now we are ready for income messages and can call userspace callback (if any)
         ipc_call_usr_cb(poll, selector, ".z.po", 5);
 
-        poll_rx_buf_request(poll, selector, ISIZEOF(struct header_t));
-
         selector->rx.read_fn = ipc_read_header;
 
-        return ipc_read_header(poll, selector);
+        poll_rx_buf_request(poll, selector, ISIZEOF(struct header_t));
+        poll_rx_buf_reset(poll, selector);
+
+        return POLL_READY;
     }
 
     return POLL_OK;
@@ -172,16 +183,14 @@ poll_result_t ipc_read_header(poll_p poll, selector_p selector) {
 
     header = (header_t *)selector->rx.buf->data;
 
-    if (poll_rx_buf_request(poll, selector, header->size + sizeof(struct header_t)) == -1)
-        return POLL_ERROR;
-
     // determine the read function based on the message type
     // selector->rx.msgtype = header->msgtype;
     selector->rx.read_fn = ipc_read_msg_sync;
 
-    printf("ipc_read_header: %lld\n", header->size);
+    // request the buffer for the entire message (including the header)
+    poll_rx_buf_request(poll, selector, ISIZEOF(struct header_t) + header->size);
 
-    return ipc_read_msg_sync(poll, selector);
+    return POLL_READY;
 }
 
 poll_result_t ipc_read_msg_sync(poll_p poll, selector_p selector) {
@@ -193,9 +202,6 @@ poll_result_t ipc_read_msg_sync(poll_p poll, selector_p selector) {
     ctx = (ipc_ctx_p)selector->data;
 
     res = de_raw(selector->rx.buf->data, selector->rx.buf->size);
-    printf("ipc_read_msg_sync: %lld\n", res->len);
-
-    poll_rx_buf_release(poll, selector);
 
     poll_set_usr_fd(selector->id);
 
@@ -209,9 +215,12 @@ poll_result_t ipc_read_msg_sync(poll_p poll, selector_p selector) {
         drop_obj(res);
     }
 
-    DEBUG_OBJ(v);
-
     poll_set_usr_fd(0);
+
+    poll_rx_buf_release(poll, selector);
+    poll_rx_buf_request(poll, selector, ISIZEOF(struct header_t));
+
+    selector->rx.read_fn = ipc_read_header;
 
     // respond
     // queue_push(selector->tx.queue, (nil_t *)((i64_t)v | ((i64_t)MSG_TYPE_RESP << 61)));
@@ -222,7 +231,7 @@ poll_result_t ipc_read_msg_sync(poll_p poll, selector_p selector) {
     // } else
     //     drop_obj(v);
 
-    return selector->rx.buf->size;
+    return POLL_READY;
 }
 
 poll_result_t ipc_read_msg_async(poll_p poll, selector_p selector) {
@@ -232,7 +241,10 @@ poll_result_t ipc_read_msg_async(poll_p poll, selector_p selector) {
     return POLL_OK;
 }
 
-poll_result_t ipc_on_open(poll_p poll, selector_p selector) { return poll_rx_buf_request(poll, selector, 2); }
+poll_result_t ipc_on_open(poll_p poll, selector_p selector) {
+    // request the minimal handshake buffer
+    return poll_rx_buf_request(poll, selector, 2);
+}
 
 poll_result_t ipc_on_error(poll_p poll, selector_p selector) {
     UNUSED(poll);
@@ -249,26 +261,6 @@ poll_result_t ipc_on_close(poll_p poll, selector_p selector) {
     ctx = (ipc_ctx_p)selector->data;
     drop_obj(ctx->name);
     heap_free(ctx);
-
-    return POLL_OK;
-}
-
-poll_result_t ipc_send_handshake(poll_p poll, selector_p selector) {
-    UNUSED(poll);
-    UNUSED(selector);
-
-    // i64_t sz, size;
-    // u8_t handshake[2] = {RAYFORCE_VERSION, 0x00};
-
-    // size = 0;
-    // while (size < (i64_t)sizeof(handshake)) {
-    //     sz = sock_send(selector->fd, &handshake[size], sizeof(handshake) - size);
-
-    //     if (sz == -1)
-    //         return POLL_ERROR;
-
-    //     size += sz;
-    // }
 
     return POLL_OK;
 }

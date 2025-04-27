@@ -176,6 +176,7 @@ poll_result_t poll_recv(poll_p poll, selector_p selector) {
     do {
         size = selector->rx.recv_fn(selector->fd, &selector->rx.buf->data[selector->rx.buf->offset],
                                     selector->rx.buf->size - selector->rx.buf->offset);
+
         if (size == -1)
             return POLL_ERROR;
         else if (size == 0)
@@ -277,24 +278,27 @@ poll_result_t poll_run(poll_p poll) {
             if (ev.events & POLL_EVENT_READ) {
                 poll_result = POLL_READY;
 
-                // In case we have a low level IO recv function, use it
-                if (selector->rx.recv_fn != NULL) {
-                    poll_result = poll_recv(poll, selector);
+                do {
+                    // In case we have a low level IO recv function, use it
+                    if (selector->rx.recv_fn != NULL) {
+                        poll_result = poll_recv(poll, selector);
 
-                    if (poll_result == POLL_ERROR) {
-                        poll_deregister(poll, selector->id);
-                        continue;
+                        if (poll_result == POLL_ERROR) {
+                            poll_deregister(poll, selector->id);
+                            continue;
+                        }
+
+                        if (poll_result == POLL_OK)
+                            continue;
                     }
 
-                    if (poll_result == POLL_OK)
-                        continue;
-                }
+                    if (POLL_IS_READY(poll_result) && selector->rx.read_fn != NULL)
+                        poll_result = selector->rx.read_fn(poll, selector);
 
-                if (POLL_IS_READY(poll_result) && selector->rx.read_fn != NULL)
-                    poll_result = selector->rx.read_fn(poll, selector);
+                    if (poll_result == POLL_ERROR)
+                        poll_deregister(poll, selector->id);
 
-                if (poll_result == POLL_ERROR)
-                    poll_deregister(poll, selector->id);
+                } while (poll_result == POLL_READY);
             }
 
             // write
@@ -308,28 +312,4 @@ poll_result_t poll_run(poll_p poll) {
     }
 
     return poll->code;
-}
-
-poll_result_t poll_rx_buf_request(poll_p poll, selector_p selector, i64_t size) {
-    UNUSED(poll);
-
-    if (selector->rx.buf == NULL || selector->rx.buf->size < size) {
-        selector->rx.buf = heap_realloc(selector->rx.buf, sizeof(struct poll_buffer_t) + size);
-
-        if (selector->rx.buf == NULL)
-            return POLL_ERROR;
-
-        selector->rx.buf->size = size;
-    }
-
-    return POLL_OK;
-}
-
-poll_result_t poll_rx_buf_release(poll_p poll, selector_p selector) {
-    UNUSED(poll);
-
-    heap_free(selector->rx.buf);
-    selector->rx.buf = NULL;
-
-    return POLL_OK;
 }
