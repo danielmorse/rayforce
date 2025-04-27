@@ -35,11 +35,6 @@ typedef struct ipc_ctx_t {
     obj_p name;
 } *ipc_ctx_p;
 
-// send ipc messages
-poll_result_t ipc_send_handshake(poll_p poll, selector_p selector);
-poll_result_t ipc_send_msg(poll_p poll, selector_p selector);
-poll_result_t ipc_send_header(poll_p poll, selector_p selector);
-
 // listen for incoming connections
 poll_result_t ipc_listen(poll_p poll, i64_t port);
 

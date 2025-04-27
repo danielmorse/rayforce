@@ -208,6 +208,15 @@ nil_t dump_stack(nil_t);
 
 #define XFIRST(x, p) ((x->len == 0) ? __NULL_##p : __AS_##p(x)[0])
 
+#ifdef __cplusplus
+// C++: Use empty braces {} for value initialization
+#define ZERO_INIT_STRUCT \
+    {}
+#else
+// C: Use {0} for aggregate zero-initialization
+#define ZERO_INIT_STRUCT {0}
+#endif
+
 b8_t is_valid(obj_p obj);
 u32_t next_power_of_two_u32(u32_t n);
 i64_t next_power_of_two_u64(i64_t n);

@@ -29,14 +29,20 @@
 #include "sock.h"
 #include "poll.h"
 #include "string.h"
+#include "util.h"
 
 // forward declarations
 poll_result_t ipc_read_handshake(poll_p poll, selector_p selector);
 poll_result_t ipc_read_header(poll_p poll, selector_p selector);
 poll_result_t ipc_read_msg_sync(poll_p poll, selector_p selector);
 poll_result_t ipc_read_msg_async(poll_p poll, selector_p selector);
-poll_result_t ipc_on_error(poll_p poll, selector_p selector);
+poll_result_t ipc_on_open(poll_p poll, selector_p selector);
 poll_result_t ipc_on_close(poll_p poll, selector_p selector);
+poll_result_t ipc_on_error(poll_p poll, selector_p selector);
+
+poll_result_t ipc_send_handshake(poll_p poll, selector_p selector);
+poll_result_t ipc_send_msg(poll_p poll, selector_p selector);
+poll_result_t ipc_send_header(poll_p poll, selector_p selector);
 
 nil_t poll_set_usr_fd(i64_t fd) {
     obj_p s, k, v;
@@ -51,7 +57,7 @@ nil_t poll_set_usr_fd(i64_t fd) {
 
 poll_result_t ipc_listener_accept(poll_p poll, selector_p selector) {
     i64_t fd;
-    struct poll_registry_t registry;
+    struct poll_registry_t registry = ZERO_INIT_STRUCT;
     ipc_ctx_p ctx;
 
     fd = sock_accept(selector->fd);
@@ -63,18 +69,17 @@ poll_result_t ipc_listener_accept(poll_p poll, selector_p selector) {
         registry.fd = fd;
         registry.type = SELECTOR_TYPE_SOCKET;
         registry.events = POLL_EVENT_READ | POLL_EVENT_ERROR | POLL_EVENT_HUP;
-        registry.recv_fn = sock_recv;
-        registry.read_fn = ipc_read_handshake;
+        registry.open_fn = ipc_on_open;
         registry.close_fn = ipc_on_close;
         registry.error_fn = ipc_on_error;
+        registry.read_fn = ipc_read_handshake;
+        registry.recv_fn = sock_recv;
         registry.data = ctx;
 
         if (poll_register(poll, &registry) == -1) {
             heap_free(ctx);
             return POLL_ERROR;
         }
-
-        poll_rx_buf_request(poll, selector, sizeof(struct header_t));
     }
 
     return POLL_OK;
@@ -89,7 +94,7 @@ poll_result_t ipc_listener_close(poll_p poll, selector_p selector) {
 
 poll_result_t ipc_listen(poll_p poll, i64_t port) {
     i64_t fd;
-    struct poll_registry_t registry;
+    struct poll_registry_t registry = ZERO_INIT_STRUCT;
 
     if (poll == NULL)
         return POLL_ERROR;
@@ -142,7 +147,8 @@ poll_result_t ipc_call_usr_cb(poll_p poll, selector_p selector, lit_p sym, i64_t
 poll_result_t ipc_read_handshake(poll_p poll, selector_p selector) {
     UNUSED(poll);
 
-    if (AS_U8(selector->rx.buf)[selector->rx.size - 1] == '\0') {
+    if (selector->rx.buf->data[selector->rx.buf->size - 1] == '\0') {
+        printf("ipc_read_handshake: %lld\n", selector->rx.buf->size);
         // send handshake response
         if (ipc_send_handshake(poll, selector) == POLL_ERROR)
             return POLL_ERROR;
@@ -151,7 +157,7 @@ poll_result_t ipc_read_handshake(poll_p poll, selector_p selector) {
         ipc_call_usr_cb(poll, selector, ".z.po", 5);
 
         selector->rx.read_fn = ipc_read_header;
-        selector->rx.size = 0;
+        selector->rx.buf->size = 0;
 
         return ipc_read_header(poll, selector);
     }
@@ -164,7 +170,7 @@ poll_result_t ipc_read_header(poll_p poll, selector_p selector) {
 
     header_t *header;
 
-    header = (header_t *)AS_U8(selector->rx.buf);
+    header = (header_t *)selector->rx.buf->data;
 
     if (poll_rx_buf_request(poll, selector, header->size + sizeof(struct header_t)) == -1)
         return POLL_ERROR;
@@ -172,6 +178,8 @@ poll_result_t ipc_read_header(poll_p poll, selector_p selector) {
     // determine the read function based on the message type
     // selector->rx.msgtype = header->msgtype;
     selector->rx.read_fn = ipc_read_msg_sync;
+
+    printf("ipc_read_header: %lld\n", header->size);
 
     return ipc_read_msg_sync(poll, selector);
 }
@@ -184,7 +192,8 @@ poll_result_t ipc_read_msg_sync(poll_p poll, selector_p selector) {
 
     ctx = (ipc_ctx_p)selector->data;
 
-    res = de_raw(AS_U8(selector->rx.buf), selector->rx.buf->len);
+    res = de_raw(selector->rx.buf->data, selector->rx.buf->size);
+    printf("ipc_read_msg_sync: %lld\n", res->len);
 
     poll_rx_buf_release(poll, selector);
 
@@ -213,7 +222,7 @@ poll_result_t ipc_read_msg_sync(poll_p poll, selector_p selector) {
     // } else
     //     drop_obj(v);
 
-    return selector->rx.buf->len;
+    return selector->rx.buf->size;
 }
 
 poll_result_t ipc_read_msg_async(poll_p poll, selector_p selector) {
@@ -221,6 +230,10 @@ poll_result_t ipc_read_msg_async(poll_p poll, selector_p selector) {
     UNUSED(selector);
 
     return POLL_OK;
+}
+
+poll_result_t ipc_on_open(poll_p poll, selector_p selector) {
+    return poll_rx_buf_request(poll, selector, ISIZEOF(struct header_t));
 }
 
 poll_result_t ipc_on_error(poll_p poll, selector_p selector) {

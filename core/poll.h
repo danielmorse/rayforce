@@ -77,6 +77,13 @@ typedef i64_t (*poll_io_fn)(i64_t, u8_t *, i64_t);
 // High level functions (to read/write from/to the selector buffer)
 typedef poll_result_t (*poll_fn)(struct poll_t *, struct selector_t *);
 
+typedef struct poll_buffer_t {
+    struct poll_buffer_t *next;
+    i64_t size;
+    i64_t offset;
+    u8_t data[];
+} *poll_buffer_p;
+
 #if defined(OS_WINDOWS)
 
 typedef struct selector_t {
@@ -117,22 +124,21 @@ typedef struct selector_t {
 
     selector_type_t type;
 
-    poll_fn error_fn;
+    poll_fn open_fn;
     poll_fn close_fn;
+    poll_fn error_fn;
 
     raw_p data;
 
     struct {
-        i64_t size;
-        obj_p buf;
+        poll_buffer_p buf;   // pointer to the buffer
         poll_io_fn recv_fn;  // to be called when the selector is ready to read
         poll_fn read_fn;     // to be called when the selector is ready to read
     } rx;
 
     struct {
         b8_t isset;
-        i64_t size;
-        obj_p buf;
+        poll_buffer_p buf;   // pointer to the buffer
         poll_io_fn send_fn;  // to be called when the selector is ready to send
         poll_fn write_fn;    // to be called when the selector is ready to send
         queue_p queue;       // queue for buffers waiting to be sent
@@ -159,11 +165,13 @@ typedef struct poll_registry_t {
     i64_t fd;              // The file descriptor to register.
     selector_type_t type;  // Type of the file descriptor.
     poll_events_t events;  // Initial set of events to monitor (e.g., POLL_EVENT_READ).
+    poll_fn open_fn;       // Called upon registration.
+    poll_fn close_fn;      // Called upon deregistration.
+    poll_fn error_fn;      // Handles errors.
     poll_io_fn recv_fn;    // to be called when the selector is ready to read
     poll_io_fn send_fn;    // to be called when the selector is ready to send
-    poll_fn error_fn;      // Handles errors.
-    poll_fn close_fn;      // Called upon deregistration.
     poll_fn read_fn;       // Processes received data.
+    poll_fn write_fn;      // Processes data to be sent.
     raw_p data;            // User-defined data to associate with the selector.
 } *poll_registry_p;
 

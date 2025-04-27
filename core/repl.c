@@ -39,7 +39,6 @@ poll_result_t repl_read(poll_p poll, selector_p selector) {
     repl_p repl;
 
     repl = (repl_p)selector->data;
-    str = selector->rx.buf;
 
     if (!term_getc(repl->term)) {
         poll->code = 1;
@@ -76,7 +75,7 @@ poll_result_t repl_read(poll_p poll, selector_p selector) {
 
 repl_p repl_create(poll_p poll) {
     repl_p repl;
-    struct poll_registry_t registry;
+    struct poll_registry_t registry = ZERO_INIT_STRUCT;
 
     repl = (repl_p)heap_alloc(sizeof(struct repl_t));
     repl->name = string_from_str("repl", 4);

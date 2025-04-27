@@ -108,17 +108,17 @@ poll_result_t poll_register(poll_p poll, poll_registry_p registry) {
     selector->id = id;
     selector->fd = registry->fd;
     selector->type = registry->type;
-    selector->error_fn = registry->error_fn;
+    selector->open_fn = registry->open_fn;
     selector->close_fn = registry->close_fn;
-    selector->rx.recv_fn = registry->recv_fn;
+    selector->error_fn = registry->error_fn;
     selector->rx.read_fn = registry->read_fn;
+    selector->tx.write_fn = registry->write_fn;
+    selector->rx.recv_fn = registry->recv_fn;
     selector->tx.send_fn = registry->send_fn;
     selector->data = registry->data;
     selector->tx.isset = B8_FALSE;
-    selector->rx.buf = NULL_OBJ;
-    selector->rx.size = 0;
-    selector->tx.buf = NULL_OBJ;
-    selector->tx.size = 0;
+    selector->rx.buf = NULL;
+    selector->tx.buf = NULL;
     selector->tx.queue = queue_create(TX_QUEUE_SIZE);
 
     ev.events = registry->events;
@@ -129,12 +129,16 @@ poll_result_t poll_register(poll_p poll, poll_registry_p registry) {
         return POLL_ERROR;
     }
 
+    if (registry->open_fn != NULL)
+        registry->open_fn(poll, selector);
+
     return id;
 }
 
 poll_result_t poll_deregister(poll_p poll, i64_t id) {
     i64_t idx;
     selector_p selector;
+    poll_buffer_p buf;
 
     idx = freelist_pop(poll->selectors, id - SELECTOR_ID_OFFSET);
 
@@ -148,8 +152,15 @@ poll_result_t poll_deregister(poll_p poll, i64_t id) {
 
     epoll_ctl(poll->fd, EPOLL_CTL_DEL, selector->fd, NULL);
 
-    drop_obj(selector->rx.buf);
-    drop_obj(selector->tx.buf);
+    if (selector->rx.buf != NULL) {
+        heap_free(selector->rx.buf);
+        selector->rx.buf = NULL;
+    }
+    while (selector->tx.buf != NULL) {
+        buf = selector->tx.buf->next;
+        heap_free(selector->tx.buf);
+        selector->tx.buf = buf;
+    }
     queue_free(selector->tx.queue);
     heap_free(selector);
 
@@ -158,36 +169,37 @@ poll_result_t poll_deregister(poll_p poll, i64_t id) {
 
 poll_result_t poll_recv(poll_p poll, selector_p selector) {
     UNUSED(poll);
+
     i64_t size, total;
 
-    total = selector->rx.size;
+    total = selector->rx.buf->offset;
     do {
-        size = selector->rx.recv_fn(selector->fd, &AS_U8(selector->rx.buf)[selector->rx.size],
-                                    selector->rx.buf->len - selector->rx.size);
+        size = selector->rx.recv_fn(selector->fd, &selector->rx.buf->data[selector->rx.buf->offset],
+                                    selector->rx.buf->size - selector->rx.buf->offset);
         if (size == -1)
             return POLL_ERROR;
         else if (size == 0)
             return POLL_OK;
 
-        total += size;
-    } while (total < selector->rx.buf->len);
+        selector->rx.buf->offset += size;
+    } while (selector->rx.buf->offset < selector->rx.buf->size);
 
-    selector->rx.size = total;
+    total = selector->rx.buf->offset - total;
 
     return total;
 }
 
 poll_result_t poll_send(poll_p poll, selector_p selector) {
     i64_t size, total;
-    obj_p buf;
+    poll_buffer_p buf;
     struct epoll_event ev;
 
     total = 0;
 
 send_loop:
-    while (selector->tx.size < selector->tx.buf->len) {
-        size = selector->tx.send_fn(selector->fd, &AS_U8(selector->tx.buf)[selector->tx.size],
-                                    selector->tx.buf->len - selector->tx.size);
+    while (selector->tx.buf->offset < selector->tx.buf->size) {
+        size = selector->tx.send_fn(selector->fd, &selector->tx.buf->data[selector->tx.buf->offset],
+                                    selector->tx.buf->size - selector->tx.buf->offset);
         if (size == POLL_ERROR)
             return POLL_ERROR;
         else if (size == POLL_OK) {
@@ -203,21 +215,17 @@ send_loop:
             return POLL_OK;
         }
 
-        selector->tx.size += size;
+        selector->tx.buf->offset += size;
         total += size;
     }
 
     // reset tx buffer
-    drop_obj(selector->tx.buf);
-    selector->tx.buf = NULL_OBJ;
-    selector->tx.size = 0;
+    buf = selector->tx.buf->next;
+    heap_free(selector->tx.buf);
+    selector->tx.buf = buf;
 
-    buf = (obj_p)queue_pop(selector->tx.queue);
-
-    if (buf != NULL) {
-        selector->tx.buf = buf;
+    if (selector->tx.buf != NULL)
         goto send_loop;
-    }
 
     // remove write event only if it's set
     if (selector->tx.isset) {
@@ -305,20 +313,14 @@ poll_result_t poll_run(poll_p poll) {
 poll_result_t poll_rx_buf_request(poll_p poll, selector_p selector, i64_t size) {
     UNUSED(poll);
 
-    if (selector->rx.buf == NULL_OBJ)
-        selector->rx.buf = heap_alloc(size);
-    else {
-        if (selector->rx.buf->len < size) {
-            selector->rx.buf = heap_realloc(selector->rx.buf, size + sizeof(struct obj_t));
+    if (selector->rx.buf->size < size) {
+        selector->rx.buf = heap_realloc(selector->rx.buf, sizeof(struct poll_buffer_t) + size);
 
-            if (selector->rx.buf == NULL)
-                return POLL_ERROR;
+        if (selector->rx.buf == NULL)
+            return POLL_ERROR;
 
-            selector->rx.buf->len = size;
-        }
+        selector->rx.buf->size = size;
     }
-
-    selector->rx.size = size;
 
     return POLL_OK;
 }
@@ -326,8 +328,8 @@ poll_result_t poll_rx_buf_request(poll_p poll, selector_p selector, i64_t size) 
 poll_result_t poll_rx_buf_release(poll_p poll, selector_p selector) {
     UNUSED(poll);
 
-    drop_obj(selector->rx.buf);
-    selector->rx.buf = NULL_OBJ;
-    selector->rx.size = 0;
+    heap_free(selector->rx.buf);
+    selector->rx.buf = NULL;
+
     return POLL_OK;
 }
