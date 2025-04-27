@@ -222,7 +222,7 @@ poll_result_t _recv(poll_p poll, selector_p selector) {
             if (size == -1)
                 return POLL_ERROR;
             else if (size == 0)
-                return POLL_PENDING;
+                return POLL_OK;
 
             selector->rx.size += size;
         }
@@ -250,7 +250,7 @@ poll_result_t _recv(poll_p poll, selector_p selector) {
             if (size == -1)
                 return POLL_ERROR;
             else if (size == 0)
-                return POLL_PENDING;
+                return POLL_OK;
 
             selector->rx.size += size;
         }
@@ -266,7 +266,7 @@ poll_result_t _recv(poll_p poll, selector_p selector) {
         if (size == -1)
             return POLL_ERROR;
         else if (size == 0)
-            return POLL_PENDING;
+            return POLL_OK;
 
         selector->rx.size += size;
     }
@@ -297,7 +297,7 @@ send:
                     return POLL_ERROR;
             }
 
-            return POLL_PENDING;
+            return POLL_OK;
         }
 
         selector->tx.size += size;
@@ -444,7 +444,7 @@ i64_t poll_run(poll_p poll) {
                 // ipc in
                 if (ev.filter == EVFILT_READ) {
                     poll_result = _recv(poll, selector);
-                    if (poll_result == POLL_PENDING)
+                    if (poll_result == POLL_OK)
                         continue;
 
                     if (poll_result == POLL_ERROR) {
@@ -470,7 +470,7 @@ i64_t poll_run(poll_p poll) {
 }
 
 obj_p ipc_send_sync(poll_p poll, i64_t id, obj_p msg) {
-    poll_result_t poll_result = POLL_PENDING;
+    poll_result_t poll_result = POLL_OK;
     selector_p selector;
     i32_t result;
     i64_t idx;
@@ -489,7 +489,7 @@ obj_p ipc_send_sync(poll_p poll, i64_t id, obj_p msg) {
     while (B8_TRUE) {
         poll_result = _send(poll, selector);
 
-        if (poll_result != POLL_PENDING)
+        if (poll_result != POLL_OK)
             break;
 
         // block on select until we can send
@@ -514,7 +514,7 @@ recv:
     while (B8_TRUE) {
         poll_result = _recv(poll, selector);
 
-        if (poll_result != POLL_PENDING)
+        if (poll_result != POLL_OK)
             break;
 
         // block on select until we can recv

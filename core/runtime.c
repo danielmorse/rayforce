@@ -29,6 +29,7 @@
 #include "string.h"
 #include "signal.h"
 #include "repl.h"
+#include "ipc.h"
 
 // Global runtime reference
 runtime_p __RUNTIME = NULL;
@@ -148,12 +149,6 @@ i32_t runtime_create(i32_t argc, str_p argv[]) {
                 __RUNTIME->pool = pool_create(__RUNTIME->sys_info.threads - 1);
         }
 
-        arg = runtime_get_arg("port");
-        if (!is_null(arg)) {
-            __RUNTIME->addr.port = i64_from_str(AS_C8(arg), arg->len);
-            drop_obj(arg);
-        }
-
         __RUNTIME->poll = poll_create();
 
         // timeit
@@ -188,8 +183,22 @@ i32_t runtime_create(i32_t argc, str_p argv[]) {
 }
 
 i32_t runtime_run(nil_t) {
+    i64_t port;
+    obj_p arg;
+
     if (__RUNTIME->poll) {
         repl_create(__RUNTIME->poll);
+
+        arg = runtime_get_arg("port");
+        if (!is_null(arg)) {
+            port = i64_from_str(AS_C8(arg), arg->len);
+            drop_obj(arg);
+            if (ipc_listen(__RUNTIME->poll, port) == POLL_ERROR) {
+                printf("Failed to listen on port %lld\n", port);
+                return 1;
+            }
+        }
+
         return poll_run(__RUNTIME->poll);
     }
 

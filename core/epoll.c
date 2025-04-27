@@ -98,7 +98,7 @@ nil_t poll_destroy(poll_p poll) {
     heap_free(poll);
 }
 
-i64_t poll_register(poll_p poll, poll_registry_p registry) {
+poll_result_t poll_register(poll_p poll, poll_registry_p registry) {
     i64_t id;
     selector_p selector;
     struct epoll_event ev;
@@ -115,7 +115,7 @@ i64_t poll_register(poll_p poll, poll_registry_p registry) {
     selector->tx.send_fn = registry->send_fn;
     selector->data = registry->data;
     selector->tx.isset = B8_FALSE;
-    selector->rx.buf = C8(INITIAL_RX_BUFFER_SIZE);
+    selector->rx.buf = NULL_OBJ;
     selector->rx.size = 0;
     selector->tx.buf = NULL_OBJ;
     selector->tx.size = 0;
@@ -126,20 +126,20 @@ i64_t poll_register(poll_p poll, poll_registry_p registry) {
 
     if (epoll_ctl(poll->fd, EPOLL_CTL_ADD, selector->fd, &ev) == -1) {
         perror("epoll_ctl: add");
-        return -1;
+        return POLL_ERROR;
     }
 
     return id;
 }
 
-nil_t poll_deregister(poll_p poll, i64_t id) {
+poll_result_t poll_deregister(poll_p poll, i64_t id) {
     i64_t idx;
     selector_p selector;
 
     idx = freelist_pop(poll->selectors, id - SELECTOR_ID_OFFSET);
 
     if (idx == NULL_I64)
-        return;
+        return POLL_ERROR;
 
     selector = (selector_p)idx;
 
@@ -148,39 +148,48 @@ nil_t poll_deregister(poll_p poll, i64_t id) {
 
     epoll_ctl(poll->fd, EPOLL_CTL_DEL, selector->fd, NULL);
 
-    heap_free(selector->rx.buf);
-    heap_free(selector->tx.buf);
+    drop_obj(selector->rx.buf);
+    drop_obj(selector->tx.buf);
     queue_free(selector->tx.queue);
     heap_free(selector);
+
+    return POLL_OK;
 }
 
 poll_result_t poll_recv(poll_p poll, selector_p selector) {
-    i64_t size;
+    i64_t size, total;
 
-    while (selector->rx.size < selector->rx.buf->len || is_null(selector->rx.buf)) {
-        size = selector->rx.recv_fn(poll, selector);
+    total = selector->rx.size;
+    do {
+        size = selector->rx.recv_fn(selector->fd, &AS_U8(selector->rx.buf)[selector->rx.size],
+                                    selector->rx.buf->len - selector->rx.size);
         if (size == -1)
             return POLL_ERROR;
         else if (size == 0)
-            return POLL_PENDING;
+            return POLL_OK;
 
-        selector->rx.size += size;
-    }
+        total += size;
+    } while (total < selector->rx.buf->len);
 
-    return POLL_READY;
+    selector->rx.size = total;
+
+    return total;
 }
 
 poll_result_t poll_send(poll_p poll, selector_p selector) {
-    i64_t size;
+    i64_t size, total;
     obj_p buf;
     struct epoll_event ev;
 
-send:
+    total = 0;
+
+send_loop:
     while (selector->tx.size < selector->tx.buf->len) {
-        size = selector->tx.send_fn(poll, selector);
-        if (size == -1)
+        size = selector->tx.send_fn(selector->fd, &AS_U8(selector->tx.buf)[selector->tx.size],
+                                    selector->tx.buf->len - selector->tx.size);
+        if (size == POLL_ERROR)
             return POLL_ERROR;
-        else if (size == 0) {
+        else if (size == POLL_OK) {
             // setup epoll for write event only if it's not already set
             if (!selector->tx.isset) {
                 selector->tx.isset = B8_TRUE;
@@ -190,10 +199,11 @@ send:
                     return POLL_ERROR;
             }
 
-            return POLL_PENDING;
+            return POLL_OK;
         }
 
         selector->tx.size += size;
+        total += size;
     }
 
     // reset tx buffer
@@ -205,7 +215,7 @@ send:
 
     if (buf != NULL) {
         selector->tx.buf = AS_U8(buf);
-        goto send;
+        goto send_loop;
     }
 
     // remove write event only if it's set
@@ -217,10 +227,10 @@ send:
             return POLL_ERROR;
     }
 
-    return POLL_READY;
+    return total;
 }
 
-i64_t poll_run(poll_p poll) {
+poll_result_t poll_run(poll_p poll) {
     i64_t n, nfds, timeout;
     poll_result_t poll_result;
     selector_p selector;
@@ -234,7 +244,7 @@ i64_t poll_run(poll_p poll) {
             if (errno == EINTR)
                 continue;
 
-            return 1;
+            return POLL_ERROR;
         }
 
         for (n = 0; n < nfds; n++) {
@@ -256,19 +266,23 @@ i64_t poll_run(poll_p poll) {
 
             // read
             if (ev.events & POLL_EVENT_READ) {
-                poll_result = poll_recv(poll, selector);
-                if (poll_result == POLL_ERROR) {
-                    poll_deregister(poll, selector->id);
-                    continue;
+                poll_result = POLL_READY;
+
+                // In case we have a low level IO recv function, use it
+                if (selector->rx.recv_fn != NULL) {
+                    poll_result = poll_recv(poll, selector);
+
+                    if (poll_result == POLL_ERROR) {
+                        poll_deregister(poll, selector->id);
+                        continue;
+                    }
+
+                    if (poll_result == POLL_OK)
+                        continue;
                 }
 
-                if (poll_result == POLL_PENDING)
-                    continue;
-
-                if (poll_result == POLL_READY && selector->rx.read_fn != NULL)
+                if (POLL_IS_READY(poll_result) && selector->rx.read_fn != NULL)
                     poll_result = selector->rx.read_fn(poll, selector);
-
-                selector->rx.size = 0;
 
                 if (poll_result == POLL_ERROR)
                     poll_deregister(poll, selector->id);
@@ -287,7 +301,7 @@ i64_t poll_run(poll_p poll) {
     return poll->code;
 }
 
-i64_t poll_rx_buf_request(poll_p poll, selector_p selector, i64_t size) {
+poll_result_t poll_rx_buf_request(poll_p poll, selector_p selector, i64_t size) {
     if (selector->rx.buf == NULL_OBJ)
         selector->rx.buf = heap_alloc(size);
     else {
@@ -295,7 +309,7 @@ i64_t poll_rx_buf_request(poll_p poll, selector_p selector, i64_t size) {
             selector->rx.buf = heap_realloc(selector->rx.buf, size + sizeof(struct obj_t));
 
             if (selector->rx.buf == NULL)
-                return -1;
+                return POLL_ERROR;
 
             selector->rx.buf->len = size;
         }
@@ -303,12 +317,12 @@ i64_t poll_rx_buf_request(poll_p poll, selector_p selector, i64_t size) {
 
     selector->rx.size = size;
 
-    return size;
+    return POLL_OK;
 }
 
-i64_t poll_rx_buf_release(poll_p poll, selector_p selector) {
+poll_result_t poll_rx_buf_release(poll_p poll, selector_p selector) {
     drop_obj(selector->rx.buf);
     selector->rx.buf = NULL_OBJ;
     selector->rx.size = 0;
-    return 0;
+    return POLL_OK;
 }

@@ -28,6 +28,7 @@
 #include "error.h"
 #include "sock.h"
 #include "poll.h"
+#include "string.h"
 
 // forward declarations
 poll_result_t ipc_read_handshake(poll_p poll, selector_p selector);
@@ -36,16 +37,6 @@ poll_result_t ipc_read_msg_sync(poll_p poll, selector_p selector);
 poll_result_t ipc_read_msg_async(poll_p poll, selector_p selector);
 poll_result_t ipc_on_error(poll_p poll, selector_p selector);
 poll_result_t ipc_on_close(poll_p poll, selector_p selector);
-
-i64_t ipc_recv(poll_p poll, selector_p selector) {
-    return sock_recv(selector->fd, &AS_U8(selector->rx.buf)[selector->rx.size],
-                     selector->rx.buf->len - selector->rx.size);
-}
-
-i64_t ipc_send(poll_p poll, selector_p selector) {
-    return sock_send(selector->fd, &AS_U8(selector->tx.buf)[selector->tx.size],
-                     selector->tx.buf->len - selector->tx.size);
-}
 
 nil_t poll_set_usr_fd(i64_t fd) {
     obj_p s, k, v;
@@ -58,7 +49,7 @@ nil_t poll_set_usr_fd(i64_t fd) {
     drop_obj(s);
 }
 
-i64_t ipc_listener_accept(poll_p poll, selector_p selector) {
+poll_result_t ipc_listener_accept(poll_p poll, selector_p selector) {
     i64_t fd;
     struct poll_registry_t registry;
     ipc_ctx_p ctx;
@@ -72,7 +63,7 @@ i64_t ipc_listener_accept(poll_p poll, selector_p selector) {
         registry.fd = fd;
         registry.type = SELECTOR_TYPE_SOCKET;
         registry.events = POLL_EVENT_READ | POLL_EVENT_ERROR | POLL_EVENT_HUP;
-        registry.recv_fn = ipc_recv;
+        registry.recv_fn = sock_recv;
         registry.read_fn = ipc_read_handshake;
         registry.close_fn = ipc_on_close;
         registry.error_fn = ipc_on_error;
@@ -80,11 +71,13 @@ i64_t ipc_listener_accept(poll_p poll, selector_p selector) {
 
         if (poll_register(poll, &registry) == -1) {
             heap_free(ctx);
-            return -1;
+            return POLL_ERROR;
         }
+
+        poll_rx_buf_request(poll, selector, sizeof(struct header_t));
     }
 
-    return fd;
+    return POLL_OK;
 }
 
 i64_t ipc_listener_close(poll_p poll, selector_p selector) {
@@ -94,22 +87,22 @@ i64_t ipc_listener_close(poll_p poll, selector_p selector) {
     return 0;
 }
 
-i64_t ipc_listen(poll_p poll, i64_t port) {
+poll_result_t ipc_listen(poll_p poll, i64_t port) {
     i64_t fd;
     struct poll_registry_t registry;
 
     if (poll == NULL)
-        return -1;
+        return POLL_ERROR;
 
     fd = sock_listen(port);
     if (fd == -1)
-        return -1;
+        return POLL_ERROR;
 
     registry.fd = fd;
     registry.type = SELECTOR_TYPE_SOCKET;
     registry.events = POLL_EVENT_READ | POLL_EVENT_ERROR | POLL_EVENT_HUP;
-    registry.recv_fn = ipc_listener_accept;
-    registry.read_fn = NULL;
+    registry.recv_fn = NULL;
+    registry.read_fn = ipc_listener_accept;
     registry.close_fn = ipc_listener_close;
     registry.error_fn = NULL;
     registry.data = NULL;
@@ -143,7 +136,7 @@ poll_result_t ipc_call_usr_cb(poll_p poll, selector_p selector, lit_p sym, i64_t
         drop_obj(v);
     }
 
-    return POLL_READY;
+    return POLL_OK;
 }
 
 poll_result_t ipc_read_handshake(poll_p poll, selector_p selector) {
@@ -165,7 +158,7 @@ poll_result_t ipc_read_handshake(poll_p poll, selector_p selector) {
         return ipc_read_header(poll, selector);
     }
 
-    return POLL_PENDING;
+    return POLL_OK;
 }
 
 poll_result_t ipc_read_header(poll_p poll, selector_p selector) {
@@ -182,7 +175,7 @@ poll_result_t ipc_read_header(poll_p poll, selector_p selector) {
     // selector->rx.msgtype = header->msgtype;
     selector->rx.read_fn = ipc_read_msg_sync;
 
-    return POLL_READY;
+    return ipc_read_msg_sync(poll, selector);
 }
 
 poll_result_t ipc_read_msg_sync(poll_p poll, selector_p selector) {
@@ -193,7 +186,8 @@ poll_result_t ipc_read_msg_sync(poll_p poll, selector_p selector) {
 
     ctx = (ipc_ctx_p)selector->data;
 
-    res = de_raw(selector->rx.buf, selector->rx.size);
+    res = de_raw(selector->rx.buf, selector->rx.buf->len);
+
     poll_rx_buf_release(poll, selector);
 
     poll_set_usr_fd(selector->id);
@@ -208,6 +202,8 @@ poll_result_t ipc_read_msg_sync(poll_p poll, selector_p selector) {
         drop_obj(res);
     }
 
+    DEBUG_OBJ(v);
+
     poll_set_usr_fd(0);
 
     // respond
@@ -219,21 +215,21 @@ poll_result_t ipc_read_msg_sync(poll_p poll, selector_p selector) {
     // } else
     //     drop_obj(v);
 
-    return POLL_READY;
+    return selector->rx.buf->len;
 }
 
 poll_result_t ipc_read_msg_async(poll_p poll, selector_p selector) {
     UNUSED(poll);
     UNUSED(selector);
 
-    return POLL_READY;
+    return POLL_OK;
 }
 
 poll_result_t ipc_on_error(poll_p poll, selector_p selector) {
     UNUSED(poll);
     UNUSED(selector);
 
-    return POLL_READY;
+    return POLL_OK;
 }
 
 poll_result_t ipc_on_close(poll_p poll, selector_p selector) {
@@ -243,9 +239,9 @@ poll_result_t ipc_on_close(poll_p poll, selector_p selector) {
 
     ctx = (ipc_ctx_p)selector->data;
     drop_obj(ctx->name);
-    drop_obj(ctx);
+    heap_free(ctx);
 
-    return POLL_READY;
+    return POLL_OK;
 }
 
 poll_result_t ipc_send_handshake(poll_p poll, selector_p selector) {
@@ -264,7 +260,7 @@ poll_result_t ipc_send_handshake(poll_p poll, selector_p selector) {
     //     size += sz;
     // }
 
-    return POLL_READY;
+    return POLL_OK;
 }
 
 // Send
@@ -291,7 +287,7 @@ poll_result_t _send(poll_p poll, selector_p selector) {
     //                     return POLL_ERROR;
     //             }
 
-    //             return POLL_PENDING;
+    //             return POLL_OK;
     //         }
 
     //         selector->tx.size += size;
@@ -326,11 +322,11 @@ poll_result_t _send(poll_p poll, selector_p selector) {
     //             return POLL_ERROR;
     //     }
 
-    return POLL_READY;
+    return POLL_OK;
 }
 
 obj_p ipc_send_sync(poll_p poll, i64_t id, obj_p msg) {
-    poll_result_t poll_result = POLL_PENDING;
+    poll_result_t poll_result = POLL_OK;
     selector_p selector;
     i32_t result;
     i64_t idx;
@@ -349,7 +345,7 @@ obj_p ipc_send_sync(poll_p poll, i64_t id, obj_p msg) {
     //     while (B8_TRUE) {
     //         poll_result = _send(poll, selector);
 
-    //         if (poll_result != POLL_PENDING)
+    //         if (poll_result != POLL_OK)
     //             break;
 
     //         // block on select until we can send
@@ -374,7 +370,7 @@ obj_p ipc_send_sync(poll_p poll, i64_t id, obj_p msg) {
     //     while (B8_TRUE) {
     //         poll_result = _recv(poll, selector);
 
-    //         if (poll_result != POLL_PENDING)
+    //         if (poll_result != POLL_OK)
     //             break;
 
     //         // block on select until we can recv

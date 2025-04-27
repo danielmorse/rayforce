@@ -31,36 +31,7 @@
 #include "symbols.h"
 #include "heap.h"
 #include "poll.h"
-
-i64_t repl_recv(poll_p poll, selector_p selector) {
-    b8_t error;
-    repl_p repl;
-    obj_p str;
-
-    repl = (repl_p)selector->data;
-
-    if (!term_getc(repl->term)) {
-        poll->code = 1;
-        return -1;
-    }
-
-    // TODO: pass buff to a term_read
-    str = term_read(repl->term);
-
-    if (str == NULL)
-        return 0;
-
-    // it is not going to call repl_read next, so we need to prompt again
-    if (str->type == TYPE_NULL) {
-        term_prompt(repl->term);
-        return 0;
-    }
-
-    poll_rx_buf_release(poll, selector);
-    selector->rx.buf = str;
-
-    return str->len;
-}
+#include "string.h"
 
 poll_result_t repl_read(poll_p poll, selector_p selector) {
     b8_t error;
@@ -69,6 +40,16 @@ poll_result_t repl_read(poll_p poll, selector_p selector) {
 
     repl = (repl_p)selector->data;
     str = selector->rx.buf;
+
+    if (!term_getc(repl->term)) {
+        poll->code = 1;
+        return POLL_ERROR;
+    }
+
+    str = term_read(repl->term);
+
+    if (str == NULL)
+        return POLL_OK;
 
     if (IS_ERR(str))
         io_write(STDERR_FILENO, 2, str);
@@ -86,6 +67,8 @@ poll_result_t repl_read(poll_p poll, selector_p selector) {
             timeit_print();
     }
 
+    drop_obj(str);
+
     term_prompt(repl->term);
 
     return POLL_READY;
@@ -102,7 +85,7 @@ repl_p repl_create(poll_p poll) {
     registry.fd = STDIN_FILENO;
     registry.type = SELECTOR_TYPE_STDIN;
     registry.events = POLL_EVENT_READ | POLL_EVENT_ERROR | POLL_EVENT_HUP;
-    registry.recv_fn = repl_recv;
+    registry.recv_fn = NULL;
     registry.read_fn = repl_read;
     registry.close_fn = repl_on_close;
     registry.error_fn = repl_on_error;

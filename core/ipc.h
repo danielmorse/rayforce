@@ -40,6 +40,10 @@ poll_result_t ipc_send_handshake(poll_p poll, selector_p selector);
 poll_result_t ipc_send_msg(poll_p poll, selector_p selector);
 poll_result_t ipc_send_header(poll_p poll, selector_p selector);
 
+// listen for incoming connections
+poll_result_t ipc_listen(poll_p poll, i64_t port);
+
+// send messages
 obj_p ipc_send_sync(poll_p poll, i64_t id, obj_p msg);
 obj_p ipc_send_async(poll_p poll, i64_t id, obj_p msg);
 
