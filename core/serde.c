@@ -334,42 +334,36 @@ i64_t save_obj(u8_t *buf, i64_t len, obj_p obj) {
     }
 }
 
-i64_t ser_raw(u8_t **buf, obj_p obj) {
-    i64_t size = size_obj(obj);
-    header_t *header;
+i64_t ser_raw(u8_t *buf, i64_t len, obj_p obj) {
+    i64_t size;
+    ipc_header_t *header;
 
-    if (size == 0)
-        return -1;
+    size = len + ISIZEOF(struct ipc_header_t);
 
-    *buf = (u8_t *)heap_realloc(*buf, ISIZEOF(struct header_t) + size);
-    header = (header_t *)*buf;
-
+    header = (ipc_header_t *)buf;
     header->prefix = SERDE_PREFIX;
     header->version = RAYFORCE_VERSION;
     header->flags = 0;
     header->endian = 0;
     header->msgtype = 0;
-    header->size = size;
+    header->size = len;
 
-    if (save_obj(*buf + ISIZEOF(struct header_t), size, obj) == 0) {
-        heap_free(*buf);
-        *buf = NULL;
+    if (save_obj(buf + ISIZEOF(struct ipc_header_t), len, obj) == 0)
         return -1;
-    }
 
-    return ISIZEOF(struct header_t) + size;
+    return size;
 }
 
 obj_p ser_obj(obj_p obj) {
     i64_t size = size_obj(obj);
     obj_p buf;
-    header_t *header;
+    ipc_header_t *header;
 
     if (size == 0)
         THROW(ERR_NOT_SUPPORTED, "ser: unsupported type: %d", obj->type);
 
-    buf = vector(TYPE_U8, ISIZEOF(struct header_t) + size);
-    header = (header_t *)AS_U8(buf);
+    buf = vector(TYPE_U8, ISIZEOF(struct ipc_header_t) + size);
+    header = (ipc_header_t *)AS_U8(buf);
 
     header->prefix = SERDE_PREFIX;
     header->version = RAYFORCE_VERSION;
@@ -378,7 +372,7 @@ obj_p ser_obj(obj_p obj) {
     header->msgtype = 0;
     header->size = size;
 
-    if (save_obj(AS_U8(buf) + ISIZEOF(struct header_t), size, obj) == 0) {
+    if (save_obj(AS_U8(buf) + ISIZEOF(struct ipc_header_t), size, obj) == 0) {
         drop_obj(buf);
         THROW(ERR_NOT_SUPPORTED, "ser: unsupported type: %d", obj->type);
     }
@@ -688,13 +682,13 @@ obj_p load_obj(u8_t **buf, i64_t *len) {
 
 obj_p de_raw(u8_t *buf, i64_t len) {
     i64_t l;
-    header_t *header;
+    ipc_header_t *header;
 
     // Check if buffer is large enough to contain a header
-    if (len < ISIZEOF(struct header_t))
+    if (len < ISIZEOF(struct ipc_header_t))
         return error_str(ERR_IO, "de: buffer too small to contain header");
 
-    header = (header_t *)buf;
+    header = (ipc_header_t *)buf;
 
     // Check for valid header prefix
     if (header->prefix != SERDE_PREFIX)
@@ -707,10 +701,10 @@ obj_p de_raw(u8_t *buf, i64_t len) {
     if (header->size > 1000000000)  // 1GB max size
         return error_str(ERR_IO, "de: unreasonable size in header, possible corruption");
 
-    if (header->size + ISIZEOF(struct header_t) != len)
+    if (header->size + ISIZEOF(struct ipc_header_t) != len)
         return error_str(ERR_IO, "de: corrupted data in a buffer");
 
-    buf += ISIZEOF(struct header_t);
+    buf += ISIZEOF(struct ipc_header_t);
     l = header->size;
 
     return load_obj(&buf, &l);

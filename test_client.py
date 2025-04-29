@@ -11,7 +11,7 @@ SERDE_PREFIX = 0xcefadefa  # Magic number from server
 
 def create_header(msg_type, size):
     """Create a message header with type and size."""
-    # Match server's header_t structure:
+    # Match server's ipc_header_t structure:
     # u32_t prefix (0xcefadefa)
     # u8_t version (1)
     # u8_t flags (0)

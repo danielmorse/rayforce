@@ -406,12 +406,13 @@ poll_result_t _recv(poll_p poll, selector_p selector) {
 
     i64_t sz, size;
     u8_t handshake[2] = {RAYFORCE_VERSION, 0x00};
-    header_t *header;
+    ipc_header_t *header;
 
     // wait for handshake
     while (selector->version == 0) {
         // malformed handshake
-        if ((selector->rx.size == 0) || (selector->rx.wsa_buf.len == sizeof(struct header_t) && selector->rx.size == 1))
+        if ((selector->rx.size == 0) ||
+            (selector->rx.wsa_buf.len == sizeof(struct ipc_header_t) && selector->rx.size == 1))
             return POLL_ERROR;
 
         // incomplete handshake
@@ -439,7 +440,7 @@ poll_result_t _recv(poll_p poll, selector_p selector) {
             return POLL_ERROR;
 
         selector->rx.wsa_buf.buf = (str_p)selector->rx.buf;
-        selector->rx.wsa_buf.len = sizeof(struct header_t);
+        selector->rx.wsa_buf.len = sizeof(struct ipc_header_t);
         selector->rx.size = 0;
 
         // send handshake response
@@ -455,8 +456,8 @@ poll_result_t _recv(poll_p poll, selector_p selector) {
     }
 
     if (selector->rx.buf == NULL) {
-        selector->rx.buf = heap_alloc(sizeof(struct header_t));
-        selector->rx.size = sizeof(struct header_t);
+        selector->rx.buf = heap_alloc(sizeof(struct ipc_header_t));
+        selector->rx.size = sizeof(struct ipc_header_t);
         selector->rx.wsa_buf.buf = (str_p)selector->rx.buf;
         selector->rx.wsa_buf.len = selector->rx.size;
     }
@@ -471,18 +472,18 @@ poll_result_t _recv(poll_p poll, selector_p selector) {
             continue;
         }
 
-        header = (header_t *)selector->rx.buf;
+        header = (ipc_header_t *)selector->rx.buf;
 
         // malformed header
         if (header->size == 0)
             return POLL_ERROR;
 
         selector->rx.header = B8_TRUE;
-        selector->rx.size = header->size + sizeof(struct header_t);
+        selector->rx.size = header->size + sizeof(struct ipc_header_t);
         selector->rx.msgtype = header->msgtype;
         selector->rx.buf = heap_realloc(selector->rx.buf, selector->rx.size);
-        selector->rx.wsa_buf.buf = (str_p)selector->rx.buf + sizeof(struct header_t);
-        selector->rx.wsa_buf.len = selector->rx.size - sizeof(struct header_t);
+        selector->rx.wsa_buf.buf = (str_p)selector->rx.buf + sizeof(struct ipc_header_t);
+        selector->rx.wsa_buf.len = selector->rx.size - sizeof(struct ipc_header_t);
         selector->rx.size = 0;
     }
 
@@ -503,8 +504,8 @@ poll_result_t _recv(poll_p poll, selector_p selector) {
 }
 
 poll_result_t _recv_initiate(poll_p poll, selector_p selector) {
-    selector->rx.buf = heap_alloc(sizeof(struct header_t));
-    selector->rx.size = sizeof(struct header_t);
+    selector->rx.buf = heap_alloc(sizeof(struct ipc_header_t));
+    selector->rx.size = sizeof(struct ipc_header_t);
     selector->rx.wsa_buf.buf = (str_p)selector->rx.buf;
     selector->rx.wsa_buf.len = selector->rx.size;
 
@@ -549,7 +550,7 @@ send:
         selector->tx.wsa_buf.buf = (str_p)selector->tx.buf;
         selector->tx.wsa_buf.len = selector->tx.size;
         selector->tx.size = 0;
-        ((header_t *)selector->tx.buf)->msgtype = msg_type;
+        ((ipc_header_t *)selector->tx.buf)->msgtype = msg_type;
         goto send;
     }
 
@@ -766,8 +767,8 @@ obj_p ipc_send_sync(poll_p poll, i64_t id, obj_p msg) {
     selector->rx.ignore = B8_TRUE;
 
     if (selector->rx.buf == NULL) {
-        selector->rx.buf = heap_alloc(sizeof(struct header_t));
-        selector->rx.size = sizeof(struct header_t);
+        selector->rx.buf = heap_alloc(sizeof(struct ipc_header_t));
+        selector->rx.size = sizeof(struct ipc_header_t);
         selector->rx.wsa_buf.buf = (str_p)selector->rx.buf;
         selector->rx.wsa_buf.len = selector->rx.size;
         poll_result = _recv(poll, selector);

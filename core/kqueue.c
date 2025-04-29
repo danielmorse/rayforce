@@ -209,16 +209,16 @@ poll_result_t _recv(poll_p poll, selector_p selector) {
     UNUSED(poll);
 
     i64_t sz, size;
-    header_t *header;
+    ipc_header_t *header;
     u8_t handshake[2] = {RAYFORCE_VERSION, 0x00};
 
     if (selector->rx.buf == NULL)
-        selector->rx.buf = (u8_t *)heap_alloc(sizeof(struct header_t));
+        selector->rx.buf = (u8_t *)heap_alloc(sizeof(struct ipc_header_t));
 
     // wait for handshake
     if (selector->version == 0) {
         while (selector->rx.size == 0 || selector->rx.buf[selector->rx.size - 1] != '\0') {
-            size = sock_recv(selector->fd, &selector->rx.buf[selector->rx.size], sizeof(struct header_t));
+            size = sock_recv(selector->fd, &selector->rx.buf[selector->rx.size], sizeof(struct ipc_header_t));
             if (size == -1)
                 return POLL_ERROR;
             else if (size == 0)
@@ -244,9 +244,9 @@ poll_result_t _recv(poll_p poll, selector_p selector) {
 
     // read header
     if (selector->rx.size == 0) {
-        while (selector->rx.size < (i64_t)sizeof(struct header_t)) {
+        while (selector->rx.size < (i64_t)sizeof(struct ipc_header_t)) {
             size = sock_recv(selector->fd, &selector->rx.buf[selector->rx.size],
-                             sizeof(struct header_t) - selector->rx.size);
+                             sizeof(struct ipc_header_t) - selector->rx.size);
             if (size == -1)
                 return POLL_ERROR;
             else if (size == 0)
@@ -255,9 +255,9 @@ poll_result_t _recv(poll_p poll, selector_p selector) {
             selector->rx.size += size;
         }
 
-        header = (header_t *)selector->rx.buf;
+        header = (ipc_header_t *)selector->rx.buf;
         selector->rx.msgtype = header->msgtype;
-        selector->rx.size = header->size + sizeof(struct header_t);
+        selector->rx.size = header->size + sizeof(struct ipc_header_t);
         selector->rx.buf = (u8_t *)heap_realloc(selector->rx.buf, selector->rx.size);
     }
 
@@ -319,7 +319,7 @@ send:
         if (size == -1)
             return POLL_ERROR;
 
-        ((header_t *)selector->tx.buf)->msgtype = msg_type;
+        ((ipc_header_t *)selector->tx.buf)->msgtype = msg_type;
         goto send;
     }
 

@@ -177,12 +177,13 @@ poll_result_t poll_recv(poll_p poll, selector_p selector) {
         size = selector->rx.recv_fn(selector->fd, &selector->rx.buf->data[selector->rx.buf->offset],
                                     selector->rx.buf->size - selector->rx.buf->offset);
 
-        if (size == -1)
+        if (size == POLL_ERROR)
             return POLL_ERROR;
-        else if (size == 0)
+        else if (size == POLL_OK)
             return POLL_OK;
 
         selector->rx.buf->offset += size;
+
     } while (selector->rx.buf->offset < selector->rx.buf->size);
 
     total = selector->rx.buf->offset - total;
@@ -191,51 +192,48 @@ poll_result_t poll_recv(poll_p poll, selector_p selector) {
 }
 
 poll_result_t poll_send(poll_p poll, selector_p selector) {
+    UNUSED(poll);
+
     i64_t size, total;
     poll_buffer_p buf;
-    struct epoll_event ev;
+    // struct epoll_event ev;
 
     total = 0;
 
 send_loop:
-    while (selector->tx.buf->offset < selector->tx.buf->size) {
+    do {
         size = selector->tx.send_fn(selector->fd, &selector->tx.buf->data[selector->tx.buf->offset],
                                     selector->tx.buf->size - selector->tx.buf->offset);
+
         if (size == POLL_ERROR)
             return POLL_ERROR;
-        else if (size == POLL_OK) {
-            // setup epoll for write event only if it's not already set
-            if (!selector->tx.isset) {
-                selector->tx.isset = B8_TRUE;
-                ev.events |= POLL_EVENT_WRITE;
-                ev.data.ptr = selector;
-                if (epoll_ctl(poll->fd, EPOLL_CTL_MOD, selector->fd, &ev) == -1)
-                    return POLL_ERROR;
-            }
+
+        if (size == POLL_OK) {
+            // setup epoll for write event if it's not already set
+            // if (!selector->tx.isset) {
+            //     selector->tx.isset = B8_TRUE;
+            //     ev.events |= POLL_EVENT_WRITE;
+            //     ev.data.ptr = selector;
+            //     if (epoll_ctl(poll->fd, EPOLL_CTL_MOD, selector->fd, &ev) == -1)
+            //         return POLL_ERROR;
+            // }
 
             return POLL_OK;
         }
 
         selector->tx.buf->offset += size;
-        total += size;
-    }
 
-    // reset tx buffer
+    } while (selector->tx.buf->offset < selector->tx.buf->size);
+
+    total = selector->tx.buf->offset;
+
+    // switch to next buffer
     buf = selector->tx.buf->next;
     heap_free(selector->tx.buf);
     selector->tx.buf = buf;
 
     if (selector->tx.buf != NULL)
         goto send_loop;
-
-    // remove write event only if it's set
-    if (selector->tx.isset) {
-        selector->tx.isset = B8_FALSE;
-        ev.events &= ~POLL_EVENT_WRITE;
-        ev.data.ptr = selector;
-        if (epoll_ctl(poll->fd, EPOLL_CTL_MOD, selector->fd, &ev) == -1)
-            return POLL_ERROR;
-    }
 
     return total;
 }
@@ -281,7 +279,7 @@ poll_result_t poll_run(poll_p poll) {
 
                 do {
                     // In case we have a low level IO recv function, use it
-                    if (selector->rx.recv_fn != NULL) {
+                    if (selector->rx.buf != NULL && selector->rx.recv_fn != NULL) {
                         poll_result = poll_recv(poll, selector);
 
                         if (poll_result == POLL_ERROR) {
@@ -304,7 +302,7 @@ poll_result_t poll_run(poll_p poll) {
 
             // write
             if (ev.events & POLL_EVENT_WRITE) {
-                do {
+                while (selector->tx.buf != NULL) {
                     poll_result = poll_send(poll, selector);
 
                     if (poll_result == POLL_ERROR) {
@@ -314,8 +312,7 @@ poll_result_t poll_run(poll_p poll) {
 
                     if (poll_result == POLL_OK)
                         break;
-
-                } while (selector->tx.buf != NULL);
+                }
             }
         }
     }

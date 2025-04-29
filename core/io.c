@@ -143,7 +143,7 @@ obj_p ray_read(obj_p x) {
                 return sys_error(ERROR_TYPE_SYS, "read");
 
             // Validate minimum file size for header
-            if (size < (i64_t)sizeof(struct header_t)) {
+            if (size < (i64_t)sizeof(struct ipc_header_t)) {
                 mmap_free(map, size);
                 return error_str(ERR_IO, "read: file too small to contain valid header");
             }
