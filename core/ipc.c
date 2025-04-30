@@ -116,6 +116,8 @@ poll_result_t ipc_listen(poll_p poll, i64_t port) {
     registry.error_fn = NULL;
     registry.data = NULL;
 
+    LOG_DEBUG("Registering listener on port %lld", port);
+
     return poll_register(poll, &registry);
 }
 

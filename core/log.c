@@ -3,31 +3,132 @@
 #include "os.h"
 #include "string.h"
 #include "format.h"
+#include <ctype.h>
 
 // Default log level if not specified
 static log_level_t current_level = LOG_LEVEL_INFO;
+static str_p file_filters = NULL;
+static i32_t num_filters = 0;
+static b8_t level_initialized = B8_FALSE;
+
+// Parse log level and file filters from environment variable
+static void parse_log_config(c8_t* config) {
+    fprintf(stderr, "Parsing config: %s\n", config);
+    str_p level_end = strchr(config, '[');
+    str_p files_start = level_end;
+    str_p files_end = strchr(config, ']');
+
+    // Parse log level
+    if (level_end) {
+        *level_end = '\0';
+    }
+
+    // Convert to uppercase for case-insensitive comparison
+    for (str_p p = config; *p; p++) {
+        *p = toupper(*p);
+    }
+
+    fprintf(stderr, "Comparing level: %s\n", config);
+    if (strcmp(config, "OFF") == 0) {
+        current_level = LOG_LEVEL_OFF;
+        fprintf(stderr, "Setting level to OFF (0)\n");
+    } else if (strcmp(config, "ERROR") == 0) {
+        current_level = LOG_LEVEL_ERROR;
+        fprintf(stderr, "Setting level to ERROR (1)\n");
+    } else if (strcmp(config, "WARN") == 0) {
+        current_level = LOG_LEVEL_WARN;
+        fprintf(stderr, "Setting level to WARN (2)\n");
+    } else if (strcmp(config, "INFO") == 0) {
+        current_level = LOG_LEVEL_INFO;
+        fprintf(stderr, "Setting level to INFO (3)\n");
+    } else if (strcmp(config, "DEBUG") == 0) {
+        current_level = LOG_LEVEL_DEBUG;
+        fprintf(stderr, "Setting level to DEBUG (4)\n");
+    } else if (strcmp(config, "TRACE") == 0) {
+        current_level = LOG_LEVEL_TRACE;
+        fprintf(stderr, "Setting level to TRACE (5)\n");
+    }
+
+    // Parse file filters if present
+    if (files_start && files_end) {
+        *files_end = '\0';
+        files_start++;  // Skip the '['
+
+        // Count number of files
+        num_filters = 1;
+        for (str_p p = files_start; *p; p++) {
+            if (*p == ',')
+                num_filters++;
+        }
+
+        fprintf(stderr, "Found %d file filters\n", num_filters);
+
+        // Allocate and copy file filters
+        file_filters = (str_p)malloc(strlen(files_start) + 1);
+        strcpy(file_filters, files_start);
+
+        // Replace commas with null terminators
+        for (str_p p = file_filters; *p; p++) {
+            if (*p == ',')
+                *p = '\0';
+        }
+    }
+}
+
+// Initialize log level from environment variable
+static void init_log_level(nil_t) {
+    if (!level_initialized) {
+        fprintf(stderr, "Initializing log level...\n");
+        c8_t config[256];
+        if (os_get_var("RAYFORCE_LOG_LEVEL", config, sizeof(config)) == 0) {
+            fprintf(stderr, "Got environment variable: %s\n", config);
+            parse_log_config(config);
+            fprintf(stderr, "Final log level: %d\n", current_level);
+        } else {
+            // If environment variable is not set, use default level
+            current_level = LOG_LEVEL_INFO;
+            fprintf(stderr, "Using default log level: %d\n", current_level);
+        }
+        level_initialized = B8_TRUE;
+    }
+}
 
 // Get log level from environment variable
 log_level_t log_get_level(nil_t) {
-    c8_t level_str[32];
-    if (os_get_var("RAYFORCE_LOG_LEVEL", level_str, sizeof(level_str)) != 0) {
-        return current_level;
+    init_log_level();
+    return current_level;
+}
+
+// Check if file should be logged
+static b8_t should_log_file(lit_p file) {
+    if (!file_filters)
+        return B8_TRUE;
+
+    // Get just the filename from the full path
+    lit_p filename = strrchr(file, '/');
+    filename = filename ? filename + 1 : file;
+
+    // Create a copy of the filename
+    c8_t filename_copy[256];
+    strncpy(filename_copy, filename, sizeof(filename_copy) - 1);
+    filename_copy[sizeof(filename_copy) - 1] = '\0';
+
+    // Strip file extension
+    str_p ext = strrchr(filename_copy, '.');
+    if (ext) {
+        *ext = '\0';
     }
 
-    if (strcmp(level_str, "TRACE") == 0)
-        return LOG_LEVEL_TRACE;
-    if (strcmp(level_str, "DEBUG") == 0)
-        return LOG_LEVEL_DEBUG;
-    if (strcmp(level_str, "INFO") == 0)
-        return LOG_LEVEL_INFO;
-    if (strcmp(level_str, "WARN") == 0)
-        return LOG_LEVEL_WARN;
-    if (strcmp(level_str, "ERROR") == 0)
-        return LOG_LEVEL_ERROR;
-    if (strcmp(level_str, "OFF") == 0)
-        return LOG_LEVEL_OFF;
+    // Check against each filter
+    str_p filter = file_filters;
+    for (i32_t i = 0; i < num_filters; i++) {
+        if (strcmp(filename_copy, filter) == 0) {
+            return B8_TRUE;
+        }
+        filter += strlen(filter) + 1;
+    }
 
-    return current_level;
+    return B8_FALSE;
 }
 
 // Get color for log level
@@ -43,6 +144,7 @@ static lit_p get_level_color(log_level_t level) {
             return YELLOW;
         case LOG_LEVEL_ERROR:
             return RED;
+        case LOG_LEVEL_OFF:
         default:
             return RESET;
     }
@@ -61,6 +163,8 @@ static lit_p get_level_name(log_level_t level) {
             return "WARN";
         case LOG_LEVEL_ERROR:
             return "ERROR";
+        case LOG_LEVEL_OFF:
+            return "OFF";
         default:
             return "UNKNOWN";
     }
@@ -68,9 +172,23 @@ static lit_p get_level_name(log_level_t level) {
 
 // Internal logging function
 nil_t log_internal(log_level_t level, lit_p file, i32_t line, lit_p func, lit_p fmt, ...) {
-    if (level < log_get_level()) {
+    // Get current log level
+    log_level_t current = log_get_level();
+    printf("level: %d, current_level: %d\n", level, current);
+
+    // Filter messages based on log level
+    // If current level is OFF (0), show nothing
+    // If current level is ERROR (1), show ERROR only
+    // If current level is WARN (2), show WARN and above
+    // If current level is INFO (3), show INFO and above
+    // If current level is DEBUG (4), show DEBUG and above
+    // If current level is TRACE (5), show all messages
+    if (level > current)
         return;
-    }
+
+    // Check file filter
+    if (!should_log_file(file))
+        return;
 
     va_list args;
     va_start(args, fmt);
@@ -78,11 +196,11 @@ nil_t log_internal(log_level_t level, lit_p file, i32_t line, lit_p func, lit_p 
     // Get timestamp
     time_t now = time(NULL);
     struct tm* tm_info = localtime(&now);
-    char timestamp[20];
+    c8_t timestamp[20];
     strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", tm_info);
 
     // Get just the filename from the full path
-    const char* filename = strrchr(file, '/');
+    lit_p filename = strrchr(file, '/');
     filename = filename ? filename + 1 : file;
 
     // Print the log message with color

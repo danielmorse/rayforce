@@ -4,12 +4,12 @@
 #include "rayforce.h"
 
 typedef enum {
-    LOG_LEVEL_TRACE,
-    LOG_LEVEL_DEBUG,
-    LOG_LEVEL_INFO,
-    LOG_LEVEL_WARN,
-    LOG_LEVEL_ERROR,
-    LOG_LEVEL_OFF
+    LOG_LEVEL_OFF,    // Most severe - no logging
+    LOG_LEVEL_ERROR,  // Error conditions
+    LOG_LEVEL_WARN,   // Warning conditions
+    LOG_LEVEL_INFO,   // Informational messages
+    LOG_LEVEL_DEBUG,  // Debug-level messages
+    LOG_LEVEL_TRACE   // Least severe - trace messages
 } log_level_t;
 
 // Get current log level from environment variable
