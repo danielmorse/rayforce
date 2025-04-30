@@ -70,7 +70,7 @@ poll_result_t repl_read(poll_p poll, selector_p selector) {
 
     term_prompt(repl->term);
 
-    return POLL_READY;
+    return POLL_OK;
 }
 
 repl_p repl_create(poll_p poll) {

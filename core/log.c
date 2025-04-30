@@ -157,6 +157,9 @@ static lit_p get_level_name(log_level_t level) {
 
 // Internal logging function
 nil_t log_internal(log_level_t level, lit_p file, i32_t line, lit_p func, lit_p fmt, ...) {
+    // Disable buffering for stderr to ensure immediate output
+    setvbuf(stderr, NULL, _IONBF, 0);
+
     // Get current log level
     log_level_t current = log_get_level();
 

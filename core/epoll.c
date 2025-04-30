@@ -255,7 +255,6 @@ poll_result_t poll_run(poll_p poll) {
             return POLL_ERROR;
         }
 
-    process_events:
         for (n = 0; n < nfds; n++) {
             ev = events[n];
 
@@ -284,7 +283,7 @@ poll_result_t poll_run(poll_p poll) {
 
                         if (poll_result == POLL_ERROR) {
                             poll_deregister(poll, selector->id);
-                            goto process_events;
+                            goto next_event;
                         }
 
                         if (poll_result == POLL_OK)
@@ -307,13 +306,15 @@ poll_result_t poll_run(poll_p poll) {
 
                     if (poll_result == POLL_ERROR) {
                         poll_deregister(poll, selector->id);
-                        goto process_events;
+                        goto next_event;
                     }
 
                     if (poll_result == POLL_OK)
                         break;
                 }
             }
+
+        next_event:;
         }
     }
 
