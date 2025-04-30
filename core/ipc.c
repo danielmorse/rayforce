@@ -31,17 +31,23 @@
 #include "util.h"
 #include "log.h"
 
-// forward declarations
-poll_result_t ipc_read_handshake(poll_p poll, selector_p selector);
-poll_result_t ipc_read_header(poll_p poll, selector_p selector);
-poll_result_t ipc_read_msg(poll_p poll, selector_p selector);
-poll_result_t ipc_on_open(poll_p poll, selector_p selector);
-poll_result_t ipc_on_close(poll_p poll, selector_p selector);
-poll_result_t ipc_on_error(poll_p poll, selector_p selector);
+// ============================================================================
+// Forward Declarations
+// ============================================================================
 
-poll_result_t ipc_send_handshake(poll_p poll, selector_p selector);
-poll_result_t ipc_send_msg(poll_p poll, selector_p selector);
-poll_result_t ipc_send_header(poll_p poll, selector_p selector);
+static poll_result_t ipc_read_handshake(poll_p poll, selector_p selector);
+static poll_result_t ipc_read_header(poll_p poll, selector_p selector);
+static poll_result_t ipc_read_msg(poll_p poll, selector_p selector);
+static poll_result_t ipc_on_open(poll_p poll, selector_p selector);
+static poll_result_t ipc_on_close(poll_p poll, selector_p selector);
+static poll_result_t ipc_on_error(poll_p poll, selector_p selector);
+static poll_result_t ipc_send_handshake(poll_p poll, selector_p selector);
+static poll_result_t ipc_send_msg(poll_p poll, selector_p selector);
+static poll_result_t ipc_send_header(poll_p poll, selector_p selector);
+
+// ============================================================================
+// User FD Management
+// ============================================================================
 
 nil_t poll_set_usr_fd(i64_t fd) {
     obj_p s, k, v;
@@ -53,6 +59,10 @@ nil_t poll_set_usr_fd(i64_t fd) {
     drop_obj(v);
     drop_obj(s);
 }
+
+// ============================================================================
+// Listener Management
+// ============================================================================
 
 poll_result_t ipc_listener_accept(poll_p poll, selector_p selector) {
     i64_t fd;
@@ -122,6 +132,10 @@ poll_result_t ipc_listen(poll_p poll, i64_t port) {
     return poll_register(poll, &registry);
 }
 
+// ============================================================================
+// User Callback Management
+// ============================================================================
+
 poll_result_t ipc_call_usr_cb(poll_p poll, selector_p selector, lit_p sym, i64_t len) {
     UNUSED(poll);
     i64_t clbnm;
@@ -151,8 +165,13 @@ poll_result_t ipc_call_usr_cb(poll_p poll, selector_p selector, lit_p sym, i64_t
     return POLL_OK;
 }
 
+// ============================================================================
+// Connection Management
+// ============================================================================
+
 poll_result_t ipc_open(poll_p poll, sock_addr_t *addr, i64_t timeout) {
     i64_t fd, id;
+    selector_p selector;
     struct poll_registry_t registry = ZERO_INIT_STRUCT;
     ipc_ctx_p ctx;
     u8_t handshake[2] = {RAYFORCE_VERSION, 0x00};
@@ -183,7 +202,7 @@ poll_result_t ipc_open(poll_p poll, sock_addr_t *addr, i64_t timeout) {
     registry.events = POLL_EVENT_READ | POLL_EVENT_WRITE | POLL_EVENT_ERROR | POLL_EVENT_HUP;
     registry.recv_fn = sock_recv;
     registry.send_fn = sock_send;
-    registry.read_fn = ipc_read_handshake;
+    registry.read_fn = ipc_read_header;
     registry.close_fn = ipc_on_close;
     registry.error_fn = ipc_on_error;
     registry.data = ctx;
@@ -192,8 +211,19 @@ poll_result_t ipc_open(poll_p poll, sock_addr_t *addr, i64_t timeout) {
     id = poll_register(poll, &registry);
     LOG_DEBUG("Connection registered in poll registry with id %lld", id);
 
+    // request rx buffer
+    selector = poll_get_selector(poll, id);
+    if (poll_rx_buf_request(poll, selector, ISIZEOF(struct ipc_header_t)) == POLL_ERROR) {
+        poll_deregister(poll, id);
+        return POLL_ERROR;
+    }
+
     return id;
 }
+
+// ============================================================================
+// Message Reading
+// ============================================================================
 
 poll_result_t ipc_read_handshake(poll_p poll, selector_p selector) {
     UNUSED(poll);
@@ -317,6 +347,10 @@ poll_result_t ipc_read_msg_async(poll_p poll, selector_p selector) {
     return POLL_OK;
 }
 
+// ============================================================================
+// Event Handlers
+// ============================================================================
+
 poll_result_t ipc_on_open(poll_p poll, selector_p selector) {
     LOG_DEBUG("Connection opened, requesting handshake buffer");
     // request the minimal handshake buffer
@@ -354,106 +388,53 @@ poll_result_t ipc_on_close(poll_p poll, selector_p selector) {
     return POLL_OK;
 }
 
+// ============================================================================
+// Message Sending
+// ============================================================================
+
 obj_p ipc_send_sync(poll_p poll, i64_t id, obj_p msg) {
-    // selector_p selector;
-    // i64_t idx;
-    // poll_result_t result;
-    // obj_p res = NULL_OBJ;
-    // fd_set fds;
-    // struct timeval timeout;
+    selector_p selector;
+    poll_result_t result;
+    poll_buffer_p buf;
+    i64_t idx, size;
+    obj_p res = NULL_OBJ;
+    fd_set fds;
+    struct timeval timeout;
 
-    // LOG_DEBUG("Starting synchronous IPC send for id %lld", id);
+    LOG_DEBUG("Starting synchronous IPC send for id %lld", id);
 
-    // // Get the selector for the given id
-    // idx = freelist_get(poll->selectors, id - SELECTOR_ID_OFFSET);
-    // if (idx == NULL_I64) {
-    //     LOG_ERROR("Invalid socket fd %lld", id);
-    //     return sys_error(ERR_IO, "ipc_send_sync: invalid socket fd");
-    // }
+    // Get the selector for the given id
+    idx = freelist_get(poll->selectors, id - SELECTOR_ID_OFFSET);
+    if (idx == NULL_I64) {
+        LOG_ERROR("Invalid socket fd %lld", id);
+        return sys_error(ERR_IO, "ipc_send_sync: invalid socket fd");
+    }
 
-    // selector = (selector_p)idx;
-    // if (selector == NULL) {
-    //     LOG_ERROR("Invalid selector for fd %lld", id);
-    //     return sys_error(ERR_IO, "ipc_send_sync: invalid selector for fd");
-    // }
+    selector = (selector_p)idx;
+    if (selector == NULL) {
+        LOG_ERROR("Invalid selector for fd %lld", id);
+        return sys_error(ERR_IO, "ipc_send_sync: invalid selector for fd");
+    }
 
-    // LOG_DEBUG("Setting up message buffer for fd %lld", selector->fd);
-    // // Set up the message in the selector's transmit buffer
-    // selector->tx.buf = poll_buf_create(ISIZEOF(struct ipc_header_t) + size_obj(msg));
-    // ser_raw(selector->tx.buf->data + ISIZEOF(struct ipc_header_t), size_obj(msg), msg);
-    // ((ipc_header_t *)selector->tx.buf->data)->msgtype = MSG_TYPE_SYNC;
-    // ((ipc_header_t *)selector->tx.buf->data)->size = size_obj(msg);
+    LOG_DEBUG("Setting up message buffer for fd %lld", selector->fd);
+    // Set up the message in the selector's transmit buffer
+    size = size_obj(msg);
+    buf = poll_buf_create(ISIZEOF(struct ipc_header_t) + size);
+    if (buf == NULL) {
+        LOG_ERROR("Failed to create message buffer");
+        return sys_error(ERR_IO, "ipc_send_sync: failed to create message buffer");
+    }
 
-    // LOG_DEBUG("Sending message on fd %lld", selector->fd);
-    // // Send the message
-    // result = ipc_send_msg(poll, selector);
-    // if (result == POLL_ERROR) {
-    //     LOG_ERROR("Failed to send message on fd %lld", selector->fd);
-    //     poll_deregister(poll, selector->id);
-    //     return sys_error(ERR_IO, "ipc_send_sync: error sending message");
-    // }
+    LOG_TRACE("Serializing message");
+    ser_raw(buf->data, size, msg);
+    ((ipc_header_t *)buf->data)->msgtype = MSG_TYPE_SYNC;
 
-    // LOG_DEBUG("Waiting for response on fd %lld with 30s timeout", selector->fd);
-    // // Wait for response with timeout
-    // timeout.tv_sec = 30;  // 30 second timeout
-    // timeout.tv_usec = 0;
-
-    // while (B8_TRUE) {
-    //     FD_ZERO(&fds);
-    //     FD_SET(selector->fd, &fds);
-
-    //     result = select(selector->fd + 1, &fds, NULL, NULL, &timeout);
-    //     if (result == -1) {
-    //         if (errno != EINTR) {
-    //             LOG_ERROR("Select error on fd %lld: %s", selector->fd, strerror(errno));
-    //             poll_deregister(poll, selector->id);
-    //             return sys_error(ERR_OS, "ipc_send_sync: error waiting for response");
-    //         }
-    //         LOG_DEBUG("Select interrupted on fd %lld, retrying", selector->fd);
-    //         continue;
-    //     }
-    //     if (result == 0) {
-    //         LOG_ERROR("Timeout waiting for response on fd %lld", selector->fd);
-    //         poll_deregister(poll, selector->id);
-    //         return sys_error(ERR_IO, "ipc_send_sync: timeout waiting for response");
-    //     }
-
-    //     LOG_DEBUG("Receiving data on fd %lld", selector->fd);
-    //     // Receive data into buffer
-    //     result = selector->rx.recv_fn(selector->fd, selector->rx.buf->data, selector->rx.buf->size);
-    //     if (result == -1) {
-    //         if (errno == EAGAIN || errno == EWOULDBLOCK) {
-    //             continue;
-    //         }
-    //         LOG_ERROR("Failed to receive data on fd %lld: %s", selector->fd, strerror(errno));
-    //         poll_deregister(poll, selector->id);
-    //         return sys_error(ERR_IO, "ipc_send_sync: error receiving data");
-    //     }
-    //     if (result == 0) {
-    //         LOG_ERROR("Connection closed on fd %lld", selector->fd);
-    //         poll_deregister(poll, selector->id);
-    //         return sys_error(ERR_IO, "ipc_send_sync: connection closed");
-    //     }
-
-    //     LOG_DEBUG("Processing received data on fd %lld", selector->fd);
-    //     // Process the received data
-    //     result = ipc_read_msg(poll, selector);
-    //     if (result == POLL_ERROR) {
-    //         LOG_ERROR("Failed to process message on fd %lld", selector->fd);
-    //         poll_deregister(poll, selector->id);
-    //         return sys_error(ERR_IO, "ipc_send_sync: error processing message");
-    //     }
-    //     if (result == POLL_READY) {
-    //         LOG_DEBUG("Message processed successfully on fd %lld", selector->fd);
-    //         break;
-    //     }
-    // }
-
-    // LOG_DEBUG("Successfully completed synchronous IPC send on fd %lld", selector->fd);
-    // return res;
-    UNUSED(poll);
-    UNUSED(id);
-    UNUSED(msg);
+    LOG_DEBUG("Sending message on fd %lld", selector->fd);
+    result = poll_send_buf(poll, selector, buf);
+    if (result == POLL_ERROR) {
+        LOG_ERROR("Failed to send message on fd %lld", selector->fd);
+        return sys_error(ERR_IO, "ipc_send_sync: error sending message");
+    }
 
     return NULL_OBJ;
 }
