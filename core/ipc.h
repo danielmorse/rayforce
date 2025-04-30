@@ -26,6 +26,7 @@
 
 #include "rayforce.h"
 #include "poll.h"
+#include "sock.h"
 
 #define MSG_TYPE_ASYN 0
 #define MSG_TYPE_SYNC 1
@@ -37,6 +38,9 @@ typedef struct ipc_ctx_t {
 
 // listen for incoming connections
 poll_result_t ipc_listen(poll_p poll, i64_t port);
+
+// open a connection
+poll_result_t ipc_open(poll_p poll, sock_addr_t *addr, i64_t timeout);
 
 // send messages
 obj_p ipc_send_sync(poll_p poll, i64_t id, obj_p msg);

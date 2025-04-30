@@ -45,11 +45,9 @@
 #include "ipc.h"
 
 obj_p ray_hopen(obj_p *x, i64_t n) {
-    i64_t fd, timeout = 0;
+    i64_t fd, id, timeout = 0;
     sock_addr_t addr;
-    u8_t handshake[2] = {RAYFORCE_VERSION, 0x00};
-    struct poll_registry_t registry;
-    obj_p path, err;
+    obj_p path;
 
     if (n == 0)
         THROW(ERR_LENGTH, "hopen: expected at least 1 argument, got 0");
@@ -69,29 +67,12 @@ obj_p ray_hopen(obj_p *x, i64_t n) {
 
     // Open socket
     if (sock_addr_from_str(AS_C8(x[0]), x[0]->len, &addr) != -1) {
-        fd = sock_open(&addr, timeout);
+        id = ipc_open(runtime_get()->poll, &addr, timeout);
 
-        if (fd == -1)
-            THROW(ERR_IO, "hopen: failed to connect to %s:%d", addr.ip, addr.port);
+        if (id == POLL_ERROR)
+            return sys_error(ERROR_TYPE_SYS, AS_C8(x));
 
-        if (sock_send(fd, handshake, 2) == -1) {
-            err = sys_error(ERROR_TYPE_SOCK, "hopen: send handshake");
-            sock_close(fd);
-            return err;
-        }
-
-        if (sock_recv(fd, handshake, 2) == -1) {
-            err = sys_error(ERROR_TYPE_SOCK, "hopen: recv handshake");
-            sock_close(fd);
-            return err;
-        }
-
-        sock_set_nonblocking(fd, B8_TRUE);
-
-        registry.fd = fd;
-        registry.type = SELECTOR_TYPE_SOCKET;
-
-        return i64(poll_register(runtime_get()->poll, &registry));
+        return i64(id);
     }
 
     // Otherwise, open file

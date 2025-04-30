@@ -26,7 +26,6 @@
 #include "binary.h"
 #include "symbols.h"
 #include "error.h"
-#include "sock.h"
 #include "poll.h"
 #include "string.h"
 #include "util.h"
@@ -150,11 +149,60 @@ poll_result_t ipc_call_usr_cb(poll_p poll, selector_p selector, lit_p sym, i64_t
     return POLL_OK;
 }
 
+poll_result_t ipc_open(poll_p poll, sock_addr_t *addr, i64_t timeout) {
+    i64_t fd, id;
+    struct poll_registry_t registry = ZERO_INIT_STRUCT;
+    ipc_ctx_p ctx;
+    u8_t handshake[2] = {RAYFORCE_VERSION, 0x00};
+
+    LOG_DEBUG("Opening connection to %s:%lld", addr->ip, addr->port);
+
+    fd = sock_open(addr, timeout);
+    LOG_DEBUG("Connection opened on fd %lld", fd);
+
+    if (fd == -1)
+        return POLL_ERROR;
+
+    if (sock_send(fd, handshake, 2) == -1)
+        return POLL_ERROR;
+
+    if (sock_recv(fd, handshake, 2) == -1)
+        return POLL_ERROR;
+
+    LOG_TRACE("Setting socket to non-blocking mode");
+    sock_set_nonblocking(fd, B8_TRUE);
+    LOG_TRACE("Socket set to non-blocking mode");
+
+    ctx = (ipc_ctx_p)heap_alloc(sizeof(struct ipc_ctx_t));
+    ctx->name = string_from_str("ipc", 4);
+
+    registry.fd = fd;
+    registry.type = SELECTOR_TYPE_SOCKET;
+    registry.events = POLL_EVENT_READ | POLL_EVENT_WRITE | POLL_EVENT_ERROR | POLL_EVENT_HUP;
+    registry.recv_fn = sock_recv;
+    registry.send_fn = sock_send;
+    registry.read_fn = ipc_read_handshake;
+    registry.close_fn = ipc_on_close;
+    registry.error_fn = ipc_on_error;
+    registry.data = ctx;
+
+    LOG_DEBUG("Registering connection in poll registry");
+    id = poll_register(poll, &registry);
+    LOG_DEBUG("Connection registered in poll registry with id %lld", id);
+
+    return id;
+}
+
 poll_result_t ipc_read_handshake(poll_p poll, selector_p selector) {
     UNUSED(poll);
 
     poll_buffer_p buf;
     u8_t handshake[2] = {RAYFORCE_VERSION, 0x00};
+
+    if (selector->rx.buf == NULL) {
+        LOG_DEBUG("No handshake buffer received, closing connection");
+        return poll_deregister(poll, selector->id);
+    }
 
     if (selector->rx.buf->offset > 0 && selector->rx.buf->data[selector->rx.buf->offset - 1] == '\0') {
         LOG_DEBUG("Handshake received, sending response");
