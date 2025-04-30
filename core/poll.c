@@ -101,11 +101,11 @@ poll_result_t poll_rx_buf_reset(poll_p poll, selector_p selector) {
 }
 
 poll_result_t poll_send_buf(poll_p poll, selector_p selector, poll_buffer_p buf) {
-    if (selector->tx.buf != NULL) {
+    // Attach the buffer to the end of the list
+    if (selector->tx.buf != NULL)
         selector->tx.buf->next = buf;
-    } else {
+    else
         selector->tx.buf = buf;
-    }
 
     return poll_send(poll, selector);
 }

@@ -28,6 +28,7 @@
 #include <sys/epoll.h>
 #include "poll.h"
 #include "heap.h"
+#include "log.h"
 
 __thread i32_t __EVENT_FD;  // eventfd to notify epoll loop of shutdown
 
@@ -39,6 +40,8 @@ nil_t sigint_handler(i32_t signo) {
 
     UNUSED(signo);
 
+    LOG_TRACE("Writing to eventfd to wake up the epoll loop");
+
     // Write to the eventfd to wake up the epoll loop.
     res = write(__EVENT_FD, &val, sizeof(val));
     UNUSED(res);
@@ -49,33 +52,45 @@ poll_p poll_create() {
     poll_p poll;
     struct epoll_event ev;
 
+    LOG_DEBUG("Creating epoll instance");
+
     fd = epoll_create1(0);
     if (fd == -1) {
+        LOG_ERROR("Failed to create epoll instance");
         perror("epoll_create1");
         exit(EXIT_FAILURE);
     }
 
+    LOG_DEBUG("Creating eventfd");
+
     // Add eventfd
     __EVENT_FD = eventfd(0, 0);
     if (__EVENT_FD == -1) {
+        LOG_ERROR("Failed to create eventfd");
         perror("eventfd");
         exit(EXIT_FAILURE);
     }
+
+    LOG_DEBUG("Adding eventfd to epoll");
     ev.events = EPOLLIN;
     ev.data.fd = __EVENT_FD;
     if (epoll_ctl(fd, EPOLL_CTL_ADD, __EVENT_FD, &ev) == -1) {
+        LOG_ERROR("Failed to add eventfd to epoll");
         perror("epoll_ctl: eventfd");
         exit(EXIT_FAILURE);
     }
 
-    // Set up the SIGINT signal handler
+    LOG_DEBUG("Setting up the SIGINT signal handler");
     signal(SIGINT, sigint_handler);
 
+    LOG_DEBUG("Creating poll instance");
     poll = (poll_p)heap_alloc(sizeof(struct poll_t));
     poll->code = NULL_I64;
     poll->fd = fd;
     poll->selectors = freelist_create(128);
     poll->timers = timers_create(16);
+
+    LOG_DEBUG("Poll instance created");
 
     return poll;
 }
@@ -84,17 +99,24 @@ nil_t poll_destroy(poll_p poll) {
     i64_t i, l;
 
     // Free all selectors
+    LOG_DEBUG("Freeing all selectors");
     l = poll->selectors->data_pos;
     for (i = 0; i < l; i++) {
         if (poll->selectors->data[i] != NULL_I64)
             poll_deregister(poll, i + SELECTOR_ID_OFFSET);
     }
 
+    LOG_DEBUG("Freeing selectors list");
     freelist_free(poll->selectors);
     timers_destroy(poll->timers);
 
+    LOG_DEBUG("Closing eventfd");
     close(__EVENT_FD);
+
+    LOG_DEBUG("Closing epoll instance");
     close(poll->fd);
+
+    LOG_DEBUG("Freeing poll instance");
     heap_free(poll);
 }
 
@@ -103,11 +125,14 @@ poll_result_t poll_register(poll_p poll, poll_registry_p registry) {
     selector_p selector;
     struct epoll_event ev;
 
+    LOG_DEBUG("Registering selector");
+
     selector = (selector_p)heap_alloc(sizeof(struct selector_t));
     id = freelist_push(poll->selectors, (i64_t)selector) + SELECTOR_ID_OFFSET;
     selector->id = id;
     selector->fd = registry->fd;
     selector->type = registry->type;
+    selector->interest = registry->events;
     selector->open_fn = registry->open_fn;
     selector->close_fn = registry->close_fn;
     selector->error_fn = registry->error_fn;
@@ -116,17 +141,20 @@ poll_result_t poll_register(poll_p poll, poll_registry_p registry) {
     selector->rx.recv_fn = registry->recv_fn;
     selector->tx.send_fn = registry->send_fn;
     selector->data = registry->data;
-    selector->tx.isset = B8_FALSE;
     selector->rx.buf = NULL;
     selector->tx.buf = NULL;
 
-    ev.events = registry->events;
+    LOG_DEBUG("Setting up epoll event");
+
+    ev.events = selector->interest;
     ev.data.ptr = selector;
 
     if (epoll_ctl(poll->fd, EPOLL_CTL_ADD, selector->fd, &ev) == -1) {
         perror("epoll_ctl: add");
         return POLL_ERROR;
     }
+
+    LOG_DEBUG("Calling open function");
 
     if (registry->open_fn != NULL)
         registry->open_fn(poll, selector);
@@ -138,6 +166,8 @@ poll_result_t poll_deregister(poll_p poll, i64_t id) {
     i64_t idx;
     selector_p selector;
     poll_buffer_p buf;
+
+    LOG_DEBUG("Deregistering selector");
 
     idx = freelist_pop(poll->selectors, id - SELECTOR_ID_OFFSET);
 
@@ -162,6 +192,8 @@ poll_result_t poll_deregister(poll_p poll, i64_t id) {
         selector->tx.buf = buf;
     }
 
+    LOG_DEBUG("Freeing selector");
+
     heap_free(selector);
 
     return POLL_OK;
@@ -172,10 +204,14 @@ poll_result_t poll_recv(poll_p poll, selector_p selector) {
 
     i64_t size, total;
 
+    LOG_TRACE("Receiving data from selector %lld", selector->id);
+
     total = selector->rx.buf->offset;
     do {
         size = selector->rx.recv_fn(selector->fd, &selector->rx.buf->data[selector->rx.buf->offset],
                                     selector->rx.buf->size - selector->rx.buf->offset);
+
+        LOG_TRACE("Received %lld bytes from selector %lld", size, selector->id);
 
         if (size == POLL_ERROR)
             return POLL_ERROR;
@@ -188,6 +224,8 @@ poll_result_t poll_recv(poll_p poll, selector_p selector) {
 
     total = selector->rx.buf->offset - total;
 
+    LOG_TRACE("Received %lld bytes from selector %lld", total, selector->id);
+
     return total;
 }
 
@@ -196,7 +234,9 @@ poll_result_t poll_send(poll_p poll, selector_p selector) {
 
     i64_t size, total;
     poll_buffer_p buf;
-    // struct epoll_event ev;
+    struct epoll_event ev;
+
+    LOG_TRACE("Sending data to selector %lld", selector->id);
 
     total = 0;
 
@@ -205,18 +245,21 @@ send_loop:
         size = selector->tx.send_fn(selector->fd, &selector->tx.buf->data[selector->tx.buf->offset],
                                     selector->tx.buf->size - selector->tx.buf->offset);
 
+        LOG_TRACE("Sent %lld bytes to selector %lld", size, selector->id);
+
         if (size == POLL_ERROR)
             return POLL_ERROR;
 
         if (size == POLL_OK) {
             // setup epoll for write event if it's not already set
-            // if (!selector->tx.isset) {
-            //     selector->tx.isset = B8_TRUE;
-            //     ev.events |= POLL_EVENT_WRITE;
-            //     ev.data.ptr = selector;
-            //     if (epoll_ctl(poll->fd, EPOLL_CTL_MOD, selector->fd, &ev) == -1)
-            //         return POLL_ERROR;
-            // }
+            if ((selector->interest & POLL_EVENT_WRITE) == 0) {
+                LOG_TRACE("Setting up epoll for write event");
+                selector->interest |= POLL_EVENT_WRITE;
+                ev.events = selector->interest;
+                ev.data.ptr = selector;
+                if (epoll_ctl(poll->fd, EPOLL_CTL_MOD, selector->fd, &ev) == -1)
+                    return POLL_ERROR;
+            }
 
             return POLL_OK;
         }
@@ -228,12 +271,25 @@ send_loop:
     total = selector->tx.buf->offset;
 
     // switch to next buffer
+    LOG_TRACE("Switching to next buffer");
     buf = selector->tx.buf->next;
     heap_free(selector->tx.buf);
     selector->tx.buf = buf;
 
     if (selector->tx.buf != NULL)
         goto send_loop;
+
+    // reset epoll write event if it is set
+    if (selector->interest & POLL_EVENT_WRITE) {
+        LOG_TRACE("Resetting epoll write event");
+        selector->interest &= ~POLL_EVENT_WRITE;
+        ev.events = selector->interest;
+        ev.data.ptr = selector;
+        if (epoll_ctl(poll->fd, EPOLL_CTL_MOD, selector->fd, &ev) == -1)
+            return POLL_ERROR;
+    }
+
+    LOG_TRACE("Sent %lld bytes to selector %lld", total, selector->id);
 
     return total;
 }
@@ -244,7 +300,11 @@ poll_result_t poll_run(poll_p poll) {
     selector_p selector;
     struct epoll_event ev, events[MAX_EVENTS];
 
+    LOG_DEBUG("Running poll");
+
     while (poll->code == NULL_I64) {
+        LOG_TRACE("Waiting for events");
+
         timeout = timer_next_timeout(poll->timers);
         nfds = epoll_wait(poll->fd, events, MAX_EVENTS, timeout);
 
@@ -260,6 +320,7 @@ poll_result_t poll_run(poll_p poll) {
 
             // shutdown
             if (ev.data.fd == __EVENT_FD) {
+                LOG_DEBUG("Shutdown event received");
                 poll->code = 0;
                 break;
             }
@@ -275,6 +336,8 @@ poll_result_t poll_run(poll_p poll) {
             // read
             if (ev.events & POLL_EVENT_READ) {
                 poll_result = POLL_READY;
+
+                LOG_TRACE("Read event received for selector %lld", selector->id);
 
                 do {
                     // In case we have a low level IO recv function, use it
@@ -301,6 +364,8 @@ poll_result_t poll_run(poll_p poll) {
 
             // write
             if (ev.events & POLL_EVENT_WRITE) {
+                LOG_TRACE("Write event received for selector %lld", selector->id);
+
                 while (selector->tx.buf != NULL) {
                     poll_result = poll_send(poll, selector);
 

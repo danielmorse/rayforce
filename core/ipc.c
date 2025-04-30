@@ -199,7 +199,7 @@ poll_result_t ipc_open(poll_p poll, sock_addr_t *addr, i64_t timeout) {
 
     registry.fd = fd;
     registry.type = SELECTOR_TYPE_SOCKET;
-    registry.events = POLL_EVENT_READ | POLL_EVENT_WRITE | POLL_EVENT_ERROR | POLL_EVENT_HUP;
+    registry.events = POLL_EVENT_READ | POLL_EVENT_ERROR | POLL_EVENT_HUP;
     registry.recv_fn = sock_recv;
     registry.send_fn = sock_send;
     registry.read_fn = ipc_read_header;
@@ -302,6 +302,7 @@ poll_result_t ipc_read_msg(poll_p poll, selector_p selector) {
 
     LOG_DEBUG("Reading message from connection %.*s", (i32_t)ctx->name->len, AS_C8(ctx->name));
 
+    header = (ipc_header_t *)selector->rx.buf->data;
     res = de_raw(selector->rx.buf->data, selector->rx.buf->size);
 
     poll_set_usr_fd(selector->id);
@@ -328,16 +329,21 @@ poll_result_t ipc_read_msg(poll_p poll, selector_p selector) {
     selector->rx.read_fn = ipc_read_header;
 
     // respond
-    size = size_obj(v);
-    buf = poll_buf_create(ISIZEOF(struct ipc_header_t) + size);
-    ser_raw(buf->data, size, v);
-    header = (ipc_header_t *)buf->data;
-    header->msgtype = MSG_TYPE_RESP;
-    // release the object
+    if (header->msgtype == MSG_TYPE_SYNC) {
+        LOG_TRACE("Serializing response message");
+        size = size_obj(v);
+        buf = poll_buf_create(ISIZEOF(struct ipc_header_t) + size);
+        ser_raw(buf->data, size, v);
+        header = (ipc_header_t *)buf->data;
+        header->msgtype = MSG_TYPE_RESP;
+        drop_obj(v);
+        LOG_DEBUG("Sending response message of size %lld", size);
+        return poll_send_buf(poll, selector, buf);
+    }
+
     drop_obj(v);
 
-    LOG_DEBUG("Sending response message of size %lld", size);
-    return poll_send_buf(poll, selector, buf);
+    return POLL_OK;
 }
 
 poll_result_t ipc_read_msg_async(poll_p poll, selector_p selector) {
