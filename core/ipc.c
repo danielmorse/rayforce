@@ -312,6 +312,7 @@ nil_t ipc_send_msg(poll_p poll, selector_p selector, obj_p msg, u8_t msgtype) {
     header->msgtype = msgtype;
     LOG_DEBUG("Sending message of size %lld", size);
     poll_send_buf(poll, selector, buf);
+    LOG_DEBUG("Message sent");
 }
 
 nil_t ipc_on_data(poll_p poll, selector_p selector, raw_p data) {
@@ -396,10 +397,13 @@ obj_p ipc_send(poll_p poll, i64_t id, obj_p msg, u8_t msgtype) {
     // wait for the response
     if (msgtype == MSG_TYPE_SYNC) {
         do {
+            LOG_DEBUG("Waiting for response from connection %lld", selector->id);
             result = poll_block_on(poll, selector);
-
+            LOG_DEBUG("Response received from connection %lld RESULT: %s", selector->id,
+                      option_is_some(&result) ? "some" : "none");
             if (option_is_some(&result) && result.value != NULL) {
                 res = option_take(&result);
+                LOG_DEBUG("Response received: %.*s", (i32_t)res->len, AS_C8(res));
                 // If the message is a response, break the loop
                 if (ctx->msgtype == MSG_TYPE_RESP)
                     break;

@@ -42,6 +42,8 @@ typedef struct {
 
 #else
 
+#include <pthread.h>
+
 typedef struct {
     pthread_t handle;
 } ray_thread_t;

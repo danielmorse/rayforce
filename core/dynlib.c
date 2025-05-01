@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include "util.h"
 #include "error.h"
+#include "string.h"
 
 #if defined(OS_WINDOWS)
 
@@ -96,6 +97,8 @@ obj_p dynlib_loadfn(str_p path, str_p func, i64_t nargs) {
 #endif
 
 obj_p ray_loadfn(obj_p *args, i64_t n) {
+    obj_p path, func, res;
+
     if (n != 3)
         THROW(ERR_ARITY, "Expected 3 arguments, got %llu", n);
 
@@ -111,5 +114,13 @@ obj_p ray_loadfn(obj_p *args, i64_t n) {
     if (args[2]->type != -TYPE_I64)
         THROW(ERR_TYPE, "Expected 'i64 arguments, got %s", type_name(args[2]->type));
 
-    return dynlib_loadfn(AS_C8(args[0]), AS_C8(args[1]), args[2]->i64);
+    path = cstring_from_str(AS_C8(args[0]), args[0]->len);
+    func = cstring_from_str(AS_C8(args[1]), args[1]->len);
+
+    res = dynlib_loadfn(AS_C8(path), AS_C8(func), args[2]->i64);
+
+    drop_obj(path);
+    drop_obj(func);
+
+    return res;
 }

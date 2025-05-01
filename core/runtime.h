@@ -30,10 +30,10 @@
 #include "env.h"
 #include "eval.h"
 #include "poll.h"
-#include "sock.h"
 #include "pool.h"
 #include "sys.h"
 #include "query.h"
+#include "thread.h"
 
 /*
  * Runtime structure.
