@@ -258,10 +258,8 @@ option_t ipc_read_msg(poll_p poll, selector_p selector) {
     UNUSED(poll);
 
     obj_p res;
-    ipc_ctx_p ctx;
 
-    ctx = (ipc_ctx_p)selector->data;
-    LOG_DEBUG("Reading message from connection %.*s", (i32_t)ctx->name->len, AS_C8(ctx->name));
+    LOG_DEBUG("Reading message from connection %lld", selector->id);
     res = de_raw(selector->rx.buf->data, selector->rx.buf->size);
 
     // Prepare for the next message

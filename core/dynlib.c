@@ -60,18 +60,20 @@ obj_p dynlib_loadfn(str_p path, str_p func, i64_t nargs) {
 
 #else
 
-obj_p dynlib_loadfn(str_p path, str_p func, i64_t nargs) {
-    raw_p handle, dsym;
-    obj_p fn;
-    str_p error;
+#include <dlfcn.h>
 
-    handle = dlopen(path, RTLD_NOW);
+obj_p dynlib_loadfn(str_p path, str_p func, i64_t nargs) {
+    void *handle;
+    void *dsym;
+    obj_p fn;
+
+    handle = dlopen(path, RTLD_NOW | RTLD_GLOBAL);
     if (!handle)
         THROW(ERR_SYS, "Failed to load shared library: %s", dlerror());
 
     dsym = dlsym(handle, func);
-    if ((error = dlerror()) != NULL)
-        THROW(ERR_SYS, "Failed to load symbol from shared library: %s", error);
+    if (!dsym)
+        THROW(ERR_SYS, "Failed to load symbol from shared library: %s", dlerror());
 
     switch (nargs) {
         case 1:
