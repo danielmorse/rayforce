@@ -193,7 +193,7 @@ obj_p aggr_first_partial(raw_p arg1, raw_p arg2, raw_p arg3, raw_p arg4, raw_p a
             return res;
         case TYPE_F64:
             AGGR_ITER(index, len, offset, val, res, f64, f64, $out[$y] = NULL_F64,
-                      if (ops_is_nan($out[$y])) $out[$y] = $in[$x]);
+                      if (ISNANF64($out[$y])) $out[$y] = $in[$x]);
             return res;
         case TYPE_GUID:
             AGGR_ITER(index, len, offset, val, res, guid, guid, memset($out[$y], 0, sizeof(guid_t)),
@@ -258,7 +258,7 @@ obj_p aggr_first(obj_p val, obj_p index) {
             parts = aggr_map((raw_p)aggr_first_partial, val, val->type, index);
             if (IS_ERR(parts))
                 return parts;
-            res = AGGR_COLLECT(parts, n, f64, f64, if (ops_is_nan($out[$y])) $out[$y] = $in[$x]);
+            res = AGGR_COLLECT(parts, n, f64, f64, if (ISNANF64($out[$y])) $out[$y] = $in[$x]);
             drop_obj(parts);
             return res;
         case TYPE_GUID:
@@ -311,7 +311,7 @@ obj_p aggr_first(obj_p val, obj_p index) {
             return res;
         case TYPE_PARTEDF64:
             return PARTED_MAP(n, val, index, (raw_p)aggr_first_partial, f64, f64,
-                              if (ops_is_nan($out[$y])) $out[$y] = $in[$x]);
+                              if (ISNANF64($out[$y])) $out[$y] = $in[$x]);
         case TYPE_PARTEDGUID:
             return PARTED_MAP(n, val, index, (raw_p)aggr_first_partial, guid, guid,
                               if (memcmp($out[$y], NULL_GUID, sizeof(guid_t)) == 0)
@@ -349,7 +349,7 @@ obj_p aggr_last_partial(raw_p arg1, raw_p arg2, raw_p arg3, raw_p arg4, raw_p ar
             return res;
         case TYPE_F64:
             AGGR_ITER(index, len, offset, val, res, f64, f64, $out[$y] = NULL_F64,
-                      if (!ops_is_nan($in[$x])) $out[$y] = $in[$x]);
+                      if (!ISNANF64($in[$x])) $out[$y] = $in[$x]);
             return res;
         case TYPE_GUID:
             AGGR_ITER(index, len, offset, val, res, guid, guid, memset($out[$y], 0, sizeof(guid_t)),
@@ -414,7 +414,7 @@ obj_p aggr_last(obj_p val, obj_p index) {
             parts = aggr_map((raw_p)aggr_last_partial, val, val->type, index);
             if (IS_ERR(parts))
                 return parts;
-            res = AGGR_COLLECT(parts, n, f64, f64, if (ops_is_nan($out[$y])) $out[$y] = $in[$x]);
+            res = AGGR_COLLECT(parts, n, f64, f64, if (ISNANF64($out[$y])) $out[$y] = $in[$x]);
             drop_obj(parts);
             return res;
         case TYPE_GUID:

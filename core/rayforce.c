@@ -1828,10 +1828,10 @@ i64_t cmp_obj(obj_p a, obj_p b) {
         case TYPE_VARY:
             return a->i64 - b->i64;
         case -TYPE_F64:
-            return (ops_is_nan(a->f64) && ops_is_nan(b->f64))   ? 0
-                   : (ops_is_nan(a->f64) || ops_is_nan(b->f64)) ? 1
-                   : (ABSF64(a->f64 - b->f64) < 1e-16)          ? 0
-                                                                : 1;
+            return (ISNANF64(a->f64) && ISNANF64(b->f64))   ? 0
+                   : (ISNANF64(a->f64) || ISNANF64(b->f64)) ? 1
+                   : (ABSF64(a->f64 - b->f64) < 1e-16)      ? 0
+                                                            : 1;
         case -TYPE_GUID:
             return memcmp(AS_GUID(a), AS_GUID(b), sizeof(guid_t));
         case TYPE_I16:
@@ -1877,10 +1877,10 @@ i64_t cmp_obj(obj_p a, obj_p b) {
 
             l = a->len;
             for (i = 0; i < l; i++) {
-                d = (ops_is_nan(AS_F64(a)[i]) && ops_is_nan(AS_F64(b)[i]))   ? 0
-                    : (ops_is_nan(AS_F64(a)[i]) || ops_is_nan(AS_F64(b)[i])) ? 1
-                    : (ABSF64(AS_F64(a)[i] - AS_F64(b)[i]) < 1e-16)          ? 0
-                                                                             : 1;
+                d = (ISNANF64(AS_F64(a)[i]) && ISNANF64(AS_F64(b)[i]))   ? 0
+                    : (ISNANF64(AS_F64(a)[i]) || ISNANF64(AS_F64(b)[i])) ? 1
+                    : (ABSF64(AS_F64(a)[i] - AS_F64(b)[i]) < 1e-16)      ? 0
+                                                                         : 1;
                 if (d != 0)
                     return d;
             }

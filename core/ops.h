@@ -54,8 +54,21 @@ extern struct obj_t __NULL_OBJECT;
 #define IS_EXTERNAL_COMPOUND(x) ((x)->mmod == MMOD_EXTERNAL_COMPOUND)
 #define IS_EXTERNAL_SERIALIZED(x) ((x)->mmod == MMOD_EXTERNAL_SERIALIZED)
 
-#define ISIZEOF(type) ((i64_t)sizeof(type))
+#define ISNANF64(x)                                      \
+    ((((union {                                          \
+          f64_t d;                                       \
+          u64_t u;                                       \
+      }){.d = (x)})                                      \
+          .u &                                           \
+      0x7FF0000000000000ULL) == 0x7FF0000000000000ULL && \
+     (((union {                                          \
+          f64_t d;                                       \
+          u64_t u;                                       \
+      }){.d = (x)})                                      \
+          .u &                                           \
+      0x000FFFFFFFFFFFFFULL) != 0)
 
+#define ISIZEOF(type) ((i64_t)sizeof(type))
 #define ALIGNUP(x, a) (((x) + (a) - 1) & ~((a) - 1))
 #define ALIGN8(x) ((str_p)(((i64_t)x + 7) & ~7))
 #define MTYPE2(x, y) ((u8_t)(x) | ((u8_t)(y) << 8))
@@ -64,7 +77,7 @@ extern struct obj_t __NULL_OBJECT;
 #define EQI16(x, y) ((x) == (y))
 #define EQI32(x, y) ((x) == (y))
 #define EQI64(x, y) ((x) == (y))
-#define EQF64(x, y) (ops_is_nan(x) ? ops_is_nan(y) : ops_is_nan(y) ? 0 : (x) == (y))
+#define EQF64(x, y) (ISNANF64(x) ? ISNANF64(y) : ISNANF64(y) ? 0 : (x) == (y))
 #define EQGUID(x, y) (memcmp((x), (y), sizeof(guid_t)) == 0)
 #define EQSTR(x, xl, y, yl) (str_cmp((x), (xl), (y), (yl)) == 0)
 #define NEI8(x, y) ((x) != (y))
@@ -80,7 +93,7 @@ extern struct obj_t __NULL_OBJECT;
 #define LTI16(x, y) ((x) < (y))
 #define LTI32(x, y) ((x) < (y))
 #define LTI64(x, y) ((x) < (y))
-#define LTF64(x, y) (ops_is_nan(x) ? !ops_is_nan(y) : ops_is_nan(y) ? 0 : (x) < (y))
+#define LTF64(x, y) (ISNANF64(x) ? !ISNANF64(y) : ISNANF64(y) ? 0 : (x) < (y))
 #define LTGUID(x, y) (memcmp((x), (y), sizeof(guid_t)) < 0)
 #define LTSTR(x, xl, y, yl) (str_cmp((x), (xl), (y), (yl)) < 0)
 #define GTI8(x, y) ((x) > (y))
@@ -88,7 +101,7 @@ extern struct obj_t __NULL_OBJECT;
 #define GTI16(x, y) ((x) > (y))
 #define GTI32(x, y) ((x) > (y))
 #define GTI64(x, y) ((x) > (y))
-#define GTF64(x, y) (ops_is_nan(y) ? !ops_is_nan(x) : ops_is_nan(x) ? 0 : (x) > (y))
+#define GTF64(x, y) (ISNANF64(y) ? !ISNANF64(x) : ISNANF64(x) ? 0 : (x) > (y))
 #define GTGUID(x, y) (memcmp((x), (y), sizeof(guid_t)) > 0)
 #define GTSTR(x, xl, y, yl) (str_cmp((x), (xl), (y), (yl)) > 0)
 #define LEI8(x, y) ((x) <= (y))
@@ -110,45 +123,45 @@ extern struct obj_t __NULL_OBJECT;
 #define ABSI8(x) ((x) < 0 ? -(x) : (x))
 #define ABSI32(x) ((x) == NULL_I32 ? NULL_I32 : (((x) < 0 ? -(x) : (x))))
 #define ABSI64(x) ((x) == NULL_I64 ? NULL_I64 : (((x) < 0 ? -(x) : (x))))
-#define ABSF64(x) (ops_is_nan(x) ? NULL_F64 : (((x) < 0.0 ? -(x) : (x))))
+#define ABSF64(x) (ISNANF64(x) ? NULL_F64 : (((x) < 0.0 ? -(x) : (x))))
 #define CNTI32(x, y) ((y) == NULL_I32 ? (x) : ((x) + 1))
 #define CNTI64(x, y) ((y) == NULL_I64 ? (x) : ((x) + 1))
-#define CNTF64(x, y) (ops_is_nan(y) ? (x) : ((x) + 1))
+#define CNTF64(x, y) (ISNANF64(y) ? (x) : ((x) + 1))
 #define ADDI32(x, y) (((x) == NULL_I32) ? (y) : ((y) == NULL_I32) ? (x) : ((x) + (y)))
 #define ADDI64(x, y) (((x) == NULL_I64) ? (y) : ((y) == NULL_I64) ? (x) : ((x) + (y)))
-#define ADDF64(x, y) (ops_is_nan(x) ? (y) : ops_is_nan(y) ? (x) : ((x) + (y)))
+#define ADDF64(x, y) (ISNANF64(x) ? (y) : ISNANF64(y) ? (x) : ((x) + (y)))
 #define SUBI32(x, y) (((x) == NULL_I32) ? -(y) : ((y) == NULL_I32) ? (x) : ((x) - (y)))
 #define SUBI64(x, y) (((x) == NULL_I64) ? -(y) : ((y) == NULL_I64) ? (x) : ((x) - (y)))
-#define SUBF64(x, y) (ops_is_nan(x) ? -(y) : ops_is_nan(y) ? (x) : ((x) - (y)))
+#define SUBF64(x, y) (ISNANF64(x) ? -(y) : ISNANF64(y) ? (x) : ((x) - (y)))
 #define MULI32(x, y) (((x) == NULL_I32 || (y) == NULL_I32) ? NULL_I32 : ((x) * (y)))
 #define MULI64(x, y) (((x) == NULL_I64 || (y) == NULL_I64) ? NULL_I64 : ((x) * (y)))
-#define MULF64(x, y) (ops_is_nan(x) || ops_is_nan(y) ? NULL_F64 : ((x) * (y)))
+#define MULF64(x, y) (ISNANF64(x) || ISNANF64(y) ? NULL_F64 : ((x) * (y)))
 #define EUCL_DIV(x, y) (((x) / (y)) - ((((x) < 0) != ((y) < 0) && (x) % (y) != 0) ? 1 : 0))
 #define EUCL_MOD(x, y) ((x) - (EUCL_DIV((x), (y)) * (y)))
 #define FEUCL_DIV(x, y) (floor((x) / (y)))
 #define FEUCL_MOD(x, y) ((x) - (FEUCL_DIV((x), (y)) * (y)))
 #define DIVI32(x, y) (((y) == 0 || (x) == NULL_I32 || (y) == NULL_I32) ? NULL_I32 : (EUCL_DIV((x), (y))))
 #define DIVI64(x, y) (((y) == 0 || (x) == NULL_I64 || (y) == NULL_I64) ? NULL_I64 : (EUCL_DIV((x), (y))))
-#define DIVF64(x, y) ((y) == 0.0 || ops_is_nan(x) || ops_is_nan(y) ? NULL_F64 : (FEUCL_DIV((x), (y))))
+#define DIVF64(x, y) ((y) == 0.0 || ISNANF64(x) || ISNANF64(y) ? NULL_F64 : (FEUCL_DIV((x), (y))))
 #define FDIVI32(x, y) (((y) == 0 || (x) == NULL_I32 || (y) == NULL_I32) ? NULL_F64 : ((f64_t)(x) / (f64_t)(y)))
 #define FDIVI64(x, y) (((y) == 0 || (x) == NULL_I64 || (y) == NULL_I64) ? NULL_F64 : ((f64_t)(x) / (f64_t)(y)))
-#define FDIVF64(x, y) ((y) == 0.0 || ops_is_nan(x) || ops_is_nan(y) ? NULL_F64 : ((x) / (y)))
+#define FDIVF64(x, y) ((y) == 0.0 || ISNANF64(x) || ISNANF64(y) ? NULL_F64 : ((x) / (y)))
 #define MODI32(x, y) (((y) == 0 || (x) == NULL_I32 || (y) == NULL_I32) ? NULL_I32 : (EUCL_MOD((x), (y))))
 #define MODI64(x, y) (((y) == 0 || (x) == NULL_I64 || (y) == NULL_I64) ? NULL_I64 : (EUCL_MOD((x), (y))))
-#define MODF64(x, y) ((y) == 0.0 || ops_is_nan(x) || ops_is_nan(y) ? NULL_F64 : (FEUCL_MOD((x), (y))))
+#define MODF64(x, y) ((y) == 0.0 || ISNANF64(x) || ISNANF64(y) ? NULL_F64 : (FEUCL_MOD((x), (y))))
 #define MAXI32(x, y) (((x) == NULL_I32) ? (y) : ((y) == NULL_I32) ? (x) : ((x) > (y) ? (x) : (y)))
 #define MAXI64(x, y) (((x) == NULL_I64) ? (y) : ((y) == NULL_I64) ? (x) : ((x) > (y) ? (x) : (y)))
 #define MAXU64(x, y) ((x) > (y) ? (x) : (y))
-#define MAXF64(x, y) (ops_is_nan((x)) ? (y) : ops_is_nan((y)) ? (x) : ((x) > (y) ? (x) : (y)))
+#define MAXF64(x, y) (ISNANF64((x)) ? (y) : ISNANF64((y)) ? (x) : ((x) > (y) ? (x) : (y)))
 #define MINI32(x, y) (((x) == NULL_I32) ? (y) : ((y) == NULL_I32) ? (x) : ((x) < (y) ? (x) : (y)))
 #define MINI64(x, y) (((x) == NULL_I64) ? (y) : ((y) == NULL_I64) ? (x) : ((x) < (y) ? (x) : (y)))
 #define MINU64(x, y) ((x) < (y) ? (x) : (y))
-#define MINF64(x, y) (ops_is_nan((x)) ? (y) : ops_is_nan((y)) ? (x) : ((x) < (y) ? (x) : (y)))
+#define MINF64(x, y) (ISNANF64((x)) ? (y) : ISNANF64((y)) ? (x) : ((x) < (y) ? (x) : (y)))
 #define ROTI32(x, y) (((x) << (y)) | ((x) >> (32 - (y))))
 #define ROTI64(x, y) (((x) << (y)) | ((x) >> (64 - (y))))
-#define ROUNDF64(x) ((ops_is_nan((x))) ? NULL_F64 : ((x) >= 0.0 ? (i64_t)((x) + 0.5) : (i64_t)((x) - 0.5)))
-#define FLOORF64(x) ((ops_is_nan((x))) ? NULL_F64 : (((x) < 0.0 && (i64_t)(x) != (x)) ? (i64_t)(x) - 1.0 : (i64_t)(x)))
-#define CEILF64(x) ((ops_is_nan((x))) ? NULL_F64 : (-FLOORF64(-(x))))
+#define ROUNDF64(x) ((ISNANF64((x))) ? NULL_F64 : ((x) >= 0.0 ? (i64_t)((x) + 0.5) : (i64_t)((x) - 0.5)))
+#define FLOORF64(x) ((ISNANF64((x))) ? NULL_F64 : (((x) < 0.0 && (i64_t)(x) != (x)) ? (i64_t)(x) - 1.0 : (i64_t)(x)))
+#define CEILF64(x) ((ISNANF64((x))) ? NULL_F64 : (-FLOORF64(-(x))))
 #define XBARI32(x, y) \
     (((y) == 0 || (x) == NULL_I32 || (y) == NULL_I32) ? NULL_I32 : (((x < 0) ? (x + 1 - y) : (x)) / (y) * (y)))
 #define XBARI64(x, y) \
@@ -165,7 +178,6 @@ typedef obj_p (*vary_f)(obj_p *, i64_t);
 typedef enum { ERROR_TYPE_OS, ERROR_TYPE_SYS, ERROR_TYPE_SOCK } os_ray_error_type_t;
 
 b8_t ops_as_b8(obj_p x);
-b8_t ops_is_nan(f64_t x);
 b8_t ops_is_prime(i64_t x);
 i64_t ops_next_prime(i64_t x);
 i64_t ops_rand_u64(nil_t);
@@ -204,12 +216,12 @@ static inline f64_t i64_to_f64(i64_t x) { return (x == NULL_I64) ? NULL_F64 : (f
 static inline i32_t i64_to_date(i64_t x) { return (x == NULL_I64) ? NULL_I32 : (i32_t)x; }
 static inline i32_t i64_to_time(i64_t x) { return (x == NULL_I64) ? NULL_I32 : (i32_t)x; }
 static inline i64_t i64_to_timestamp(i64_t x) { return x; }
-static inline i32_t f64_to_i32(f64_t x) { return ops_is_nan(x) ? NULL_I32 : (i32_t)x; }
-static inline i64_t f64_to_i64(f64_t x) { return ops_is_nan(x) ? NULL_I64 : (i64_t)x; }
+static inline i32_t f64_to_i32(f64_t x) { return ISNANF64(x) ? NULL_I32 : (i32_t)x; }
+static inline i64_t f64_to_i64(f64_t x) { return ISNANF64(x) ? NULL_I64 : (i64_t)x; }
 static inline f64_t f64_to_f64(f64_t x) { return x; }
-static inline i32_t f64_to_date(f64_t x) { return ops_is_nan(x) ? NULL_I32 : (i32_t)x; }
-static inline i32_t f64_to_time(f64_t x) { return ops_is_nan(x) ? NULL_I32 : (i32_t)x; }
-static inline i64_t f64_to_timestamp(f64_t x) { return ops_is_nan(x) ? NULL_I64 : (i64_t)x; }
+static inline i32_t f64_to_date(f64_t x) { return ISNANF64(x) ? NULL_I32 : (i32_t)x; }
+static inline i32_t f64_to_time(f64_t x) { return ISNANF64(x) ? NULL_I32 : (i32_t)x; }
+static inline i64_t f64_to_timestamp(f64_t x) { return ISNANF64(x) ? NULL_I64 : (i64_t)x; }
 static inline i32_t date_to_i32(i32_t x) { return x; }
 static inline i64_t date_to_i64(i32_t x) { return (x == NULL_I32) ? NULL_I64 : (i64_t)x; }
 static inline f64_t date_to_f64(i32_t x) { return (x == NULL_I32) ? NULL_F64 : (f64_t)x; }

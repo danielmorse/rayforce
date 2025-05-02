@@ -66,16 +66,6 @@ b8_t ops_as_b8(obj_p x) {
             return B8_TRUE;
     }
 }
-/*
- * In case of using -Ofast compiler flag, we can not just use x != x due to
- * compiler optimizations. So we need to use memcpy to get the bits of the x
- * and then separate check mantissa and exponent.
- */
-b8_t ops_is_nan(f64_t x) {
-    i64_t bits;
-    memcpy(&bits, &x, sizeof(x));
-    return (bits & 0x7ff0000000000000ull) == 0x7ff0000000000000ull && (bits & 0x000fffffffffffffull) != 0;
-}
 
 b8_t ops_is_prime(i64_t x) {
     i64_t i;

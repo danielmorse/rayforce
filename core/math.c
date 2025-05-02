@@ -1395,7 +1395,7 @@ obj_p ray_sq_sub_partial(obj_p x, obj_p y, i64_t len, i64_t offset) {
             f64_t *lhs = __AS_f64(x) + offset;
             f64_t out = 0.0;
             for (i64_t i = 0; i < len; i++)
-                if (!ops_is_nan(lhs[i])) {
+                if (!ISNANF64(lhs[i])) {
                     f64_t t = ((f64_t)lhs[i]) - y->f64;
                     out += t * t;
                 }

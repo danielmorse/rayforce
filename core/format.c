@@ -333,7 +333,7 @@ i64_t i64_fmt_into(obj_p *dst, i64_t val) {
 i64_t f64_fmt_into(obj_p *dst, f64_t val) {
     f64_t order;
 
-    if (ops_is_nan(val))
+    if (ISNANF64(val))
         return str_fmt_into(dst, 4, LIT_NULL_F64);
     if (val == -0.0)
         return str_fmt_into(dst, NO_LIMIT, "%.*f", F64_PRECISION, 0.0);
