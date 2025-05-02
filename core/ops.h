@@ -124,8 +124,7 @@ extern struct obj_t __NULL_OBJECT;
 #define CNTF64(x, y) (ISNANF64(y) ? (x) : ((x) + 1))
 #define ADDI32(x, y) (((x) == NULL_I32) ? (y) : ((y) == NULL_I32) ? (x) : ((x) + (y)))
 #define ADDI64(x, y) (((x) == NULL_I64) ? (y) : ((y) == NULL_I64) ? (x) : ((x) + (y)))
-// #define ADDF64(x, y) (ISNANF64(x) ? (y) : ISNANF64(y) ? (x) : ((x) + (y)))
-#define ADDF64(x, y) ((x) + (y))
+#define ADDF64(x, y) (ISNANF64(x) || ISNANF64(y) ? NULL_F64 : ((x) + (y)))
 #define SUBI32(x, y) (((x) == NULL_I32) ? -(y) : ((y) == NULL_I32) ? (x) : ((x) - (y)))
 #define SUBI64(x, y) (((x) == NULL_I64) ? -(y) : ((y) == NULL_I64) ? (x) : ((x) - (y)))
 #define SUBF64(x, y) (ISNANF64(x) ? -(y) : ISNANF64(y) ? (x) : ((x) - (y)))
@@ -186,7 +185,6 @@ obj_p ops_where(b8_t *mask, i64_t n);
 obj_p sys_error(os_ray_error_type_t, lit_p msg);
 
 // Binary ops/coersions
-
 static inline i16_t i16_to_i16(i16_t x) { return x; }
 static inline i32_t i16_to_i32(i16_t x) { return (x == NULL_I16) ? NULL_I32 : (i32_t)x; }
 static inline i64_t i16_to_i64(i16_t x) { return (x == NULL_I16) ? NULL_I64 : (i64_t)x; }
