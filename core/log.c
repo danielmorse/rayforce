@@ -8,7 +8,7 @@
 #include <ctype.h>
 
 // Default log level if not specified
-static log_level_t current_level = LOG_LEVEL_INFO;
+static log_level_t current_level = LOG_LEVEL_OFF;
 static str_p file_filters = NULL;
 static i32_t num_filters = 0;
 static b8_t level_initialized = B8_FALSE;
@@ -72,7 +72,7 @@ static void init_log_level(nil_t) {
             parse_log_config(config);
         } else {
             // If environment variable is not set, use default level
-            current_level = LOG_LEVEL_INFO;
+            current_level = LOG_LEVEL_OFF;
         }
         level_initialized = B8_TRUE;
     }
