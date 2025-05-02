@@ -35,6 +35,7 @@
 #include "../../core/string.h"
 #include "../../core/runtime.h"
 #include "raykx.h"
+#include <errno.h>
 
 // Just to test the ipc.h file
 #include "../../core/ipc.h"
@@ -44,6 +45,30 @@ static option_t raykx_read_header(poll_p poll, selector_p selector);
 static option_t raykx_read_msg(poll_p poll, selector_p selector);
 static nil_t raykx_on_error(poll_p poll, selector_p selector);
 static nil_t raykx_on_close(poll_p poll, selector_p selector);
+
+i64_t sock_send(i64_t fd, u8_t *buf, i64_t size) {
+    i64_t sz;
+send:
+    sz = send(fd, (str_p)buf, size, MSG_NOSIGNAL);
+    switch (sz) {
+        case -1:
+            if (errno == EINTR)
+                goto send;
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+                return 0;
+            else {
+                LOG_ERROR("Failed to send data on fd %lld: %s", fd, strerror(errno));
+                return -1;
+            }
+
+        case 0:
+            return -1;
+
+        default:
+            LOG_TRACE("Sent %lld bytes on fd %lld", sz, fd);
+            return sz;
+    }
+}
 
 // ============================================================================
 // Connection Management
