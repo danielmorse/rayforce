@@ -32,51 +32,53 @@
 #include "order.h"
 #include "runtime.h"
 
-#define __UNOP_FOLD(x, lt, ot, op, ln, of, iv)     \
-    ({                                             \
-        __BASE_##lt##_t *$lhs = __AS_##lt(x) + of; \
-        __BASE_##lt##_t $out = iv;                 \
-        for (i64_t $i = 0; $i < ln; $i++)          \
-            $out = op($out, $lhs[$i]);             \
-        ot(lt##_to_##ot($out));                    \
+#define __UNOP_FOLD(x, lt, ot, op, ln, of, iv)                  \
+    ({                                                          \
+        __BASE_##lt##_t *__restrict__ $lhs = __AS_##lt(x) + of; \
+        __BASE_##lt##_t $out = iv;                              \
+        for (i64_t $i = 0; $i < ln; $i++)                       \
+            $out = op($out, $lhs[$i]);                          \
+        ot(lt##_to_##ot($out));                                 \
     })
 
-#define __UNOP_MAP(x, lt, ot, op, ln, of, ov) \
-    ({                                        \
-        lt##_t *$lhs = __AS_##lt(x) + of;     \
-        ot##_t *$out = __AS_##lt(ov) + of;    \
-        for (i64_t $i = 0; $i < ln; $i++)     \
-            $out[$i] = op($lhs[$i]);          \
-        NULL_OBJ;                             \
+#define __UNOP_MAP(x, lt, ot, op, ln, of, ov)           \
+    ({                                                  \
+        lt##_t *__restrict__ $lhs = __AS_##lt(x) + of;  \
+        ot##_t *__restrict__ $out = __AS_##lt(ov) + of; \
+        for (i64_t $i = 0; $i < ln; $i++)               \
+            $out[$i] = op($lhs[$i]);                    \
+        NULL_OBJ;                                       \
     })
 
-#define __BINOP_A_V(x, y, lt, rt, ot, mt, op, ln, of, ov)                                      \
-    ({                                                                                         \
-        __BASE_##rt##_t *$rhs;                                                                 \
-        __BASE_##ot##_t *$out;                                                                 \
-        $rhs = __AS_##rt(y) + of;                                                              \
-        $out = __AS_##ot(ov) + of;                                                             \
-        for (i64_t $i = 0; $i < ln; $i++)                                                      \
-            $out[$i] = mt##_to_##ot(op(lt##_to_##mt(x->__BASE_##lt), rt##_to_##mt($rhs[$i]))); \
-        NULL_OBJ;                                                                              \
+#define __BINOP_A_V(x, y, lt, rt, ot, mt, op, ln, of, ov)                              \
+    ({                                                                                 \
+        __BASE_##rt##_t *__restrict__ $rhs;                                            \
+        __BASE_##ot##_t *__restrict__ $out;                                            \
+        __BASE_##lt##_t $x_val = x->__BASE_##lt;                                       \
+        $rhs = __AS_##rt(y) + of;                                                      \
+        $out = __AS_##ot(ov) + of;                                                     \
+        for (i64_t $i = 0; $i < ln; $i++)                                              \
+            $out[$i] = mt##_to_##ot(op(lt##_to_##mt($x_val), rt##_to_##mt($rhs[$i]))); \
+        NULL_OBJ;                                                                      \
     })
 
-#define __BINOP_V_A(x, y, lt, rt, ot, mt, op, ln, of, ov)                                      \
-    ({                                                                                         \
-        __BASE_##lt##_t *$lhs;                                                                 \
-        __BASE_##ot##_t *$out;                                                                 \
-        $lhs = __AS_##lt(x) + of;                                                              \
-        $out = __AS_##ot(ov) + of;                                                             \
-        for (i64_t $i = 0; $i < ln; $i++)                                                      \
-            $out[$i] = mt##_to_##ot(op(lt##_to_##mt($lhs[$i]), rt##_to_##mt(y->__BASE_##rt))); \
-        NULL_OBJ;                                                                              \
+#define __BINOP_V_A(x, y, lt, rt, ot, mt, op, ln, of, ov)                              \
+    ({                                                                                 \
+        __BASE_##lt##_t *__restrict__ $lhs;                                            \
+        __BASE_##ot##_t *__restrict__ $out;                                            \
+        __BASE_##rt##_t $y_val = y->__BASE_##rt;                                       \
+        $lhs = __AS_##lt(x) + of;                                                      \
+        $out = __AS_##ot(ov) + of;                                                     \
+        for (i64_t $i = 0; $i < ln; $i++)                                              \
+            $out[$i] = mt##_to_##ot(op(lt##_to_##mt($lhs[$i]), rt##_to_##mt($y_val))); \
+        NULL_OBJ;                                                                      \
     })
 
 #define __BINOP_V_V(x, y, lt, rt, ot, mt, op, ln, of, ov)                                \
     ({                                                                                   \
-        __BASE_##lt##_t *$lhs;                                                           \
-        __BASE_##rt##_t *$rhs;                                                           \
-        __BASE_##ot##_t *$out;                                                           \
+        __BASE_##lt##_t *__restrict__ $lhs;                                              \
+        __BASE_##rt##_t *__restrict__ $rhs;                                              \
+        __BASE_##ot##_t *__restrict__ $out;                                              \
         $lhs = __AS_##lt(x) + of;                                                        \
         $rhs = __AS_##rt(y) + of;                                                        \
         $out = __AS_##ot(ov) + of;                                                       \
@@ -676,13 +678,13 @@ obj_p ray_mul_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return __BINOP_V_V(x, y, i32, time, time, time, MULI32, len, offset, out);
 
         case MTYPE2(TYPE_I64, -TYPE_I32):
-            return __BINOP_V_A(x, y, i64, i32, i64, i64, MULI64, len, offset, out);
+            return __BINOP_V_A(x, y, i64, i64, i64, i64, MULI64, len, offset, out);
         case MTYPE2(TYPE_I64, -TYPE_I64):
             return __BINOP_V_A(x, y, i64, i64, i64, i64, MULI64, len, offset, out);
         case MTYPE2(TYPE_I64, -TYPE_F64):
             return __BINOP_V_A(x, y, i64, f64, f64, f64, MULF64, len, offset, out);
         case MTYPE2(TYPE_I64, -TYPE_TIME):
-            return __BINOP_V_A(x, y, i64, time, time, time, MULI32, len, offset, out);
+            return __BINOP_V_A(x, y, i64, i32, time, time, MULI32, len, offset, out);
         case MTYPE2(TYPE_I64, TYPE_I32):
             return __BINOP_V_V(x, y, i64, i32, i64, i64, MULI64, len, offset, out);
         case MTYPE2(TYPE_I64, TYPE_I64):
@@ -690,7 +692,7 @@ obj_p ray_mul_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
         case MTYPE2(TYPE_I64, TYPE_F64):
             return __BINOP_V_V(x, y, i64, f64, f64, f64, MULF64, len, offset, out);
         case MTYPE2(TYPE_I64, TYPE_TIME):
-            return __BINOP_V_V(x, y, i64, time, time, time, MULI32, len, offset, out);
+            return __BINOP_V_V(x, y, i64, i32, time, time, MULI32, len, offset, out);
 
         case MTYPE2(TYPE_F64, -TYPE_I32):
             return __BINOP_V_A(x, y, f64, i32, f64, f64, MULF64, len, offset, out);
@@ -773,11 +775,11 @@ obj_p ray_div_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return __BINOP_V_V(x, y, i32, f64, i32, f64, DIVF64, len, offset, out);
 
         case MTYPE2(TYPE_I64, -TYPE_I32):
-            return __BINOP_V_A(x, y, i64, i32, i64, i64, DIVI64, len, offset, out);
+            return __BINOP_V_A(x, y, i64, i64, i64, i64, DIVI64, len, offset, out);
         case MTYPE2(TYPE_I64, -TYPE_I64):
             return __BINOP_V_A(x, y, i64, i64, i64, i64, DIVI64, len, offset, out);
         case MTYPE2(TYPE_I64, -TYPE_F64):
-            return __BINOP_V_A(x, y, i64, f64, i64, f64, DIVF64, len, offset, out);
+            return __BINOP_V_A(x, y, i64, f64, f64, f64, DIVF64, len, offset, out);
         case MTYPE2(TYPE_I64, TYPE_I32):
             return __BINOP_V_V(x, y, i64, i32, i64, i64, DIVI64, len, offset, out);
         case MTYPE2(TYPE_I64, TYPE_I64):
@@ -966,7 +968,7 @@ obj_p ray_mod_partial(obj_p x, obj_p y, i64_t len, i64_t offset, obj_p out) {
             return __BINOP_V_V(x, y, i32, f64, f64, f64, MODF64, len, offset, out);
 
         case MTYPE2(TYPE_I64, -TYPE_I32):
-            return __BINOP_V_A(x, y, i64, i32, i32, i64, MODI64, len, offset, out);
+            return __BINOP_V_A(x, y, i64, i64, i64, i64, MODI64, len, offset, out);
         case MTYPE2(TYPE_I64, -TYPE_I64):
             return __BINOP_V_A(x, y, i64, i64, i64, i64, MODI64, len, offset, out);
         case MTYPE2(TYPE_I64, -TYPE_F64):
