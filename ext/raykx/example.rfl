@@ -1,0 +1,2 @@
+(set .kx.hopen (loadfn "ext/raykx/libraykx.so" "raykx_hopen" 1))
+(set .kx.send (loadfn "ext/raykx/libraykx.so" "raykx_send" 2))
