@@ -223,10 +223,13 @@ option_t ipc_read_handshake(poll_p poll, selector_p selector) {
         poll_rx_buf_request(poll, selector, ISIZEOF(struct ipc_header_t));
         poll_rx_buf_reset(poll, selector);
 
-        return option_some(NULL);
+        return option_none();
     }
 
-    return option_none();
+    // extend the buffer to the next 1 byte
+    poll_rx_buf_request(poll, selector, selector->rx.buf->size + 1);
+
+    return option_some(NULL);
 }
 
 option_t ipc_read_header(poll_p poll, selector_p selector) {

@@ -84,6 +84,9 @@ i64_t poll_rx_buf_request(poll_p poll, selector_p selector, i64_t size) {
             return -1;
 
         selector->rx.buf->size = size;
+    } else {
+        selector->rx.buf->size = size;
+        selector->rx.buf->offset = 0;
     }
 
     return 0;

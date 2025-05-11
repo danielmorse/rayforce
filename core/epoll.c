@@ -161,6 +161,8 @@ i64_t poll_register(poll_p poll, poll_registry_p registry) {
     if (registry->open_fn != NULL)
         registry->open_fn(poll, selector);
 
+    LOG_DEBUG("Selector %lld: registered", selector->id);
+
     return id;
 }
 
@@ -318,6 +320,7 @@ i64_t poll_run(poll_p poll) {
         }
 
         for (n = 0; n < nfds; n++) {
+            LOG_TRACE("Event %lld: %lld", n, events[n].events);
             ev = events[n];
 
             // shutdown
@@ -361,8 +364,6 @@ i64_t poll_run(poll_p poll) {
                     if (option_is_some(&poll_result)) {
                         if (poll_result.value != NULL && selector->data_fn != NULL)
                             selector->data_fn(poll, selector, poll_result.value);
-
-                        continue;
                     }
 
                     if (option_is_error(&poll_result))

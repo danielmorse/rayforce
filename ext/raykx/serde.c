@@ -24,6 +24,8 @@
 #include "serde.h"
 #include "raykx.h"
 #include "k.h"
+#include <stdio.h>
+#include <string.h>
 #include "../../core/ops.h"
 #include "../../core/log.h"
 #include "../../core/error.h"
@@ -32,8 +34,6 @@
  * Returns size (in bytes) that an obj occupy in memory via serialization into KDB+ IPC format
  */
 i64_t raykx_size_obj(obj_p obj) {
-    i64_t i, l, size;
-
     switch (obj->type) {
         case -TYPE_B8:
             return ISIZEOF(i8_t) + ISIZEOF(b8_t);
@@ -53,8 +53,8 @@ i64_t raykx_size_obj(obj_p obj) {
         case -TYPE_F64:
             return ISIZEOF(i8_t) + ISIZEOF(f64_t);
 
-        case -TYPE_SYMBOL:
-            return ISIZEOF(i8_t) + strlen(str_from_symbol(obj->i64)) + 1;
+            // case -TYPE_SYMBOL:
+            //     return ISIZEOF(i8_t) + strlen(str_from_symbol(obj->i64)) + 1;
 
         case -TYPE_C8:
             return ISIZEOF(i8_t) + ISIZEOF(c8_t);
@@ -74,29 +74,29 @@ i64_t raykx_size_obj(obj_p obj) {
             return ISIZEOF(i8_t) + ISIZEOF(i64_t) + obj->len * ISIZEOF(f64_t);
         case TYPE_C8:
             return ISIZEOF(i8_t) + 1 + ISIZEOF(i32_t) + obj->len * ISIZEOF(c8_t);
-        case TYPE_SYMBOL:
-            l = obj->len;
-            size = ISIZEOF(i8_t) + ISIZEOF(i32_t);
-            for (i = 0; i < l; i++)
-                size += strlen(str_from_symbol(AS_SYMBOL(obj)[i])) + 1;
-            return size;
-        case TYPE_LIST:
-            l = obj->len;
-            size = ISIZEOF(i8_t) + ISIZEOF(i64_t);
-            for (i = 0; i < l; i++)
-                size += size_obj(AS_LIST(obj)[i]);
-            return size;
-        case TYPE_TABLE:
-        case TYPE_DICT:
-            return ISIZEOF(i8_t) + size_obj(AS_LIST(obj)[0]) + size_obj(AS_LIST(obj)[1]);
-        // case TYPE_LAMBDA:
-        //     return ISIZEOF(i8_t) + size_obj(AS_LAMBDA(obj)->args) + size_obj(AS_LAMBDA(obj)->body);
-        case TYPE_UNARY:
-        case TYPE_BINARY:
-        case TYPE_VARY:
-            return ISIZEOF(i8_t) + strlen(env_get_internal_name(obj)) + 1;
-        case TYPE_NULL:
-            return ISIZEOF(i8_t);
+        // case TYPE_SYMBOL:
+        //     l = obj->len;
+        //     size = ISIZEOF(i8_t) + ISIZEOF(i32_t);
+        //     for (i = 0; i < l; i++)
+        //         size += strlen(str_from_symbol(AS_SYMBOL(obj)[i])) + 1;
+        //     return size;
+        // case TYPE_LIST:
+        //     l = obj->len;
+        //     size = ISIZEOF(i8_t) + ISIZEOF(i64_t);
+        //     for (i = 0; i < l; i++)
+        //         size += size_obj(AS_LIST(obj)[i]);
+        //     return size;
+        // case TYPE_TABLE:
+        // case TYPE_DICT:
+        //     return ISIZEOF(i8_t) + size_obj(AS_LIST(obj)[0]) + size_obj(AS_LIST(obj)[1]);
+        // // case TYPE_LAMBDA:
+        // //     return ISIZEOF(i8_t) + size_obj(AS_LAMBDA(obj)->args) + size_obj(AS_LAMBDA(obj)->body);
+        // case TYPE_UNARY:
+        // case TYPE_BINARY:
+        // case TYPE_VARY:
+        //     return ISIZEOF(i8_t) + strlen(env_get_internal_name(obj)) + 1;
+        // case TYPE_NULL:
+        //     return ISIZEOF(i8_t);
         // case TYPE_ERR:
         //     return ISIZEOF(i8_t) + ISIZEOF(i8_t) + size_obj(AS_ERROR(obj)->msg);
         default:
@@ -104,9 +104,8 @@ i64_t raykx_size_obj(obj_p obj) {
     }
 }
 
-i64_t raykx_save_obj(u8_t *buf, i64_t len, obj_p obj) {
-    i32_t i, l, c;
-    str_p s;
+i64_t raykx_save_obj(u8_t *buf, obj_p obj) {
+    i32_t l;
 
     switch (obj->type) {
         case TYPE_NULL:
@@ -142,7 +141,7 @@ i64_t raykx_ser_obj(u8_t *buf, i64_t len, obj_p obj) {
     size = len + ISIZEOF(struct raykx_header_t);
 
     header = (raykx_header_p)buf;
-    header->endianness = 1;
+    header->endianness = 0x01;
     header->msgtype = KDB_MSG_SYNC;
     header->compressed = 0;
     header->reserved = 0;
@@ -150,16 +149,14 @@ i64_t raykx_ser_obj(u8_t *buf, i64_t len, obj_p obj) {
 
     LOG_DEBUG("Serializing object of size %lld", size);
 
-    if (raykx_save_obj(buf + ISIZEOF(struct raykx_header_t), len, obj) == 0)
+    if (raykx_save_obj(buf + ISIZEOF(struct raykx_header_t), obj) == 0)
         return -1;
 
     return size;
 }
 
 obj_p raykx_load_obj(u8_t *buf, i64_t *len) {
-    i8_t code;
-    i64_t i, l, c, id;
-    obj_p obj, k, v;
+    obj_p obj;
     i8_t type;
 
     if (*len == 0)

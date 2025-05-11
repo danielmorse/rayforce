@@ -39,10 +39,93 @@
 #include "serde.h"
 
 // Forward declarations
+static option_t raykx_read_handshake(poll_p poll, selector_p selector);
 static option_t raykx_read_header(poll_p poll, selector_p selector);
 static option_t raykx_read_msg(poll_p poll, selector_p selector);
+static nil_t raykx_send_msg(poll_p poll, selector_p selector, obj_p msg, u8_t msgtype);
 static nil_t raykx_on_error(poll_p poll, selector_p selector);
 static nil_t raykx_on_close(poll_p poll, selector_p selector);
+static nil_t raykx_on_open(poll_p poll, selector_p selector);
+static nil_t raykx_on_data(poll_p poll, selector_p selector, raw_p data);
+
+// ============================================================================
+// Listener Management
+// ============================================================================
+
+option_t raykx_listener_accept(poll_p poll, selector_p selector) {
+    i64_t fd;
+    struct poll_registry_t registry = ZERO_INIT_STRUCT;
+    raykx_ctx_p ctx;
+
+    LOG_TRACE("Accepting new connection on fd %lld", selector->fd);
+    fd = sock_accept(selector->fd);
+    LOG_DEBUG("New connection accepted on fd %lld", fd);
+
+    if (fd != -1) {
+        ctx = (raykx_ctx_p)heap_alloc(sizeof(struct raykx_ctx_t));
+        ctx->name = string_from_str("raykx", 6);
+        ctx->msgtype = KDB_MSG_RESP;
+
+        registry.fd = fd;
+        registry.type = SELECTOR_TYPE_SOCKET;
+        registry.events = POLL_EVENT_READ | POLL_EVENT_ERROR | POLL_EVENT_HUP;
+        registry.open_fn = raykx_on_open;
+        registry.close_fn = raykx_on_close;
+        registry.error_fn = raykx_on_error;
+        registry.read_fn = raykx_read_handshake;
+        registry.recv_fn = sock_recv;
+        registry.send_fn = sock_send;
+        registry.data_fn = raykx_on_data;
+        registry.data = ctx;
+
+        if (poll_register(poll, &registry) == -1) {
+            LOG_ERROR("Failed to register new connection in poll registry");
+            heap_free(ctx);
+            return option_error(
+                sys_error(ERR_IO, "ipc_listener_accept: failed to register new connection in poll registry"));
+        }
+
+        LOG_INFO("New connection registered successfully");
+    }
+
+    return option_none();
+}
+
+nil_t raykx_listener_close(poll_p poll, selector_p selector) {
+    UNUSED(poll);
+    UNUSED(selector);
+}
+
+obj_p raykx_listen(obj_p x) {
+    i64_t fd, port;
+    poll_p poll = runtime_get()->poll;
+    struct poll_registry_t registry = ZERO_INIT_STRUCT;
+
+    if (x->type != -TYPE_I64)
+        THROW(ERR_TYPE, "listen: expected i64, got %s", type_name(x->type));
+
+    port = x->i64;
+
+    if (poll == NULL)
+        return error(ERR_IO, "raykx_listen: poll is NULL");
+
+    fd = sock_listen(port);
+    if (fd == -1)
+        return error(ERR_IO, "raykx_listen: failed to listen on port");
+
+    registry.fd = fd;
+    registry.type = SELECTOR_TYPE_SOCKET;
+    registry.events = POLL_EVENT_READ | POLL_EVENT_ERROR | POLL_EVENT_HUP;
+    registry.recv_fn = NULL;
+    registry.read_fn = raykx_listener_accept;
+    registry.close_fn = raykx_listener_close;
+    registry.error_fn = NULL;
+    registry.data = NULL;
+
+    LOG_DEBUG("Registering listener on port %lld", port);
+
+    return i64(poll_register(poll, &registry));
+}
 
 // ============================================================================
 // Connection Management
@@ -119,6 +202,43 @@ obj_p raykx_hclose(obj_p fd) {
 // Message Reading
 // ============================================================================
 
+option_t raykx_read_handshake(poll_p poll, selector_p selector) {
+    UNUSED(poll);
+
+    LOG_DEBUG("Reading handshake from connection %lld", selector->id);
+
+    poll_buffer_p buf;
+    u8_t handshake[2] = {0x03, 0x00};
+
+    if (selector->rx.buf == NULL) {
+        LOG_DEBUG("No handshake buffer received, closing connection");
+        poll_deregister(poll, selector->id);
+        return option_error(
+            sys_error(ERR_IO, "raykx_read_handshake: no handshake buffer received, closing connection"));
+    }
+
+    if (selector->rx.buf->offset > 0 && selector->rx.buf->data[selector->rx.buf->offset - 1] == '\0') {
+        LOG_TRACE("Handshake from connection %lld: '%s'", selector->id, selector->rx.buf->data);
+        // send handshake response
+        buf = poll_buf_create(ISIZEOF(handshake));
+        memcpy(buf->data, handshake, ISIZEOF(handshake));
+        poll_send_buf(poll, selector, buf);
+
+        selector->rx.read_fn = raykx_read_header;
+        LOG_DEBUG("Handshake completed, switching to header reading mode");
+
+        poll_rx_buf_request(poll, selector, ISIZEOF(struct raykx_header_t));
+        poll_rx_buf_reset(poll, selector);
+
+        return option_none();
+    }
+
+    // extend the buffer to the next 1 byte
+    poll_rx_buf_request(poll, selector, selector->rx.buf->size + 1);
+
+    return option_some(NULL);
+}
+
 static option_t raykx_read_header(poll_p poll, selector_p selector) {
     UNUSED(poll);
     raykx_header_p header;
@@ -164,6 +284,13 @@ static option_t raykx_read_msg(poll_p poll, selector_p selector) {
 // Event Handlers
 // ============================================================================
 
+static nil_t raykx_on_open(poll_p poll, selector_p selector) {
+    UNUSED(poll);
+    UNUSED(selector);
+    LOG_DEBUG("Connection opened, requesting handshake buffer");
+    poll_rx_buf_request(poll, selector, 2);
+}
+
 static nil_t raykx_on_error(poll_p poll, selector_p selector) {
     UNUSED(poll);
     UNUSED(selector);
@@ -171,6 +298,7 @@ static nil_t raykx_on_error(poll_p poll, selector_p selector) {
 }
 
 static nil_t raykx_on_close(poll_p poll, selector_p selector) {
+    UNUSED(poll);
     raykx_ctx_p ctx;
 
     LOG_INFO("KDB+ connection %lld closed", selector->id);
@@ -210,6 +338,26 @@ obj_p raykx_process_msg(poll_p poll, selector_p selector, obj_p msg) {
     LOG_TRACE_OBJ("Resulting object: ", res);
 
     return res;
+}
+
+nil_t raykx_on_data(poll_p poll, selector_p selector, raw_p data) {
+    UNUSED(poll);
+
+    LOG_TRACE("Received data from connection %lld", selector->id);
+
+    raykx_ctx_p ctx;
+    obj_p v, res;
+
+    ctx = (raykx_ctx_p)selector->data;
+    res = (obj_p)data;
+
+    v = raykx_process_msg(poll, selector, res);
+
+    // Send a response if the message is a synchronous request
+    if (ctx->msgtype == KDB_MSG_SYNC)
+        raykx_send_msg(poll, selector, v, KDB_MSG_RESP);
+
+    drop_obj(v);
 }
 
 nil_t raykx_send_msg(poll_p poll, selector_p selector, obj_p msg, u8_t msgtype) {
