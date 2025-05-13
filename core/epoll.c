@@ -247,14 +247,6 @@ i64_t poll_recv(poll_p poll, selector_p selector) {
     return total;
 }
 
-nil_t debug_buffer(poll_buffer_p buf) {
-    i64_t i;
-    for (i = 0; i < buf->size; i++) {
-        printf("%02x ", buf->data[i]);
-    }
-    printf("\n");
-}
-
 i64_t poll_send(poll_p poll, selector_p selector) {
     UNUSED(poll);
 
@@ -262,7 +254,6 @@ i64_t poll_send(poll_p poll, selector_p selector) {
     poll_buffer_p buf;
 
     LOG_TRACE("Sending data to selector %lld", selector->id);
-    debug_buffer(selector->tx.buf);
 
     total = 0;
 

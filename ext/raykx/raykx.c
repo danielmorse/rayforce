@@ -229,7 +229,6 @@ option_t raykx_read_handshake(poll_p poll, selector_p selector) {
     }
 
     // extend the buffer to the next 1 byte
-    printf("Extending buffer from %d to %d\n", selector->rx.buf->size, selector->rx.buf->size + 1);
     poll_rx_buf_request(poll, selector, selector->rx.buf->size + 1);
 
     return option_some(NULL);
