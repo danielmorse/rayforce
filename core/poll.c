@@ -36,6 +36,8 @@
 #include "wasm.c"
 #endif
 
+RAYASSERT(sizeof(struct poll_buffer_t) == 16, poll_h)
+
 selector_p poll_get_selector(poll_p poll, i64_t id) {
     i64_t idx;
 
@@ -78,15 +80,23 @@ i64_t poll_rx_buf_request(poll_p poll, selector_p selector, i64_t size) {
         selector->rx.buf->offset = 0;
 
     } else if (selector->rx.buf->size < size) {
+        LOG_TRACE("Extending buffer from %d to %d", selector->rx.buf->size, size);
         selector->rx.buf = heap_realloc(selector->rx.buf, ISIZEOF(struct poll_buffer_t) + size);
-
+        LOG_TRACE("New buffer: %p", selector->rx.buf);
         if (selector->rx.buf == NULL)
             return -1;
 
+        LOG_TRACE("New buffer offset: %d", selector->rx.buf->offset);
+
         selector->rx.buf->size = size;
     } else {
-        selector->rx.buf->size = size;
-        selector->rx.buf->offset = 0;
+        LOG_TRACE("Cropping buffer from %d to %d", selector->rx.buf->size, size);
+        selector->rx.buf = heap_realloc(selector->rx.buf, ISIZEOF(struct poll_buffer_t) + size);
+        LOG_TRACE("New buffer: %p", selector->rx.buf);
+        if (selector->rx.buf == NULL)
+            return -1;
+
+        LOG_TRACE("New buffer offset: %d", selector->rx.buf->offset);
     }
 
     return 0;
@@ -103,6 +113,8 @@ i64_t poll_rx_buf_release(poll_p poll, selector_p selector) {
 
 i64_t poll_rx_buf_reset(poll_p poll, selector_p selector) {
     UNUSED(poll);
+
+    LOG_TRACE("Resetting buffer offset to 0");
 
     selector->rx.buf->offset = 0;
 

@@ -148,7 +148,9 @@ i64_t poll_register(poll_p poll, poll_registry_p registry) {
 
     LOG_DEBUG("Setting up epoll event");
 
-    ev.events = selector->interest;
+    // Add EPOLLRDHUP to the initial interest flags to detect client disconnections
+    selector->interest |= POLL_EVENT_RDHUP;
+    ev.events = selector->interest | EPOLLET;  // Add edge-triggered mode
     ev.data.ptr = selector;
 
     if (epoll_ctl(poll->fd, EPOLL_CTL_ADD, selector->fd, &ev) == -1) {
@@ -211,20 +213,32 @@ i64_t poll_recv(poll_p poll, selector_p selector) {
     LOG_TRACE("Receiving data from selector %lld", selector->id);
 
     total = selector->rx.buf->offset;
-    do {
+
+    while (selector->rx.buf->offset < selector->rx.buf->size) {
+        LOG_DEBUG("buf size, offset: %lld, %lld", selector->rx.buf->size, selector->rx.buf->offset);
+        LOG_DEBUG("READ SIZE: %lld", selector->rx.buf->size - selector->rx.buf->offset);
         size = selector->rx.recv_fn(selector->fd, &selector->rx.buf->data[selector->rx.buf->offset],
                                     selector->rx.buf->size - selector->rx.buf->offset);
 
         LOG_TRACE("Received %lld bytes from selector %lld", size, selector->id);
 
-        if (size == -1)
+        if (size == -1) {
+            if (errno == EINTR)
+                continue;
+
             return -1;
-        else if (size == 0)
+        }
+
+        if (size == 0) {
+            // closed
+            if (errno != EAGAIN && errno != EWOULDBLOCK)
+                return -1;
+
             return 0;
+        }
 
         selector->rx.buf->offset += size;
-
-    } while (selector->rx.buf->offset < selector->rx.buf->size);
+    }
 
     total = selector->rx.buf->offset - total;
 
@@ -246,40 +260,36 @@ i64_t poll_send(poll_p poll, selector_p selector) {
 
     i64_t size, total;
     poll_buffer_p buf;
-    struct epoll_event ev;
 
     LOG_TRACE("Sending data to selector %lld", selector->id);
     debug_buffer(selector->tx.buf);
 
     total = 0;
-    LOG_TRACE("OFFSET: %lld", selector->tx.buf->offset);
+
 send_loop:
-    do {
+    while (selector->tx.buf->offset < selector->tx.buf->size) {
         size = selector->tx.send_fn(selector->fd, &selector->tx.buf->data[selector->tx.buf->offset],
                                     selector->tx.buf->size - selector->tx.buf->offset);
 
         LOG_TRACE("Sent %lld bytes to selector %lld", size, selector->id);
 
-        if (size == -1)
+        if (size == -1) {
+            if (errno == EINTR)
+                continue;
+
             return -1;
+        }
 
         if (size == 0) {
-            // setup epoll for write event if it's not already set
-            if ((selector->interest & POLL_EVENT_WRITE) == 0) {
-                LOG_TRACE("Setting up epoll for write event");
-                selector->interest |= POLL_EVENT_WRITE;
-                ev.events = selector->interest;
-                ev.data.ptr = selector;
-                if (epoll_ctl(poll->fd, EPOLL_CTL_MOD, selector->fd, &ev) == -1)
-                    return -1;
-            }
+            // closed
+            if (errno != EAGAIN && errno != EWOULDBLOCK)
+                return -1;
 
             return 0;
         }
 
         selector->tx.buf->offset += size;
-
-    } while (selector->tx.buf->offset < selector->tx.buf->size);
+    }
 
     total = selector->tx.buf->offset;
 
@@ -291,16 +301,6 @@ send_loop:
 
     if (selector->tx.buf != NULL)
         goto send_loop;
-
-    // reset epoll write event if it is set
-    if (selector->interest & POLL_EVENT_WRITE) {
-        LOG_TRACE("Resetting epoll write event");
-        selector->interest &= ~POLL_EVENT_WRITE;
-        ev.events = selector->interest;
-        ev.data.ptr = selector;
-        if (epoll_ctl(poll->fd, EPOLL_CTL_MOD, selector->fd, &ev) == -1)
-            return -1;
-    }
 
     LOG_TRACE("Total bytes sent to selector %lld: %lld", selector->id, total);
 
@@ -329,7 +329,7 @@ i64_t poll_run(poll_p poll) {
         }
 
         for (n = 0; n < nfds; n++) {
-            LOG_TRACE("Event %lld: %lld", n, events[n].events);
+            LOG_TRACE("Event %lld: %lld", n, nfds);
             ev = events[n];
 
             // shutdown
@@ -342,14 +342,15 @@ i64_t poll_run(poll_p poll) {
             selector = (selector_p)ev.data.ptr;
 
             // error or hang up
-            if ((ev.events & POLL_EVENT_ERROR) || (ev.events & POLL_EVENT_HUP)) {
+            if ((ev.events & POLL_EVENT_ERROR) || (ev.events & POLL_EVENT_RDHUP)) {
+                LOG_DEBUG("Connection error or hangup for selector %lld, events: 0x%llx", selector->id, ev.events);
                 poll_deregister(poll, selector->id);
                 continue;
             }
 
             // read
             if (ev.events & POLL_EVENT_READ) {
-                LOG_TRACE("Read event received for selector %lld", selector->id);
+                LOG_TRACE("Read event received for selector %lld, events: 0x%llx", selector->id, ev.events);
                 while (B8_TRUE) {
                     // In case we have a low level IO recv function, use it
                     nbytes = 0;
@@ -357,12 +358,16 @@ i64_t poll_run(poll_p poll) {
                         nbytes = poll_recv(poll, selector);
 
                         if (nbytes == -1) {
+                            // Error or connection closed
+                            LOG_DEBUG("Error or connection closed for selector %lld", selector->id);
                             poll_deregister(poll, selector->id);
                             goto next_event;
                         }
 
-                        if (nbytes == 0)
-                            break;
+                        if (nbytes == 0) {
+                            // No more data to read (EAGAIN/EWOULDBLOCK), wait for next edge trigger
+                            goto next_event;
+                        }
                     }
 
                     poll_result = option_none();
@@ -372,7 +377,10 @@ i64_t poll_run(poll_p poll) {
 
                     if (option_is_some(&poll_result)) {
                         if (poll_result.value != NULL && selector->data_fn != NULL)
-                            selector->data_fn(poll, selector, poll_result.value);
+                            poll_result = selector->data_fn(poll, selector, poll_result.value);
+
+                        if (option_is_some(&poll_result))
+                            continue;
                     }
 
                     if (option_is_error(&poll_result))

@@ -43,7 +43,7 @@ option_t ipc_read_msg(poll_p poll, selector_p selector);
 nil_t ipc_on_open(poll_p poll, selector_p selector);
 nil_t ipc_on_close(poll_p poll, selector_p selector);
 nil_t ipc_on_error(poll_p poll, selector_p selector);
-nil_t ipc_on_data(poll_p poll, selector_p selector, raw_p data);
+option_t ipc_on_data(poll_p poll, selector_p selector, raw_p data);
 nil_t ipc_send_msg(poll_p poll, selector_p selector, obj_p msg, u8_t msgtype);
 obj_p ipc_process_msg(poll_p poll, selector_p selector, obj_p msg);
 

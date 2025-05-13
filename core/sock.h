@@ -39,5 +39,6 @@ i64_t sock_listen(i64_t port);
 i64_t sock_accept(i64_t fd);
 i64_t sock_recv(i64_t fd, u8_t *buf, i64_t size);
 i64_t sock_send(i64_t fd, u8_t *buf, i64_t size);
+i64_t sock_flush(i64_t fd);
 
 #endif  // SOCK_H

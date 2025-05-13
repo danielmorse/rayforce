@@ -34,7 +34,7 @@
 #include "string.h"
 #include "log.h"
 
-nil_t repl_on_data(poll_p poll, selector_p selector, raw_p data) {
+option_t repl_on_data(poll_p poll, selector_p selector, raw_p data) {
     UNUSED(poll);
 
     b8_t error;
@@ -65,6 +65,8 @@ nil_t repl_on_data(poll_p poll, selector_p selector, raw_p data) {
     drop_obj(str);
 
     term_prompt(repl->term);
+
+    return option_none();
 }
 
 option_t repl_read(poll_p poll, selector_p selector) {

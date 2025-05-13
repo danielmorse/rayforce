@@ -106,8 +106,9 @@ i64_t sock_open(sock_addr_t *addr, i64_t timeout) {
 
 i64_t sock_accept(i64_t fd) {
     struct sockaddr_in addr;
-    i32_t code, len = sizeof(addr);
-    SOCKET acc_fd;
+    struct linger linger_opt;
+    socklen_t len = sizeof(addr);
+    i64_t acc_fd;
 
     acc_fd = accept((SOCKET)fd, (struct sockaddr *)&addr, &len);
     if (acc_fd == INVALID_SOCKET)
@@ -116,6 +117,16 @@ i64_t sock_accept(i64_t fd) {
         code = WSAGetLastError();
         closesocket(acc_fd);
         WSASetLastError(code);
+        return -1;
+    }
+
+    linger_opt.l_onoff = 1;   // Enable SO_LINGER
+    linger_opt.l_linger = 0;  // Timeout in seconds (0 means terminate immediately)
+
+    // Apply the linger option to the accepted socket
+    if (setsockopt(acc_fd, SOL_SOCKET, SO_LINGER, &linger_opt, sizeof(linger_opt)) < 0) {
+        LOG_ERROR("Failed to set SO_LINGER on accepted socket: %s", strerror(errno));
+        closesocket(acc_fd);
         return -1;
     }
 
@@ -190,23 +201,36 @@ i64_t sock_recv(i64_t fd, u8_t *buf, i64_t size) {
 }
 
 i64_t sock_send(i64_t fd, u8_t *buf, i64_t size) {
-    i64_t sz = send(fd, (str_p)buf, size, MSG_NOSIGNAL);
+    i64_t sz, total = 0;
 
+send:
+    sz = send(fd, buf + total, size - total, MSG_NOSIGNAL);
     switch (sz) {
         case -1:
-            if ((WSAGetLastError() == ERROR_IO_PENDING) || (errno == EAGAIN || errno == EWOULDBLOCK))
+            if (errno == EINTR)
+                goto send;
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                // If we've sent some data, return what we've sent so far
+                if (total > 0)
+                    return total;
                 return 0;
-            else {
+            } else {
                 LOG_ERROR("Failed to send data on fd %lld: %s", fd, strerror(errno));
                 return -1;
             }
 
         case 0:
+            // If we've sent some data, return what we've sent so far
+            if (total > 0)
+                return total;
             return -1;
 
         default:
-            LOG_TRACE("Sent %lld bytes on fd %lld", sz, fd);
-            return sz;
+            total += sz;
+            if (total < size)
+                goto send;
+            LOG_TRACE("Sent %lld bytes on fd %lld", total, fd);
+            return total;
     }
 }
 
@@ -285,8 +309,12 @@ i64_t sock_accept(i64_t fd) {
     linger_opt.l_onoff = 1;   // Enable SO_LINGER
     linger_opt.l_linger = 0;  // Timeout in seconds (0 means terminate immediately)
 
-    // Apply the linger option to the socket
-    setsockopt(fd, SOL_SOCKET, SO_LINGER, &linger_opt, sizeof(linger_opt));
+    // Apply the linger option to the accepted socket
+    if (setsockopt(acc_fd, SOL_SOCKET, SO_LINGER, &linger_opt, sizeof(linger_opt)) < 0) {
+        LOG_ERROR("Failed to set SO_LINGER on accepted socket: %s", strerror(errno));
+        close(acc_fd);
+        return -1;
+    }
 
     LOG_DEBUG("Accepted new connection on fd %lld from %s:%d", acc_fd, inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
     return acc_fd;
@@ -360,26 +388,36 @@ recv:
 }
 
 i64_t sock_send(i64_t fd, u8_t *buf, i64_t size) {
-    i64_t sz;
+    i64_t sz, total = 0;
+
 send:
-    sz = send(fd, (str_p)buf, size, MSG_NOSIGNAL);
+    sz = send(fd, buf + total, size - total, MSG_NOSIGNAL);
     switch (sz) {
         case -1:
             if (errno == EINTR)
                 goto send;
-            if (errno == EAGAIN || errno == EWOULDBLOCK)
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                // If we've sent some data, return what we've sent so far
+                if (total > 0)
+                    return total;
                 return 0;
-            else {
+            } else {
                 LOG_ERROR("Failed to send data on fd %lld: %s", fd, strerror(errno));
                 return -1;
             }
 
         case 0:
+            // If we've sent some data, return what we've sent so far
+            if (total > 0)
+                return total;
             return -1;
 
         default:
-            LOG_TRACE("Sent %lld bytes on fd %lld", sz, fd);
-            return sz;
+            total += sz;
+            if (total < size)
+                goto send;
+            LOG_TRACE("Sent %lld bytes on fd %lld", total, fd);
+            return total;
     }
 }
 

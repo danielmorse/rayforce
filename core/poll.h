@@ -57,23 +57,24 @@ typedef i64_t (*poll_io_fn)(i64_t, u8_t *, i64_t);
 // High level functions (to read/write from/to the selector buffer)
 typedef option_t (*poll_rdwr_fn)(struct poll_t *, struct selector_t *);
 
+// Callback on retrieved data
+typedef option_t (*poll_data_fn)(struct poll_t *, struct selector_t *, raw_p);
+
 // Callback functions for the rest of the events (open, close, error)
 typedef nil_t (*poll_evts_fn)(struct poll_t *, struct selector_t *);
-
-// Callback on retrieved data
-typedef nil_t (*poll_data_fn)(struct poll_t *, struct selector_t *, raw_p);
 
 typedef enum poll_events_t {
     POLL_EVENT_READ = EPOLLIN,
     POLL_EVENT_WRITE = EPOLLOUT,
     POLL_EVENT_ERROR = EPOLLERR,
     POLL_EVENT_HUP = EPOLLHUP,
+    POLL_EVENT_RDHUP = EPOLLRDHUP,
 } poll_events_t;
 
 typedef struct poll_buffer_t {
     struct poll_buffer_t *next;
-    i64_t size;
-    i64_t offset;
+    u32_t size;
+    u32_t offset;
     u8_t data[];
 } *poll_buffer_p;
 

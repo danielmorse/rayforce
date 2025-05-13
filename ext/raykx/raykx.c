@@ -46,14 +46,14 @@ static nil_t raykx_send_msg(poll_p poll, selector_p selector, obj_p msg, u8_t ms
 static nil_t raykx_on_error(poll_p poll, selector_p selector);
 static nil_t raykx_on_close(poll_p poll, selector_p selector);
 static nil_t raykx_on_open(poll_p poll, selector_p selector);
-static nil_t raykx_on_data(poll_p poll, selector_p selector, raw_p data);
+static option_t raykx_on_data(poll_p poll, selector_p selector, raw_p data);
 
 // ============================================================================
 // Listener Management
 // ============================================================================
 
 option_t raykx_listener_accept(poll_p poll, selector_p selector) {
-    i64_t fd;
+    i64_t fd, id;
     struct poll_registry_t registry = ZERO_INIT_STRUCT;
     raykx_ctx_p ctx;
 
@@ -78,7 +78,9 @@ option_t raykx_listener_accept(poll_p poll, selector_p selector) {
         registry.data_fn = raykx_on_data;
         registry.data = ctx;
 
-        if (poll_register(poll, &registry) == -1) {
+        id = poll_register(poll, &registry);
+
+        if (id == -1) {
             LOG_ERROR("Failed to register new connection in poll registry");
             heap_free(ctx);
             return option_error(
@@ -184,7 +186,7 @@ obj_p raykx_hopen(obj_p addr) {
     LOG_DEBUG("Connection registered in poll registry with id %lld", id);
 
     selector = poll_get_selector(runtime_get()->poll, id);
-    poll_rx_buf_request(runtime_get()->poll, selector, 16);
+    poll_rx_buf_request(runtime_get()->poll, selector, 2);
 
     return i64(id);
 }
@@ -210,17 +212,10 @@ option_t raykx_read_handshake(poll_p poll, selector_p selector) {
     poll_buffer_p buf;
     u8_t handshake[2] = {0x03, 0x00};
 
-    if (selector->rx.buf == NULL) {
-        LOG_DEBUG("No handshake buffer received, closing connection");
-        poll_deregister(poll, selector->id);
-        return option_error(
-            sys_error(ERR_IO, "raykx_read_handshake: no handshake buffer received, closing connection"));
-    }
-
     if (selector->rx.buf->offset > 0 && selector->rx.buf->data[selector->rx.buf->offset - 1] == '\0') {
         LOG_TRACE("Handshake from connection %lld: '%s'", selector->id, selector->rx.buf->data);
         // send handshake response
-        buf = poll_buf_create(ISIZEOF(handshake));
+        buf = poll_buf_create(sizeof(handshake));
         memcpy(buf->data, handshake, ISIZEOF(handshake));
         poll_send_buf(poll, selector, buf);
 
@@ -230,10 +225,11 @@ option_t raykx_read_handshake(poll_p poll, selector_p selector) {
         poll_rx_buf_request(poll, selector, ISIZEOF(struct raykx_header_t));
         poll_rx_buf_reset(poll, selector);
 
-        return option_none();
+        return option_some(NULL);
     }
 
     // extend the buffer to the next 1 byte
+    printf("Extending buffer from %d to %d\n", selector->rx.buf->size, selector->rx.buf->size + 1);
     poll_rx_buf_request(poll, selector, selector->rx.buf->size + 1);
 
     return option_some(NULL);
@@ -249,8 +245,8 @@ static option_t raykx_read_header(poll_p poll, selector_p selector) {
     ctx = (raykx_ctx_p)selector->data;
     header = (raykx_header_p)selector->rx.buf->data;
 
-    LOG_TRACE("Header read: {.endianness: %d, .msgtype: %d, .size: %lld}", header->endianness, header->msgtype,
-              header->size);
+    LOG_TRACE("Header read: {.endianness: %d, .msgtype: %d, .compressed: %d, .reserved: %d, .size: %lld}",
+              header->endianness, header->msgtype, header->compressed, header->reserved, header->size);
 
     // request the buffer for the entire message (including the header)
     LOG_DEBUG("Requesting buffer for message of size %lld", header->size);
@@ -273,7 +269,6 @@ static option_t raykx_read_msg(poll_p poll, selector_p selector) {
     LOG_TRACE_OBJ("Deserialized message: ", res);
 
     // Prepare for the next message
-    poll_rx_buf_release(poll, selector);
     poll_rx_buf_request(poll, selector, ISIZEOF(struct raykx_header_t));
     selector->rx.read_fn = raykx_read_header;
 
@@ -340,7 +335,7 @@ obj_p raykx_process_msg(poll_p poll, selector_p selector, obj_p msg) {
     return res;
 }
 
-nil_t raykx_on_data(poll_p poll, selector_p selector, raw_p data) {
+option_t raykx_on_data(poll_p poll, selector_p selector, raw_p data) {
     UNUSED(poll);
 
     LOG_TRACE("Received data from connection %lld", selector->id);
@@ -358,6 +353,8 @@ nil_t raykx_on_data(poll_p poll, selector_p selector, raw_p data) {
         raykx_send_msg(poll, selector, v, KDB_MSG_RESP);
 
     drop_obj(v);
+
+    return option_some(NULL);
 }
 
 nil_t raykx_send_msg(poll_p poll, selector_p selector, obj_p msg, u8_t msgtype) {
@@ -367,10 +364,37 @@ nil_t raykx_send_msg(poll_p poll, selector_p selector, obj_p msg, u8_t msgtype) 
 
     LOG_TRACE("Serializing message");
     size = raykx_size_obj(msg);
+
+    // Create buffer with exact size needed
     buf = poll_buf_create(ISIZEOF(struct raykx_header_t) + size);
-    raykx_ser_obj(buf->data, size, msg);
+    if (buf == NULL) {
+        LOG_ERROR("Failed to create buffer");
+        return;
+    }
+
+    LOG_TRACE("poll buf size: %lld", buf->size);
+
+    // Serialize the message
+    size = raykx_ser_obj(buf->data + ISIZEOF(struct raykx_header_t), size, msg);
+    if (size < 0) {
+        LOG_ERROR("Failed to serialize message");
+        poll_buf_destroy(buf);
+        return;
+    }
+
+    LOG_TRACE("Serialized message size: %lld", size);
+
+    // Set up header msgtype
     header = (raykx_header_p)buf->data;
+    header->endianness = 1;
     header->msgtype = msgtype;
+    header->compressed = 0;
+    header->reserved = 0;
+    header->size = size + ISIZEOF(struct raykx_header_t);
+
+    LOG_TRACE("Sending header: {.endianness: %d, .msgtype: %d, .compressed: %d, .reserved: %d, .size: %lld}",
+              header->endianness, header->msgtype, header->compressed, header->reserved, header->size);
+
     poll_send_buf(poll, selector, buf);
     LOG_DEBUG("Message sent");
 }

@@ -318,7 +318,7 @@ nil_t ipc_send_msg(poll_p poll, selector_p selector, obj_p msg, u8_t msgtype) {
     LOG_DEBUG("Message sent");
 }
 
-nil_t ipc_on_data(poll_p poll, selector_p selector, raw_p data) {
+option_t ipc_on_data(poll_p poll, selector_p selector, raw_p data) {
     UNUSED(poll);
 
     LOG_TRACE("Received data from connection %lld", selector->id);
@@ -338,6 +338,8 @@ nil_t ipc_on_data(poll_p poll, selector_p selector, raw_p data) {
         ipc_send_msg(poll, selector, v, MSG_TYPE_RESP);
 
     drop_obj(v);
+
+    return option_some(NULL);
 }
 
 nil_t ipc_on_open(poll_p poll, selector_p selector) {

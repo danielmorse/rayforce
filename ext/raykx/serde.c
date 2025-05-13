@@ -26,6 +26,7 @@
 #include "k.h"
 #include <stdio.h>
 #include <string.h>
+#include "../../core/util.h"
 #include "../../core/ops.h"
 #include "../../core/log.h"
 #include "../../core/error.h"
@@ -104,7 +105,8 @@ i64_t raykx_size_obj(obj_p obj) {
     }
 }
 
-i64_t raykx_save_obj(u8_t *buf, obj_p obj) {
+i64_t raykx_ser_obj(u8_t *buf, i64_t len, obj_p obj) {
+    UNUSED(len);
     i32_t l;
 
     switch (obj->type) {
@@ -133,31 +135,10 @@ i64_t raykx_save_obj(u8_t *buf, obj_p obj) {
             memcpy(buf, &l, sizeof(i32_t));
             buf += sizeof(i32_t);
             memcpy(buf, AS_C8(obj), obj->len);
-            return ISIZEOF(i8_t) + sizeof(i32_t) + obj->len;
+            return ISIZEOF(i8_t) + 1 + sizeof(i32_t) + obj->len;
         default:
             return 0;
     }
-}
-
-i64_t raykx_ser_obj(u8_t *buf, i64_t len, obj_p obj) {
-    i64_t size;
-    raykx_header_p header;
-
-    size = len + ISIZEOF(struct raykx_header_t);
-
-    header = (raykx_header_p)buf;
-    header->endianness = 1;
-    header->msgtype = 0;
-    header->compressed = 0;
-    header->reserved = 0;
-    header->size = size;
-
-    LOG_DEBUG("Serializing object of size %lld", size);
-
-    if (raykx_save_obj(buf + ISIZEOF(struct raykx_header_t), obj) == 0)
-        return -1;
-
-    return size;
 }
 
 obj_p raykx_load_obj(u8_t *buf, i64_t *len) {
