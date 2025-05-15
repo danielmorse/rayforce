@@ -455,14 +455,14 @@ str_p env_get_internal_entry_name(lit_p name, i64_t len, obj_p entries, i64_t *i
     if (exact) {
         for (i = 0; i < l; i++) {
             nm = str_from_symbol(names[i]);
-            n = strlen(nm);
+            n = SYMBOL_STRLEN(names[i]);
             if (n == len && strncmp(name, nm, len) == 0)
                 return nm;
         }
     } else {
         for (i = *index; i < l; i++) {
             nm = str_from_symbol(names[i]);
-            n = strlen(nm);
+            n = SYMBOL_STRLEN(names[i]);
             if (len < n && strncmp(name, nm, len) == 0) {
                 *index = i + 1;
                 return nm;
@@ -493,7 +493,7 @@ str_p env_get_global_name(lit_p name, i64_t len, i64_t *index, i64_t *sbidx) {
 
     for (i = *index; i < l; i++) {
         nm = str_from_symbol(names[i]);
-        n = strlen(nm);
+        n = SYMBOL_STRLEN(names[i]);
         if (len < n && strncmp(name, nm, len) == 0) {
             *index = i + 1;
             return nm;
@@ -504,7 +504,7 @@ str_p env_get_global_name(lit_p name, i64_t len, i64_t *index, i64_t *sbidx) {
             m = AS_LIST(vals[i])[0]->len;
             for (j = *sbidx; j < m; j++) {
                 nm = str_from_symbol(cols[j]);
-                n = strlen(nm);
+                n = SYMBOL_STRLEN(cols[j]);
                 if (len < n && strncmp(name, nm, len) == 0) {
                     *sbidx = j + 1;
                     return nm;

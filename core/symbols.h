@@ -30,9 +30,9 @@
 #define SYMBOLS_HT_SIZE RAY_PAGE_SIZE * 1024
 #define STRING_NODE_SIZE RAY_PAGE_SIZE
 #define STRING_POOL_SIZE (RAY_PAGE_SIZE * 1024ull * 1024ull)
+#define SYMBOL_STRLEN(x) ((x == NULL_I64) ? 0 : *((u32_t *)(x - sizeof(u32_t))))
 
 typedef struct symbol_t {
-    i64_t len;
     lit_p str;
     struct symbol_t *next;
 } *symbol_p;
@@ -49,8 +49,8 @@ typedef struct symbols_t {
 i64_t symbols_intern(lit_p s, i64_t len);
 symbols_p symbols_create(nil_t);
 nil_t symbols_destroy(symbols_p symbols);
-str_p str_from_symbol(i64_t key);
 i64_t symbols_count(symbols_p symbols);
+str_p str_from_symbol(i64_t key);
 nil_t symbols_rebuild(symbols_p symbols);
 
 #endif  // SYMBOLS_H
