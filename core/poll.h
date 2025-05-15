@@ -24,7 +24,14 @@
 #ifndef POLL_H
 #define POLL_H
 
+#if defined(OS_LINUX)
 #include <sys/epoll.h>
+#elif defined(OS_MACOS)
+#include <sys/event.h>
+#elif defined(OS_WINDOWS)
+#include <windows.h>
+#endif
+
 #include "rayforce.h"
 #include "parse.h"
 #include "serde.h"
@@ -33,6 +40,7 @@
 #include "chrono.h"
 #include "term.h"
 #include "option.h"
+#include "def.h"
 
 #define MAX_EVENTS 1024
 #define BUF_SIZE 2048
@@ -63,6 +71,8 @@ typedef option_t (*poll_data_fn)(struct poll_t *, struct selector_t *, raw_p);
 // Callback functions for the rest of the events (open, close, error)
 typedef nil_t (*poll_evts_fn)(struct poll_t *, struct selector_t *);
 
+#if defined(OS_LINUX)
+
 typedef enum poll_events_t {
     POLL_EVENT_READ = EPOLLIN,
     POLL_EVENT_WRITE = EPOLLOUT,
@@ -71,6 +81,27 @@ typedef enum poll_events_t {
     POLL_EVENT_RDHUP = EPOLLRDHUP,
     POLL_EVENT_EDGE = EPOLLET,
 } poll_events_t;
+
+#elif defined(OS_MACOS)
+
+typedef enum poll_events_t {
+    POLL_EVENT_READ = EVFILT_READ,
+    POLL_EVENT_WRITE = EVFILT_WRITE,
+    POLL_EVENT_ERROR = EV_ERROR,
+    POLL_EVENT_HUP = EV_EOF,
+    POLL_EVENT_RDHUP = EV_EOF,
+    POLL_EVENT_EDGE = 0,
+} poll_events_t;
+
+#elif defined(OS_WINDOWS)
+
+typedef enum poll_events_t {
+    POLL_EVENT_READ = POLLIN,
+    POLL_EVENT_WRITE = POLLOUT,
+    POLL_EVENT_ERROR = POLLERR,
+} poll_events_t;
+
+#endif
 
 typedef struct poll_buffer_t {
     struct poll_buffer_t *next;

@@ -474,21 +474,22 @@ str_p str_rchr(lit_p s, i32_t c, i64_t n) {
 /*
  * Simplefied version of murmurhash
  */
-i64_t str_hash(lit_p str, i64_t len) {
-    i64_t i, k, k1;
-    i64_t hash = 0x1234ABCD1234ABCD;
-    i64_t c1 = 0x87c37b91114253d5ULL;
-    i64_t c2 = 0x4cf5ad432745937fULL;
+u64_t str_hash(lit_p str, i64_t len) {
+    i64_t i;
+    u64_t k, k1;
+    u64_t hash = 0x1234ABCD1234ABCD;
+    u64_t c1 = 0x87c37b91114253d5ULL;
+    u64_t c2 = 0x4cf5ad432745937fULL;
     const i32_t r1 = 31;
     const i32_t r2 = 27;
-    const i64_t m = 5ULL;
-    const i64_t n = 0x52dce729ULL;
+    const u64_t m = 5ULL;
+    const u64_t n = 0x52dce729ULL;
 
     // Process each 8-byte block of the key
     for (i = 0; i + 7 < len; i += 8) {
-        k = (i64_t)str[i] | ((i64_t)str[i + 1] << 8) | ((i64_t)str[i + 2] << 16) | ((i64_t)str[i + 3] << 24) |
-            ((i64_t)str[i + 4] << 32) | ((i64_t)str[i + 5] << 40) | ((i64_t)str[i + 6] << 48) |
-            ((i64_t)str[i + 7] << 56);
+        k = (u64_t)str[i] | ((u64_t)str[i + 1] << 8) | ((u64_t)str[i + 2] << 16) | ((u64_t)str[i + 3] << 24) |
+            ((u64_t)str[i + 4] << 32) | ((u64_t)str[i + 5] << 40) | ((u64_t)str[i + 6] << 48) |
+            ((u64_t)str[i + 7] << 56);
 
         k *= c1;
         k = (k << r1) | (k >> (64 - r1));
@@ -502,19 +503,19 @@ i64_t str_hash(lit_p str, i64_t len) {
     k1 = 0;
     switch (len & 7) {
         case 7:
-            k1 ^= ((i64_t)str[i + 6]) << 48;  // fall through
+            k1 ^= ((u64_t)str[i + 6]) << 48;  // fall through
         case 6:
-            k1 ^= ((i64_t)str[i + 5]) << 40;  // fall through
+            k1 ^= ((u64_t)str[i + 5]) << 40;  // fall through
         case 5:
-            k1 ^= ((i64_t)str[i + 4]) << 32;  // fall through
+            k1 ^= ((u64_t)str[i + 4]) << 32;  // fall through
         case 4:
-            k1 ^= ((i64_t)str[i + 3]) << 24;  // fall through
+            k1 ^= ((u64_t)str[i + 3]) << 24;  // fall through
         case 3:
-            k1 ^= ((i64_t)str[i + 2]) << 16;  // fall through
+            k1 ^= ((u64_t)str[i + 2]) << 16;  // fall through
         case 2:
-            k1 ^= ((i64_t)str[i + 1]) << 8;  // fall through
+            k1 ^= ((u64_t)str[i + 1]) << 8;  // fall through
         case 1:
-            k1 ^= ((i64_t)str[i]);
+            k1 ^= ((u64_t)str[i]);
             k1 *= c1;
             k1 = (k1 << r1) | (k1 >> (64 - r1));
             k1 *= c2;

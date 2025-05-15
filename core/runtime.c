@@ -149,6 +149,10 @@ i32_t runtime_create(i32_t argc, str_p argv[]) {
         }
 
         __RUNTIME->poll = poll_create();
+        if (__RUNTIME->poll == NULL) {
+            printf("Failed to create poll\n");
+            return 1;
+        }
 
         // timeit
         arg = runtime_get_arg("timeit");

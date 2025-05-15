@@ -64,7 +64,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <sched.h>
-#elif defined(__APPLE__) && defined(__MACH__)
+#elif defined(__APPLE__) || defined(__MACH__)
 #define OS_MACOS
 #define OS_UNIX
 #define _DARWIN_C_SOURCE

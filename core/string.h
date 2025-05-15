@@ -43,7 +43,7 @@ i64_t str_cpy(str_p dst, str_p src);
 i64_t str_len(str_p s, i64_t n);
 i64_t str_cmp(lit_p lhs, i64_t m, lit_p rhs, i64_t n);
 str_p str_rchr(lit_p s, i32_t c, i64_t n);
-i64_t str_hash(lit_p str, i64_t len);
+u64_t str_hash(lit_p str, i64_t len);
 obj_p vn_vc8(lit_p fmt, va_list args);
 obj_p str_split(lit_p str, i64_t str_len, lit_p delim, i64_t delim_len);
 

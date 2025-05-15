@@ -25,6 +25,7 @@
 #include "format.h"
 #include "sock.h"
 #include "binary.h"
+#include "log.h"
 
 #if defined(OS_WINDOWS)
 #include "iocp.c"
