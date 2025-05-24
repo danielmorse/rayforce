@@ -27,6 +27,7 @@
 #include "format.h"
 #include "runtime.h"
 #include "error.h"
+#include "ipc.h"
 
 #if defined(OS_WINDOWS)
 #include <windows.h>
@@ -204,20 +205,20 @@ obj_p sys_listen(i32_t argc, str_p argv[]) {
 
     i64_t res = 0;
 
-    // if (argc != 1)
-    //     THROW(ERR_LENGTH, "listen: expected 1 argument");
+    if (argc != 1)
+        THROW(ERR_LENGTH, "listen: expected 1 argument");
 
-    // res = i64_from_str(argv[0], strlen(argv[0]));
-    // if (res < 0)
-    //     THROW(ERR_TYPE, "listen: expected integer");
+    res = i64_from_str(argv[0], strlen(argv[0]));
+    if (res < 0)
+        THROW(ERR_TYPE, "listen: expected integer");
 
-    // res = poll_listen(runtime_get()->poll, res);
+    res = ipc_listen(runtime_get()->poll, res);
 
-    // if (res == -1)
-    //     return sys_error(ERROR_TYPE_SOCK, "listen");
+    if (res == -1)
+        return sys_error(ERROR_TYPE_SOCK, "listen");
 
-    // if (res == -2)
-    //     THROW(ERR_LENGTH, "listen: already listening");
+    if (res == -2)
+        THROW(ERR_LENGTH, "listen: already listening");
 
     return i64(res);
 }

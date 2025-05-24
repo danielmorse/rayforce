@@ -294,8 +294,6 @@ obj_p ipc_process_msg(poll_p poll, selector_p selector, obj_p msg) {
 
     ctx = (ipc_ctx_p)selector->data;
 
-    DEBUG_OBJ(msg);
-
     if (IS_ERR(msg) || is_null(msg))
         res = msg;
     else if (msg->type == TYPE_C8) {
