@@ -951,19 +951,6 @@ obj_p ray_value(obj_p x) {
             return res;
 
         case TYPE_TABLE:
-            l = AS_LIST(x)[1]->len;
-            v = vector(TYPE_LIST, l);
-            for (i = 0; i < l; i++) {
-                res = ray_value(AS_LIST(AS_LIST(x)[1])[i]);
-                if (IS_ERR(res)) {
-                    drop_obj(v);
-                    return res;
-                }
-
-                AS_LIST(v)[i] = res;
-            }
-            return table(clone_obj(AS_LIST(x)[0]), v);
-
         case TYPE_DICT:
             return clone_obj(AS_LIST(x)[1]);
 

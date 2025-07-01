@@ -411,7 +411,7 @@ insert:
  * update/inserts for tables
  */
 obj_p ray_upsert(obj_p *x, i64_t n) {
-    i64_t i, j, m, p, l, keys;
+    i64_t i, j, m, p, l, ll, keys;
     i64_t row, *rows;
     obj_p obj, k1, k2, idx, col, lst, *val = NULL, v;
     b8_t single_rec;
@@ -444,7 +444,24 @@ upsert:
         case TYPE_LIST:
             l = ops_count(lst);
 
-            single_rec = IS_ATOM(AS_LIST(lst)[0]);
+            if (l == 0) {
+                drop_obj(obj);
+                return error(ERR_LENGTH, "upsert: expected non-empty list of records");
+            }
+
+            // validate the list
+            ll = AS_LIST(lst)[0]->len;
+            for (i = 0; i < l; i++) {
+                if (!IS_VECTOR(AS_LIST(lst)[i])) {
+                    drop_obj(obj);
+                    return error(ERR_TYPE, "upsert: expected vector as %lldth element of a list, got '%s'", i, type_name(AS_LIST(lst)[i]->type));
+                }
+
+                if (AS_LIST(lst)[i]->len != ll) {
+                    drop_obj(obj);
+                    return error(ERR_LENGTH, "upsert: expected vector of length %lld, got %lld", ll, AS_LIST(lst)[i]->len);
+                }
+            }
 
             if (l > p) {
                 drop_obj(obj);
@@ -471,35 +488,21 @@ upsert:
                 return idx;
             }
 
-            // Check integrity of the table with the new object
-            if (single_rec) {
-                // Check all the elements of the list
-                for (i = 0; i < l; i++) {
-                    if (!__suitable_types(AS_LIST(AS_LIST(obj)[1])[i], AS_LIST(lst)[i])) {
-                        drop_obj(idx);
-                        drop_obj(obj);
-                        return error(ERR_TYPE, "upsert: expected '%s' as %lldth element, got '%s'",
-                                     type_name(-AS_LIST(AS_LIST(obj)[1])[i]->type), i,
-                                     type_name(AS_LIST(lst)[i]->type));
-                    }
+            // Check all the elements of the list
+            for (i = 0; i < l; i++) {
+                if (!__suitable_types(AS_LIST(AS_LIST(obj)[1])[i], AS_LIST(lst)[i])) {
+                    drop_obj(idx);
+                    drop_obj(obj);
+                    return error(ERR_TYPE, "upsert: expected '%s' as %lldth element, got '%s'",
+                                    type_name(AS_LIST(AS_LIST(obj)[1])[i]->type), i, type_name(AS_LIST(lst)[i]->type));
                 }
-            } else {
-                // Check all the elements of the list
-                for (i = 0; i < l; i++) {
-                    if (!__suitable_types(AS_LIST(AS_LIST(obj)[1])[i], AS_LIST(lst)[i])) {
-                        drop_obj(idx);
-                        drop_obj(obj);
-                        return error(ERR_TYPE, "upsert: expected '%s' as %lldth element, got '%s'",
-                                     type_name(AS_LIST(AS_LIST(obj)[1])[i]->type), i, type_name(AS_LIST(lst)[i]->type));
-                    }
 
-                    if (AS_LIST(lst)[i]->len != m) {
-                        drop_obj(idx);
-                        drop_obj(obj);
-                        return error(ERR_LENGTH,
-                                     "upsert: expected list of length %lld, as %lldth element in a values, got %lld",
-                                     AS_LIST(AS_LIST(obj)[1])[i]->len, i, n);
-                    }
+                if (AS_LIST(lst)[i]->len != m) {
+                    drop_obj(idx);
+                    drop_obj(obj);
+                    return error(ERR_LENGTH,
+                                    "upsert: expected list of length %lld, as %lldth element in a values, got %lld",
+                                    AS_LIST(AS_LIST(obj)[1])[i]->len, i, n);
                 }
             }
 
@@ -518,13 +521,13 @@ upsert:
 
                     // Insert record
                     if (row == NULL_I64) {
-                        v = (i < l) ? (single_rec ? clone_obj(AS_LIST(lst)[i]) : at_idx(AS_LIST(lst)[i], j))
+                        v = (i < l) ?  at_idx(AS_LIST(lst)[i], j)
                                     : null(AS_LIST(AS_LIST(obj)[1])[i]->type);
                         push_obj(AS_LIST(AS_LIST(obj)[1]) + i, v);
                     }
                     // Update record (we can skip the keys since they are matches)
                     else if (i >= keys && i < l) {
-                        v = single_rec ? clone_obj(AS_LIST(lst)[i]) : at_idx(AS_LIST(lst)[i], j);
+                        v =  at_idx(AS_LIST(lst)[i], j);
                         set_idx(AS_LIST(AS_LIST(obj)[1]) + i, row, v);
                     }
                 }
