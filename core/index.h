@@ -26,7 +26,7 @@
 
 #include "rayforce.h"
 
-#define INDEX_SCOPE_LIMIT 8192
+#define INDEX_SCOPE_LIMIT RAY_PAGE_SIZE * 128
 
 typedef enum index_type_t {
     INDEX_TYPE_IDS = 0,

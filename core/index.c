@@ -1764,6 +1764,7 @@ obj_p index_group_i64_scoped(obj_p obj, obj_p filter, const index_scope_t scope)
             timeit_tick("index group scoped perfect simple");
             return index_group_build(INDEX_TYPE_SHIFT, groups, keys, scope.min, clone_obj(obj), clone_obj(filter));
         }
+
         vals = I64(len);
         hv = AS_I64(vals);
         pool = pool_get();
