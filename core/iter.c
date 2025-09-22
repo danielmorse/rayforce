@@ -155,12 +155,11 @@ obj_p map_binary_left_fn(binary_f fn, i64_t attrs, obj_p x, obj_p y) {
             a = at_idx(x, 0);
             item = map_binary_left_fn(fn, attrs, a, y);
             drop_obj(a);
-
+            
             if (IS_ERR(item))
                 return item;
 
-            res = vector(item->type, l);
-
+            res = item->type < 0 ? vector(item->type, l) : LIST(l);
             ins_obj(&res, 0, item);
 
             for (i = 1; i < l; i++) {
@@ -176,7 +175,6 @@ obj_p map_binary_left_fn(binary_f fn, i64_t attrs, obj_p x, obj_p y) {
 
                 ins_obj(&res, i, item);
             }
-
             return res;
         default:
             return fn(x, y);
@@ -216,8 +214,7 @@ obj_p map_binary_right_fn(binary_f fn, i64_t attrs, obj_p x, obj_p y) {
             if (IS_ERR(item))
                 return item;
 
-            res = vector(item->type, l);
-
+            res = item->type < 0 ? vector(item->type, l) : LIST(l);
             ins_obj(&res, 0, item);
 
             for (i = 1; i < l; i++) {

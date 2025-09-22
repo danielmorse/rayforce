@@ -1558,7 +1558,7 @@ obj_p binop_map(raw_p op, obj_p x, obj_p y) {
 
     pool = runtime_get()->pool;
     n = pool_split_by(pool, l, 0);
-    out = (rc_obj(x) == 1) ? clone_obj(x) : (rc_obj(y) == 1) ? clone_obj(y) : vector(t, l);
+    out = (rc_obj(x) == 1 && IS_VECTOR(x)) ? clone_obj(x) : (rc_obj(y) == 1 && IS_VECTOR(y)) ? clone_obj(y) : vector(t, l);
 
     if (n == 1) {
         argv[0] = (raw_p)x;
