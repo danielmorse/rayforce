@@ -552,6 +552,7 @@ nil_t term_redraw(term_p term) {
     cursor_show();
     fflush(stdout);
     drop_obj(out);
+    autocp_reset_current(term);
 }
 
 // Helper function to calculate display width of a UTF-8 character
@@ -627,10 +628,18 @@ nil_t term_handle_backspace(term_p term) {
     term_redraw(term);
 }
 
-nil_t autocp_idx_reset(autocp_idx_t *idx) {
-    idx->entry = 0;
-    idx->index = 0;
-    idx->sbidx = 0;
+nil_t autocp_save_current(term_p term) {
+    term->autocp_buf_len = term->buf_len;
+    term->autocp_buf_pos = term->buf_pos;
+    memcpy(term->autocp_buf, term->buf, term->buf_len);
+}
+
+nil_t autocp_reset_current(term_p term) {
+    term->autocp_buf_len = 0;
+    term->autocp_buf_pos = 0;
+    term->autocp_idx.entry = 0;
+    term->autocp_idx.index = 0;
+    term->autocp_idx.sbidx = 0;
 }
 
 nil_t term_highlight_pos(term_p term, i64_t pos) {
@@ -725,14 +734,18 @@ b8_t term_autocomplete_word(term_p term) {
     c8_t *tbuf, *hbuf;
     str_p word;
 
-    pos = term->buf_pos;
-    len = term->hist->curr_len;
-    hbuf = term->hist->curr;
     tbuf = term->buf;
+    hbuf = term->autocp_buf;
+
+    if (term->autocp_buf_len == 0)
+        autocp_save_current(term);
+
+    pos = term->autocp_buf_pos;
+    len = term->autocp_buf_len;
 
     // Find start of the word
     for (start = pos; start > 0; start--) {
-        if (!is_alphanum(tbuf[start - 1]) && tbuf[start - 1] != '-')
+        if (!is_alphanum(hbuf[start - 1]) && hbuf[start - 1] != '-')
             break;
     }
 
@@ -748,15 +761,15 @@ b8_t term_autocomplete_word(term_p term) {
 
     switch (term->autocp_idx.entry) {
         case 0:
-            word = env_get_internal_keyword_name(tbuf + start, n, &term->autocp_idx.index, B8_FALSE);
+            word = env_get_internal_keyword_name(hbuf + start, n, &term->autocp_idx.index, B8_FALSE);
             if (word != NULL)
                 goto redraw;
             term->autocp_idx.index = 0;
             term->autocp_idx.sbidx = 0;
             term->autocp_idx.entry++;
-            // fallthrough
+        // fallthrough
         case 1:
-            word = env_get_internal_function_name(tbuf + start, n, &term->autocp_idx.index, B8_FALSE);
+            word = env_get_internal_function_name(hbuf + start, n, &term->autocp_idx.index, B8_FALSE);
             if (word != NULL)
                 goto redraw;
             term->autocp_idx.index = 0;
@@ -764,7 +777,7 @@ b8_t term_autocomplete_word(term_p term) {
             term->autocp_idx.entry++;
             // fallthrough
         case 2:
-            word = env_get_global_name(tbuf + start, n, &term->autocp_idx.index, &term->autocp_idx.sbidx);
+            word = env_get_global_name(hbuf + start, n, &term->autocp_idx.index, &term->autocp_idx.sbidx);
             if (word != NULL)
                 goto redraw;
             term->autocp_idx.index = 0;
@@ -772,6 +785,9 @@ b8_t term_autocomplete_word(term_p term) {
             term->autocp_idx.entry++;
             // fallthrough
         default:
+            term->autocp_idx.index = 0;
+            term->autocp_idx.sbidx = 0;
+            term->autocp_idx.entry = 0;
             break;
     }
 
@@ -1059,8 +1075,7 @@ obj_p term_read(term_p term) {
     switch (term->input[0]) {
         case KEYCODE_RETURN:
             res = term_handle_return(term);
-            hist_reset_current(term->hist);
-            autocp_idx_reset(&term->autocp_idx);
+            autocp_reset_current(term);
             term->buf_len = 0;
             term->buf_pos = 0;
             term->input_len = 0;
@@ -1069,16 +1084,16 @@ obj_p term_read(term_p term) {
             break;
         case KEYCODE_BACKSPACE:
         case KEYCODE_DELETE:
-            hist_reset_current(term->hist);
+            autocp_reset_current(term);
             term_handle_backspace(term);
             term->input_len = 0;
             break;
         case KEYCODE_TAB:
-            hist_reset_current(term->hist);
             term_handle_tab(term);
             term->input_len = 0;
             break;
         case KEYCODE_CTRL_U:
+            autocp_reset_current(term);
             term_handle_ctrl_u(term);
             term->input_len = 0;
             break;
@@ -1090,6 +1105,7 @@ obj_p term_read(term_p term) {
             res = term_handle_escape(term);
             break;
         default:
+            autocp_reset_current(term);
             res = term_handle_symbol(term);
             term->input_len = 0;
             break;

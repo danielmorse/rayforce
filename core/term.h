@@ -97,6 +97,9 @@ typedef struct term_t {
     i32_t buf_pos;
     c8_t buf[TERM_BUF_SIZE];
     autocp_idx_t autocp_idx;
+    i32_t autocp_buf_len;
+    i32_t autocp_buf_pos;
+    c8_t autocp_buf[TERM_BUF_SIZE];
     hist_p hist;
 } *term_p;
 
@@ -121,5 +124,6 @@ nil_t line_clear();
 nil_t line_new();
 nil_t cursor_hide();
 nil_t cursor_show();
+nil_t autocp_reset_current(term_p term);
 
 #endif  // TERM_H
