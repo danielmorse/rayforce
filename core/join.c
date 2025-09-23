@@ -22,12 +22,9 @@
  */
 
 #include "join.h"
-#include "heap.h"
 #include "util.h"
 #include "items.h"
-#include "cmp.h"
 #include "ops.h"
-#include "binary.h"
 #include "compose.h"
 #include "error.h"
 #include "index.h"
@@ -109,7 +106,7 @@ obj_p ray_left_join(obj_p *x, i64_t n) {
         return k2;
     }
 
-    idx = index_join_obj(k1, k2, x[0]->len);
+    idx = index_left_join_obj(k1, k2, x[0]->len);
     drop_obj(k2);
 
     if (IS_ERR(idx)) {
@@ -227,7 +224,7 @@ obj_p ray_inner_join(obj_p *x, i64_t n) {
         return k2;
     }
 
-    idx = index_join_obj(k1, k2, x[0]->len);
+    idx = index_inner_join_obj(k1, k2, x[0]->len);
     drop_obj(k1);
     drop_obj(k2);
 

@@ -1,4 +1,4 @@
-(set n 10000000)
+(set n 10)
 
 (set x (table [a b c d] 
     (list (take n (list "aaaaaa" "bbbbbbbbbb" "cc" "dd")) (take n [I J K]) (til n) (til n))))

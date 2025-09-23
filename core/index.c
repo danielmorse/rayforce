@@ -31,8 +31,8 @@
 #include "unary.h"
 #include "string.h"
 #include "pool.h"
-#include "runtime.h" // for RAY_PAGE_SIZE
-#include "serde.h"   // for size_of_type
+#include "runtime.h"  // for RAY_PAGE_SIZE
+#include "serde.h"    // for size_of_type
 
 const i64_t MAX_RANGE = 1 << 20;
 
@@ -208,10 +208,11 @@ nil_t __index_list_precalc_hash(obj_p cols, i64_t out[], i64_t ncols, i64_t nrow
 
     pool = pool_get();
     chunks = pool_split_by(pool, nrows, 0);
-    elem_size = sizeof(i64_t); // hashes are i64_t
+    elem_size = sizeof(i64_t);  // hashes are i64_t
     page_size = RAY_PAGE_SIZE;
     elems_per_page = page_size / elem_size;
-    if (elems_per_page == 0) elems_per_page = 1;
+    if (elems_per_page == 0)
+        elems_per_page = 1;
     base_chunk = (nrows + chunks - 1) / chunks;
     base_chunk = ((base_chunk + elems_per_page - 1) / elems_per_page) * elems_per_page;
 
@@ -227,8 +228,10 @@ nil_t __index_list_precalc_hash(obj_p cols, i64_t out[], i64_t ncols, i64_t nrow
         for (i = 0; i < ncols; i++) {
             pool_prepare(pool);
             for (j = 0; j < chunks - 1; j++)
-                pool_add_task(pool, (raw_p)index_hash_obj_partial, 6, AS_LIST(cols)[i], out, filter, base_chunk, j * base_chunk, resolve);
-            pool_add_task(pool, (raw_p)index_hash_obj_partial, 6, AS_LIST(cols)[i], out, filter, nrows - (chunks - 1) * base_chunk, (chunks - 1) * base_chunk, resolve);
+                pool_add_task(pool, (raw_p)index_hash_obj_partial, 6, AS_LIST(cols)[i], out, filter, base_chunk,
+                              j * base_chunk, resolve);
+            pool_add_task(pool, (raw_p)index_hash_obj_partial, 6, AS_LIST(cols)[i], out, filter,
+                          nrows - (chunks - 1) * base_chunk, (chunks - 1) * base_chunk, resolve);
             v = pool_run(pool);
             drop_obj(v);
         }
@@ -278,7 +281,8 @@ index_scope_t index_scope_i32(i32_t values[], i64_t indices[], i64_t len) {
     elem_size = sizeof(i32_t);
     page_size = RAY_PAGE_SIZE;
     elems_per_page = page_size / elem_size;
-    if (elems_per_page == 0) elems_per_page = 1;
+    if (elems_per_page == 0)
+        elems_per_page = 1;
     base_chunk = (len + chunks - 1) / chunks;
     base_chunk = ((base_chunk + elems_per_page - 1) / elems_per_page) * elems_per_page;
 
@@ -289,8 +293,10 @@ index_scope_t index_scope_i32(i32_t values[], i64_t indices[], i64_t len) {
         i64_t maxs[chunks];
         pool_prepare(pool);
         for (i = 0; i < chunks - 1; i++)
-            pool_add_task(pool, (raw_p)index_scope_partial_i32, 6, base_chunk, values, indices, i * base_chunk, &mins[i], &maxs[i]);
-        pool_add_task(pool, (raw_p)index_scope_partial_i32, 6, len - (chunks - 1) * base_chunk, values, indices, (chunks - 1) * base_chunk, &mins[chunks - 1], &maxs[chunks - 1]);
+            pool_add_task(pool, (raw_p)index_scope_partial_i32, 6, base_chunk, values, indices, i * base_chunk,
+                          &mins[i], &maxs[i]);
+        pool_add_task(pool, (raw_p)index_scope_partial_i32, 6, len - (chunks - 1) * base_chunk, values, indices,
+                      (chunks - 1) * base_chunk, &mins[chunks - 1], &maxs[chunks - 1]);
         v = pool_run(pool);
         drop_obj(v);
         min = max = mins[0];
@@ -342,7 +348,8 @@ index_scope_t index_scope_i64(i64_t values[], i64_t indices[], i64_t len) {
     elem_size = sizeof(i64_t);
     page_size = RAY_PAGE_SIZE;
     elems_per_page = page_size / elem_size;
-    if (elems_per_page == 0) elems_per_page = 1;
+    if (elems_per_page == 0)
+        elems_per_page = 1;
     base_chunk = (len + chunks - 1) / chunks;
     base_chunk = ((base_chunk + elems_per_page - 1) / elems_per_page) * elems_per_page;
 
@@ -353,8 +360,10 @@ index_scope_t index_scope_i64(i64_t values[], i64_t indices[], i64_t len) {
         i64_t maxs[chunks];
         pool_prepare(pool);
         for (i = 0; i < chunks - 1; i++)
-            pool_add_task(pool, (raw_p)index_scope_partial_i64, 6, base_chunk, values, indices, i * base_chunk, &mins[i], &maxs[i]);
-        pool_add_task(pool, (raw_p)index_scope_partial_i64, 6, len - (chunks - 1) * base_chunk, values, indices, (chunks - 1) * base_chunk, &mins[chunks - 1], &maxs[chunks - 1]);
+            pool_add_task(pool, (raw_p)index_scope_partial_i64, 6, base_chunk, values, indices, i * base_chunk,
+                          &mins[i], &maxs[i]);
+        pool_add_task(pool, (raw_p)index_scope_partial_i64, 6, len - (chunks - 1) * base_chunk, values, indices,
+                      (chunks - 1) * base_chunk, &mins[chunks - 1], &maxs[chunks - 1]);
         v = pool_run(pool);
         drop_obj(v);
         min = max = mins[0];
@@ -1802,7 +1811,8 @@ obj_p index_group_i64_scoped(obj_p obj, obj_p filter, const index_scope_t scope)
         elem_size = sizeof(i64_t);
         page_size = RAY_PAGE_SIZE;
         elems_per_page = page_size / elem_size;
-        if (elems_per_page == 0) elems_per_page = 1;
+        if (elems_per_page == 0)
+            elems_per_page = 1;
         base_chunk = (len + chunks - 1) / chunks;
         base_chunk = ((base_chunk + elems_per_page - 1) / elems_per_page) * elems_per_page;
         if (chunks == 1)
@@ -1810,8 +1820,10 @@ obj_p index_group_i64_scoped(obj_p obj, obj_p filter, const index_scope_t scope)
         else {
             pool_prepare(pool);
             for (i = 0; i < chunks - 1; i++)
-                pool_add_task(pool, (raw_p)index_group_i64_scoped_partial, 7, values, indices, hk, base_chunk, i * base_chunk, scope.min, hv);
-            pool_add_task(pool, (raw_p)index_group_i64_scoped_partial, 7, values, indices, hk, len - (chunks - 1) * base_chunk, (chunks - 1) * base_chunk, scope.min, hv);
+                pool_add_task(pool, (raw_p)index_group_i64_scoped_partial, 7, values, indices, hk, base_chunk,
+                              i * base_chunk, scope.min, hv);
+            pool_add_task(pool, (raw_p)index_group_i64_scoped_partial, 7, values, indices, hk,
+                          len - (chunks - 1) * base_chunk, (chunks - 1) * base_chunk, scope.min, hv);
             v = pool_run(pool);
             drop_obj(v);
         }
@@ -2130,7 +2142,51 @@ obj_p index_group_list(obj_p obj, obj_p filter) {
     return index_group_build(INDEX_TYPE_IDS, g, res, NULL_I64, NULL_OBJ, clone_obj(filter));
 }
 
-obj_p index_join_obj(obj_p lcols, obj_p rcols, i64_t len) {
+obj_p index_left_join_obj(obj_p lcols, obj_p rcols, i64_t len) {
+    i64_t i, j, ll, rl;
+    obj_p ht, ids, hashes;
+    i64_t idx;
+    __index_list_ctx_t ctx;
+
+    // one column join
+    if (len == 1)
+        return ray_find(rcols, lcols);
+
+    // multiple columns join
+    ll = ops_count(AS_LIST(lcols)[0]);
+    rl = ops_count(AS_LIST(rcols)[0]);
+    ht = ht_oa_create(rl, -1);
+    hashes = I64(MAXI64(ll, rl));
+
+    // Right hashes
+    __index_list_precalc_hash(rcols, (i64_t *)AS_I64(hashes), len, rl, NULL, B8_TRUE);
+    ctx = (__index_list_ctx_t){rcols, rcols, (i64_t *)AS_I64(hashes), NULL};
+    for (i = 0; i < rl; i++) {
+        idx = ht_oa_tab_next_with(&ht, i, &__index_list_hash_get, &__index_list_cmp_row, &ctx);
+        if (AS_I64(AS_LIST(ht)[0])[idx] == NULL_I64)
+            AS_I64(AS_LIST(ht)[0])[idx] = i;
+    }
+
+    ids = I64(ll);
+
+    // Left hashes
+    __index_list_precalc_hash(lcols, (i64_t *)AS_I64(hashes), len, ll, NULL, B8_TRUE);
+    ctx = (__index_list_ctx_t){rcols, lcols, (i64_t *)AS_I64(hashes), NULL};
+    for (i = 0, j = 0; i < ll; i++) {
+        idx = ht_oa_tab_get_with(ht, i, &__index_list_hash_get, &__index_list_cmp_row, &ctx);
+        if (idx != NULL_I64)
+            AS_I64(ids)[i] = AS_I64(AS_LIST(ht)[0])[idx];
+        else
+            AS_I64(ids)[i] = NULL_I64;
+    }
+
+    drop_obj(hashes);
+    drop_obj(ht);
+
+    return ids;
+}
+
+obj_p index_inner_join_obj(obj_p lcols, obj_p rcols, i64_t len) {
     i64_t i, j, ll, rl;
     obj_p ht, lids, rids;
     i64_t idx;
@@ -2140,15 +2196,7 @@ obj_p index_join_obj(obj_p lcols, obj_p rcols, i64_t len) {
         lids = ray_find(rcols, lcols);
         if (IS_ERR(lids))
             return lids;
-
-        if (lids->type == TYPE_I64) {
-            idx = lids->i64;
-            drop_obj(lids);
-            lids = I64(1);
-            AS_I64(lids)[0] = idx;
-        }
-
-        return vn_list(2, lids, lids);
+        return vn_list(2, clone_obj(lids), lids);
     }
 
     ll = ops_count(AS_LIST(lcols)[0]);
@@ -2187,7 +2235,7 @@ obj_p index_join_obj(obj_p lcols, obj_p rcols, i64_t len) {
 }
 
 obj_p index_upsert_obj(obj_p lcols, obj_p rcols, i64_t len) {
-u64_t i, ll, rl;
+    u64_t i, ll, rl;
     obj_p ht, res;
     i64_t idx;
     __index_list_ctx_t ctx;
