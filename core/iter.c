@@ -155,7 +155,7 @@ obj_p map_binary_left_fn(binary_f fn, i64_t attrs, obj_p x, obj_p y) {
             a = at_idx(x, 0);
             item = map_binary_left_fn(fn, attrs, a, y);
             drop_obj(a);
-            
+
             if (IS_ERR(item))
                 return item;
 

@@ -1094,41 +1094,197 @@ obj_p ray_where(obj_p x) {
     }
 }
 
+static obj_p ray_bin_partial(raw_p a, raw_p b, raw_p c, raw_p d, raw_p e) {
+    i32_t *i32x, *i32y;
+    i64_t *i64x, *i64y, *out;
+    i64_t i, left, right, mid, idx;
+    obj_p x = (obj_p)a;
+    obj_p y = (obj_p)b;
+    i64_t len = (i64_t)c;
+    i64_t offset = (i64_t)d;
+    out = AS_I64((obj_p)e) + offset;
+
+    switch (x->type) {
+        case TYPE_I32:
+        case TYPE_DATE:
+        case TYPE_TIME:
+            i32x = AS_I32(x);
+            i32y = AS_I32(y) + offset;
+            for (i = 0; i < len; i++) {
+                left = 0, right = x->len - 1, idx = -1;
+                while (left <= right) {
+                    mid = left + (right - left) / 2;
+                    if (i32x[mid] <= i32y[i]) {
+                        idx = mid;
+                        left = mid + 1;
+                    } else {
+                        right = mid - 1;
+                    }
+                }
+                out[i] = idx;
+            }
+            return NULL_OBJ;
+        case TYPE_I64:
+        case TYPE_TIMESTAMP:
+            i64x = AS_I64(x);
+            i64y = AS_I64(y) + offset;
+            for (i = 0; i < len; i++) {
+                left = 0, right = x->len - 1, idx = -1;
+                while (left <= right) {
+                    mid = left + (right - left) / 2;
+                    if (i64x[mid] <= i64y[i]) {
+                        idx = mid;
+                        left = mid + 1;
+                    } else {
+                        right = mid - 1;
+                    }
+                }
+                out[i] = idx;
+            }
+            return NULL_OBJ;
+        default:
+            THROW(ERR_TYPE, "ray_bin_partial: unsupported type: '%s", type_name(x->type));
+    }
+}
+
+static obj_p ray_binr_partial(raw_p a, raw_p b, raw_p c, raw_p d, raw_p e) {
+    i32_t *i32x, *i32y;
+    i64_t *i64x, *i64y, *out;
+    i64_t i, left, right, mid, idx;
+    obj_p x = (obj_p)a;
+    obj_p y = (obj_p)b;
+    i64_t len = (i64_t)c;
+    i64_t offset = (i64_t)d;
+    out = AS_I64((obj_p)e) + offset;
+
+    switch (x->type) {
+        case TYPE_I32:
+        case TYPE_DATE:
+        case TYPE_TIME:
+            i32x = AS_I32(x);
+            i32y = AS_I32(y) + offset;
+            for (i = 0; i < len; i++) {
+                left = 0, right = x->len - 1, idx = x->len;
+                while (left <= right) {
+                    mid = left + (right - left) / 2;
+                    if (i32x[mid] >= i32y[i]) {
+                        idx = mid;
+                        right = mid - 1;
+                    } else {
+                        left = mid + 1;
+                    }
+                }
+                out[i] = idx;
+            }
+            return NULL_OBJ;
+        case TYPE_I64:
+        case TYPE_TIMESTAMP:
+            i64x = AS_I64(x);
+            i64y = AS_I64(y) + offset;
+            for (i = 0; i < len; i++) {
+                left = 0, right = x->len - 1, idx = x->len;
+                while (left <= right) {
+                    mid = left + (right - left) / 2;
+                    if (i64x[mid] >= i64y[i]) {
+                        idx = mid;
+                        right = mid - 1;
+                    } else {
+                        left = mid + 1;
+                    }
+                }
+                out[i] = idx;
+            }
+            return NULL_OBJ;
+        default:
+            THROW(ERR_TYPE, "ray_binr_partial: unsupported type: '%s", type_name(x->type));
+    }
+}
+
+static obj_p bin_map(raw_p op, obj_p x, obj_p y) {
+    i64_t i, l, n, chunk;
+    obj_p v, out;
+    pool_p pool;
+    raw_p argv[5];
+
+    l = y->len;
+    pool = runtime_get()->pool;
+    n = pool_split_by(pool, l, 0);
+    out = I64(l);
+
+    if (n == 1) {
+        argv[0] = (raw_p)x;
+        argv[1] = (raw_p)y;
+        argv[2] = (raw_p)l;
+        argv[3] = (raw_p)0;
+        argv[4] = (raw_p)out;
+        v = pool_call_task_fn(op, 5, argv);
+        if (IS_ERR(v)) {
+            out->len = 0;
+            drop_obj(out);
+            return v;
+        }
+        return out;
+    }
+
+    pool_prepare(pool);
+    chunk = l / n;
+
+    for (i = 0; i < n - 1; i++)
+        pool_add_task(pool, op, 5, x, y, chunk, i * chunk, out);
+
+    pool_add_task(pool, op, 5, x, y, l - i * chunk, i * chunk, out);
+
+    v = pool_run(pool);
+    if (IS_ERR(v))
+        return v;
+
+    drop_obj(v);
+
+    return out;
+}
+
 obj_p ray_bin(obj_p x, obj_p y) {
     i64_t left, right, mid, idx;
-    
+
     switch (MTYPE2(x->type, y->type)) {
         case MTYPE2(TYPE_I32, -TYPE_I32):
         case MTYPE2(TYPE_DATE, -TYPE_DATE):
         case MTYPE2(TYPE_TIME, -TYPE_TIME):
-        left = 0;
-        right = x->len - 1;
-        idx = -1;
-        while (left <= right) {
-            mid = left + (right - left) / 2;
-            if (AS_I32(x)[mid] <= y->i32) {
-                idx = mid;
-                left = mid + 1;
-            } else {
-                right = mid - 1;
+            left = 0;
+            right = x->len - 1;
+            idx = -1;
+            while (left <= right) {
+                mid = left + (right - left) / 2;
+                if (AS_I32(x)[mid] <= y->i32) {
+                    idx = mid;
+                    left = mid + 1;
+                } else {
+                    right = mid - 1;
+                }
             }
-        }
-        return i32(idx);
+            return i32(idx);
         case MTYPE2(TYPE_I64, -TYPE_I64):
         case MTYPE2(TYPE_TIMESTAMP, -TYPE_TIMESTAMP):
-        left = 0;
-        right = x->len - 1;
-        idx = -1;
-        while (left <= right) {
-            mid = left + (right - left) / 2;
-            if (AS_I64(x)[mid] <= y->i64) {
-                idx = mid;
-                left = mid + 1;
-            } else {
-                right = mid - 1;
+            left = 0;
+            right = x->len - 1;
+            idx = -1;
+            while (left <= right) {
+                mid = left + (right - left) / 2;
+                if (AS_I64(x)[mid] <= y->i64) {
+                    idx = mid;
+                    left = mid + 1;
+                } else {
+                    right = mid - 1;
+                }
             }
-        }
-        return i64(idx);
+            return i64(idx);
+        case MTYPE2(TYPE_I32, TYPE_I32):
+        case MTYPE2(TYPE_DATE, TYPE_DATE):
+        case MTYPE2(TYPE_TIME, TYPE_TIME):
+            return bin_map(ray_bin_partial, x, y);
+        case MTYPE2(TYPE_I64, TYPE_I64):
+        case MTYPE2(TYPE_TIMESTAMP, TYPE_TIMESTAMP):
+            return bin_map(ray_bin_partial, x, y);
         default:
             THROW(ERR_TYPE, "bin: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }
@@ -1136,39 +1292,46 @@ obj_p ray_bin(obj_p x, obj_p y) {
 
 obj_p ray_binr(obj_p x, obj_p y) {
     i64_t left, right, mid, idx;
-    
+
     switch (MTYPE2(x->type, y->type)) {
         case MTYPE2(TYPE_I32, -TYPE_I32):
         case MTYPE2(TYPE_DATE, -TYPE_DATE):
         case MTYPE2(TYPE_TIME, -TYPE_TIME):
-        left = 0;
-        right = x->len - 1;
-        idx = x->len;
-        while (left <= right) {
-            mid = left + (right - left) / 2;
-            if (AS_I32(x)[mid] >= y->i32) {
-                idx = mid;
-                right = mid - 1;
-            } else {
-                left = mid + 1;
+            left = 0;
+            right = x->len - 1;
+            idx = x->len;
+            while (left <= right) {
+                mid = left + (right - left) / 2;
+                if (AS_I32(x)[mid] >= y->i32) {
+                    idx = mid;
+                    right = mid - 1;
+                } else {
+                    left = mid + 1;
+                }
             }
-        }
-        return i64(idx);
+            return i64(idx);
         case MTYPE2(TYPE_I64, -TYPE_I64):
         case MTYPE2(TYPE_TIMESTAMP, -TYPE_TIMESTAMP):
-        left = 0;
-        right = x->len - 1;
-        idx = x->len;
-        while (left <= right) {
-            mid = left + (right - left) / 2;
-            if (AS_I64(x)[mid] >= y->i64) {
-                idx = mid;
-                right = mid - 1;
-            } else {
-                left = mid + 1;
+            left = 0;
+            right = x->len - 1;
+            idx = x->len;
+            while (left <= right) {
+                mid = left + (right - left) / 2;
+                if (AS_I64(x)[mid] >= y->i64) {
+                    idx = mid;
+                    right = mid - 1;
+                } else {
+                    left = mid + 1;
+                }
             }
-        }
-        return i64(idx);
+            return i64(idx);
+        case MTYPE2(TYPE_I32, TYPE_I32):
+        case MTYPE2(TYPE_DATE, TYPE_DATE):
+        case MTYPE2(TYPE_TIME, TYPE_TIME):
+            return bin_map(ray_binr_partial, x, y);
+        case MTYPE2(TYPE_I64, TYPE_I64):
+        case MTYPE2(TYPE_TIMESTAMP, TYPE_TIMESTAMP):
+            return bin_map(ray_binr_partial, x, y);
         default:
             THROW(ERR_TYPE, "binr: unsupported types: '%s, '%s", type_name(x->type), type_name(y->type));
     }

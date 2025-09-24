@@ -22,6 +22,7 @@
  */
 
 #include "join.h"
+#include "rayforce.h"
 #include "util.h"
 #include "items.h"
 #include "ops.h"
@@ -293,4 +294,56 @@ obj_p ray_inner_join(obj_p *x, i64_t n) {
     drop_obj(idx);
 
     return table(cols, vals);
+}
+
+obj_p ray_asof_join(obj_p *x, i64_t n) {
+    i64_t i, j, ll, rl, *ids;
+    obj_p idx, v, ajkl, ajkr;
+
+    if (n != 3)
+        THROW(ERR_ARITY, "asof-join");
+
+    if (x[0]->type != TYPE_SYMBOL)
+        THROW(ERR_TYPE, "asof-join: first argument must be a symbol vector");
+
+    if (x[1]->type != TYPE_TABLE)
+        THROW(ERR_TYPE, "asof-join: second argument must be a table");
+
+    if (x[2]->type != TYPE_TABLE)
+        THROW(ERR_TYPE, "asof-join: third argument must be a table");
+
+    ll = x[1]->len;
+    rl = x[2]->len;
+    idx = I64(ll);
+    ids = AS_I64(ll);
+
+    v = ray_last(x[0]);
+    ajkl = ray_at(x[1], v);
+    ajkr = ray_at(x[2], v);
+    drop_obj(v);
+
+    if (is_null(ajkl) || is_null(ajkr)) {
+        drop_obj(ajkl);
+        drop_obj(ajkr);
+        THROW(ERR_INDEX, "asof-join: key not found");
+    }
+
+    if (ajkl->type != ajkr->type) {
+        drop_obj(ajkl);
+        drop_obj(ajkr);
+        THROW(ERR_TYPE, "asof-join: incompatible types");
+    }
+
+    idx = ray_bin(ajkl, ajkr);
+    DEBUG_OBJ(idx);
+
+    // for (i = 0; i < ll; i++) {}
+
+    return NULL_OBJ;
+}
+
+obj_p ray_window_join(obj_p *x, i64_t n) {
+    UNUSED(x);
+    UNUSED(n);
+    THROW(ERR_NOT_IMPLEMENTED, "window-join");
 }

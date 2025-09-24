@@ -29,7 +29,6 @@
 #include "cond.h"
 #include "dynlib.h"
 #include "format.h"
-#include "guid.h"
 #include "io.h"
 #include "items.h"
 #include "iter.h"
@@ -40,12 +39,11 @@
 #include "ops.h"
 #include "order.h"
 #include "query.h"
+#include "time.h"
 #include "runtime.h"
-#include "serde.h"
 #include "string.h"
 #include "chrono.h"
 #include "date.h"
-#include "time.h"
 #include "timestamp.h"
 #include "unary.h"
 #include "update.h"
@@ -214,8 +212,8 @@ nil_t init_functions(obj_p functions)
     REGISTER_FN(functions,  "xbar",                TYPE_BINARY,   FN_ATOMIC,                 ray_xbar);
     REGISTER_FN(functions,  "os-set-var",          TYPE_BINARY,   FN_ATOMIC,                 ray_os_set_var);
     REGISTER_FN(functions,  "split",               TYPE_BINARY,   FN_NONE,                   ray_split);
-    REGISTER_FN(functions,  "bin",                 TYPE_BINARY,   FN_RIGHT_ATOMIC,           ray_bin);
-    REGISTER_FN(functions,  "binr",                TYPE_BINARY,   FN_RIGHT_ATOMIC,           ray_binr);
+    REGISTER_FN(functions,  "bin",                 TYPE_BINARY,   FN_NONE,                   ray_bin);
+    REGISTER_FN(functions,  "binr",                TYPE_BINARY,   FN_NONE,                   ray_binr);
 
     // Vary               
     REGISTER_FN(functions,  "do",                  TYPE_VARY,     FN_NONE | FN_SPECIAL_FORM, ray_do);
@@ -248,6 +246,8 @@ nil_t init_functions(obj_p functions)
     REGISTER_FN(functions,  "read-csv",            TYPE_VARY,     FN_NONE,                   ray_read_csv);
     REGISTER_FN(functions,  "left-join",           TYPE_VARY,     FN_NONE,                   ray_left_join);
     REGISTER_FN(functions,  "inner-join",          TYPE_VARY,     FN_NONE,                   ray_inner_join);
+    REGISTER_FN(functions,  "asof-join",           TYPE_VARY,     FN_NONE,                   ray_asof_join);
+    REGISTER_FN(functions,  "window-join",         TYPE_VARY,     FN_NONE,                   ray_window_join);
     REGISTER_FN(functions,  "if",                  TYPE_VARY,     FN_NONE | FN_SPECIAL_FORM, ray_cond);
     REGISTER_FN(functions,  "return",              TYPE_VARY,     FN_NONE,                   ray_return);
     REGISTER_FN(functions,  "hopen",               TYPE_VARY,     FN_NONE,                   ray_hopen);
