@@ -152,9 +152,7 @@ static obj_p __left_join_inner(obj_p ltab, obj_p rtab, obj_p ksyms, obj_p kcols,
 }
 
 obj_p ray_left_join(obj_p *x, i64_t n) {
-    i64_t ll;
-    i64_t i, j, l;
-    obj_p k1, k2, c1, c2, un, col, cols, vals, idx, rescols, resvals, res;
+    obj_p k1, k2, idx, res;
 
     if (n != 3)
         THROW(ERR_LENGTH, "left-join");
@@ -296,7 +294,7 @@ obj_p ray_inner_join(obj_p *x, i64_t n) {
 }
 
 obj_p ray_asof_join(obj_p *x, i64_t n) {
-    i64_t i, j, ll, rl, *ids;
+    i64_t ll;
     obj_p idx, v, ajkl, ajkr, keys, lvals, rvals, res;
 
     if (n != 3)
@@ -312,9 +310,7 @@ obj_p ray_asof_join(obj_p *x, i64_t n) {
         THROW(ERR_TYPE, "asof-join: third argument must be a table");
 
     ll = x[1]->len;
-    rl = x[2]->len;
     idx = I64(ll);
-    ids = AS_I64(ll);
 
     v = ray_last(x[0]);
     ajkl = ray_at(x[1], v);

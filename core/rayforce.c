@@ -910,75 +910,126 @@ obj_p at_idx(obj_p obj, i64_t idx) {
     }
 }
 
-obj_p at_ids(obj_p obj, i64_t ids[], i64_t len) {
-    i64_t i, xl;
-    i64_t mapid, m, n;
+static obj_p at_ids_partial(obj_p obj, i64_t ids[], i64_t len, i64_t offset, obj_p out) {
+    i64_t i;
     u8_t *u8inp, *u8out;
     i16_t *i16inp, *i16out;
     i32_t *i32inp, *i32out;
     i64_t *i64inp, *i64out;
     f64_t *f64inp, *f64out;
-    obj_p k, v, cols, res;
+    obj_p *listinp, *listout;
+    guid_t *guidinp, *guidout;
 
     switch (obj->type) {
         case TYPE_B8:
         case TYPE_U8:
         case TYPE_C8:
-            res = vector(obj->type, len);
-            u8inp = AS_U8(obj);
-            u8out = AS_U8(res);
+            u8inp = AS_U8(obj) + offset;
+            u8out = AS_U8(out) + offset;
             for (i = 0; i < len; i++)
                 u8out[i] = u8inp[ids[i]];
-
-            return res;
+            return NULL_OBJ;
         case TYPE_I16:
-            res = I16(len);
-            i16inp = AS_I16(obj);
-            i16out = AS_I16(res);
+            i16inp = AS_I16(obj) + offset;
+            i16out = AS_I16(out) + offset;
             for (i = 0; i < len; i++)
                 i16out[i] = i16inp[ids[i]];
-
-            return res;
+            return NULL_OBJ;
         case TYPE_I32:
         case TYPE_DATE:
         case TYPE_TIME:
-            res = vector(obj->type, len);
-            i32inp = AS_I32(obj);
-            i32out = AS_I32(res);
+            i32inp = AS_I32(obj) + offset;
+            i32out = AS_I32(out) + offset;
             for (i = 0; i < len; i++)
                 i32out[i] = i32inp[ids[i]];
-
-            return res;
+            return NULL_OBJ;
         case TYPE_I64:
         case TYPE_SYMBOL:
         case TYPE_TIMESTAMP:
-            res = vector(obj->type, len);
-            i64inp = AS_I64(obj);
-            i64out = AS_I64(res);
+            i64inp = AS_I64(obj) + offset;
+            i64out = AS_I64(out) + offset;
             for (i = 0; i < len; i++)
                 i64out[i] = i64inp[ids[i]];
-
-            return res;
+            return NULL_OBJ;
         case TYPE_F64:
-            res = F64(len);
-            f64inp = AS_F64(obj);
-            f64out = AS_F64(res);
+            f64inp = AS_F64(obj) + offset;
+            f64out = AS_F64(out) + offset;
             for (i = 0; i < len; i++)
                 f64out[i] = f64inp[ids[i]];
-
-            return res;
+            return NULL_OBJ;
         case TYPE_GUID:
-            res = vector(TYPE_GUID, len);
+            guidinp = AS_GUID(obj) + offset;
+            guidout = AS_GUID(out) + offset;
             for (i = 0; i < len; i++)
-                memcpy(AS_GUID(res)[i], AS_GUID(obj)[ids[i]], sizeof(guid_t));
-
-            return res;
+                memcpy(guidout[i], guidinp[ids[i]], sizeof(guid_t));
+            return NULL_OBJ;
         case TYPE_LIST:
-            res = LIST(len);
+            listinp = AS_LIST(obj) + offset;
+            listout = AS_LIST(out) + offset;
             for (i = 0; i < len; i++)
-                AS_LIST(res)[i] = clone_obj(AS_LIST(obj)[ids[i]]);
+                listout[i] = clone_obj(listinp[ids[i]]);
+            return NULL_OBJ;
+        default:
+            return NULL_OBJ;
+    }
+}
 
-            return res;
+obj_p at_ids(obj_p obj, i64_t ids[], i64_t len) {
+    i64_t i, xl, chunk;
+    i64_t mapid, m, n;
+    obj_p k, v, cols, res, out;
+    pool_p pool;
+    raw_p argv[5];
+
+    switch (obj->type) {
+        case TYPE_B8:
+        case TYPE_U8:
+        case TYPE_C8:
+        case TYPE_I16:
+        case TYPE_I32:
+        case TYPE_DATE:
+        case TYPE_TIME:
+        case TYPE_I64:
+        case TYPE_SYMBOL:
+        case TYPE_TIMESTAMP:
+        case TYPE_F64:
+        case TYPE_GUID:
+        case TYPE_LIST:
+            pool = runtime_get()->pool;
+            n = pool_split_by(pool, len, 0);
+            out = vector(obj->type, len);
+
+            if (n == 1) {
+                argv[0] = (raw_p)obj;
+                argv[1] = (raw_p)ids;
+                argv[2] = (raw_p)len;
+                argv[3] = (raw_p)0;
+                argv[4] = (raw_p)out;
+                v = pool_call_task_fn(at_ids_partial, 5, argv);
+                if (IS_ERR(v)) {
+                    out->len = 0;
+                    drop_obj(out);
+                    return v;
+                }
+                return out;
+            }
+
+            pool_prepare(pool);
+            chunk = len / n;
+
+            for (i = 0; i < n - 1; i++)
+                pool_add_task(pool, at_ids_partial, 5, obj, ids, chunk, i * chunk, out);
+
+            pool_add_task(pool, at_ids_partial, 5, obj, ids, len - i * chunk, i * chunk, out);
+
+            v = pool_run(pool);
+            if (IS_ERR(v))
+                return v;
+
+            drop_obj(v);
+
+            return out;
+
         case TYPE_ENUM:
             k = ray_key(obj);
             if (IS_ERR(k))

@@ -2295,7 +2295,7 @@ obj_p index_upsert_obj(obj_p lcols, obj_p rcols, i64_t len) {
 }
 
 static inline i64_t __asof_idx_i32(i32_t lv, i32_t rvs[], i64_t ids[], i64_t len) {
-    i64_t v, i, l, *filter;
+    i64_t v, i;
     v = NULL_I64;
     for (i = 0; i < len; i++) {
         if (rvs[ids[i]] <= lv && rvs[ids[i]] > v)
