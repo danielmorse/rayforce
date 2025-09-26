@@ -2401,3 +2401,10 @@ clean:
 
     return ids;
 }
+
+obj_p index_window_join_obj(obj_p lcols, obj_p lxcol, obj_p rcols, obj_p rxcol, obj_p windows, obj_p ltab, obj_p rtab) {
+    DEBUG_OBJ(windows);
+    DEBUG_OBJ(ltab);
+    DEBUG_OBJ(rtab);
+    return i64(1231245);
+}

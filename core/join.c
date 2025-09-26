@@ -294,7 +294,6 @@ obj_p ray_inner_join(obj_p *x, i64_t n) {
 }
 
 obj_p ray_asof_join(obj_p *x, i64_t n) {
-    i64_t ll;
     obj_p idx, v, ajkl, ajkr, keys, lvals, rvals, res;
 
     if (n != 3)
@@ -308,9 +307,6 @@ obj_p ray_asof_join(obj_p *x, i64_t n) {
 
     if (x[2]->type != TYPE_TABLE)
         THROW(ERR_TYPE, "asof-join: third argument must be a table");
-
-    ll = x[1]->len;
-    idx = I64(ll);
 
     v = ray_last(x[0]);
     ajkl = ray_at(x[1], v);
@@ -350,7 +346,55 @@ obj_p ray_asof_join(obj_p *x, i64_t n) {
 }
 
 obj_p ray_window_join(obj_p *x, i64_t n) {
-    UNUSED(x);
-    UNUSED(n);
-    THROW(ERR_NOT_IMPLEMENTED, "window-join");
+    obj_p v, ajkl, ajkr, keys, lvals, rvals, res, idx;
+
+    if (n != 5)
+        THROW(ERR_ARITY, "window-join");
+
+    if (x[0]->type != TYPE_SYMBOL)
+        THROW(ERR_TYPE, "window-join: first argument must be a symbol vector");
+
+    if (x[1]->type != TYPE_LIST)
+        THROW(ERR_TYPE, "window-join: second argument must be a windows list");
+
+    if (x[2]->type != TYPE_TABLE)
+        THROW(ERR_TYPE, "window-join: third argument must be a table");
+
+    if (x[3]->type != TYPE_TABLE)
+        THROW(ERR_TYPE, "window-join: fourth argument must be a table");
+
+    if (x[4]->type != TYPE_DICT)
+        THROW(ERR_TYPE, "window-join: fifth argument must be a dict");
+
+    v = ray_last(x[0]);
+    ajkl = ray_at(x[2], v);
+    ajkr = ray_at(x[3], v);
+    drop_obj(v);
+
+    if (is_null(ajkl) || is_null(ajkr)) {
+        drop_obj(ajkl);
+        drop_obj(ajkr);
+        THROW(ERR_INDEX, "window-join: key not found");
+    }
+
+    if (ajkl->type != ajkr->type) {
+        drop_obj(ajkl);
+        drop_obj(ajkr);
+        THROW(ERR_TYPE, "window-join: incompatible types");
+    }
+
+    keys = cow_obj(x[0]);
+    keys = remove_idx(&keys, keys->len - 1);
+    lvals = at_obj(x[1], keys);
+    rvals = at_obj(x[2], keys);
+
+    idx = index_window_join_obj(lvals, ajkl, rvals, ajkr, x[1], x[2], x[3]);
+
+    drop_obj(keys);
+    drop_obj(lvals);
+    drop_obj(rvals);
+    drop_obj(ajkl);
+    drop_obj(ajkr);
+
+    return idx;
 }
