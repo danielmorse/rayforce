@@ -2308,12 +2308,12 @@ static inline i64_t __bin_idx_i32(i32_t val, i32_t vals[], i64_t ids[], i64_t le
         }
     }
 
-    return idx;
+    return ids[idx];
 }
 
-static obj_p __asof_ids_partial(__index_list_ctx_t *ctx, obj_p lxcol, obj_p rxcol, obj_p ht, obj_p hashes, i64_t len,
-                                i64_t offset, obj_p ids) {
-    i64_t i, idx;
+static obj_p __asof_ids_partial(__index_list_ctx_t *ctx, obj_p lxcol, obj_p rxcol, obj_p ht, i64_t len, i64_t offset,
+                                obj_p ids) {
+    i64_t i, idx, p;
 
     switch (lxcol->type) {
         case TYPE_I32:
@@ -2322,9 +2322,9 @@ static obj_p __asof_ids_partial(__index_list_ctx_t *ctx, obj_p lxcol, obj_p rxco
             for (i = offset; i < len + offset; i++) {
                 idx = ht_oa_tab_get_with(ht, i, &__index_list_hash_get, &__index_list_cmp_row, ctx);
                 if (idx != NULL_I64) {
-                    i64_t bin_idx = __bin_idx_i32(AS_I32(lxcol)[i], AS_I32(rxcol), AS_I64(AS_LIST(AS_LIST(ht)[1])[idx]),
-                                                  AS_LIST(AS_LIST(ht)[1])[idx]->len);
-                    AS_I64(ids)[i] = (bin_idx != NULL_I64) ? AS_I64(AS_LIST(AS_LIST(ht)[1])[idx])[bin_idx] : NULL_I64;
+                    p = __bin_idx_i32(AS_I32(lxcol)[i], AS_I32(rxcol), AS_I64(AS_LIST(AS_LIST(ht)[1])[idx]),
+                                      AS_LIST(AS_LIST(ht)[1])[idx]->len);
+                    AS_I64(ids)[i] = p;
                 } else
                     AS_I64(ids)[i] = NULL_I64;
             }
@@ -2373,16 +2373,15 @@ obj_p index_asof_join_obj(obj_p lcols, obj_p lxcol, obj_p rcols, obj_p rxcol) {
     n = pool_split_by(pool, ll, 0);
 
     if (n == 1) {
-        __asof_ids_partial(&ctx, lxcol, rxcol, ht, hashes, ll, 0, ids);
+        __asof_ids_partial(&ctx, lxcol, rxcol, ht, ll, 0, ids);
         goto clean;
     } else {
         pool_prepare(pool);
         chunk = ll / n;
 
         for (i = 0; i < n - 1; i++)
-            pool_add_task(pool, (raw_p)__asof_ids_partial, 8, &ctx, lxcol, rxcol, ht, hashes, chunk, i * chunk, ids);
-        pool_add_task(pool, (raw_p)__asof_ids_partial, 8, &ctx, lxcol, rxcol, ht, hashes, ll - i * chunk, i * chunk,
-                      ids);
+            pool_add_task(pool, (raw_p)__asof_ids_partial, 7, &ctx, lxcol, rxcol, ht, chunk, i * chunk, ids);
+        pool_add_task(pool, (raw_p)__asof_ids_partial, 7, &ctx, lxcol, rxcol, ht, ll - i * chunk, i * chunk, ids);
         v = pool_run(pool);
 
         if (IS_ERR(v)) {
@@ -2420,8 +2419,8 @@ static inline obj_p __window_filter_i32(i32_t min, i32_t max, i32_t vals[], obj_
 
     l = right - left + 1;
     f = I64(l);
-    for (i = 0; i < l; i++)
-        AS_I64(f)[i] = AS_I64(filter)[left + i];
+    for (i = 0; i < l; ++i)
+        AS_I64(f)[i] = i + left;
 
     return f;
 }
