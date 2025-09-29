@@ -1567,9 +1567,9 @@ i64_t *index_group_source(obj_p index) { return AS_I64(AS_LIST(index)[4]); }
 
 i64_t index_group_shift(obj_p index) { return AS_LIST(index)[3]->i64; }
 
-obj_p index_group_build(index_type_t tp, i64_t groups_count, obj_p group_ids, i64_t index_min, obj_p source,
-                        obj_p filter) {
-    return vn_list(6, i64(tp), i64(groups_count), group_ids, i64(index_min), source, filter);
+static obj_p index_group_build(index_type_t tp, i64_t groups_count, obj_p group_ids, obj_p index_min, obj_p source,
+                               obj_p filter) {
+    return vn_list(6, i64(tp), i64(groups_count), group_ids, index_min, source, filter);
 }
 
 typedef struct __group_radix_part_ctx_t {
@@ -1742,7 +1742,7 @@ obj_p index_group_i8(obj_p obj, obj_p filter) {
 
     drop_obj(keys);
 
-    return index_group_build(INDEX_TYPE_IDS, j, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
+    return index_group_build(INDEX_TYPE_IDS, j, vals, i64(NULL_I64), NULL_OBJ, clone_obj(filter));
 }
 
 obj_p index_group_i64_unscoped(obj_p obj, obj_p filter) {
@@ -1762,7 +1762,7 @@ obj_p index_group_i64_unscoped(obj_p obj, obj_p filter) {
 
     timeit_tick("index group unscoped");
 
-    return index_group_build(INDEX_TYPE_IDS, g, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
+    return index_group_build(INDEX_TYPE_IDS, g, vals, i64(NULL_I64), NULL_OBJ, clone_obj(filter));
 }
 
 obj_p index_group_i64_scoped_partial(i64_t input[], i64_t filter[], i64_t group_ids[], i64_t len, i64_t offset,
@@ -1814,7 +1814,7 @@ obj_p index_group_i64_scoped(obj_p obj, obj_p filter, const index_scope_t scope)
         //  do not compute group indices as they can be obtained from the keys
         if (scope.range <= INDEX_SCOPE_LIMIT) {
             timeit_tick("index group scoped perfect simple");
-            return index_group_build(INDEX_TYPE_SHIFT, groups, keys, scope.min, clone_obj(obj), clone_obj(filter));
+            return index_group_build(INDEX_TYPE_SHIFT, groups, keys, i64(scope.min), clone_obj(obj), clone_obj(filter));
         }
 
         vals = I64(len);
@@ -1842,7 +1842,7 @@ obj_p index_group_i64_scoped(obj_p obj, obj_p filter, const index_scope_t scope)
         }
         drop_obj(keys);
         timeit_tick("index group scoped perfect");
-        return index_group_build(INDEX_TYPE_IDS, groups, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
+        return index_group_build(INDEX_TYPE_IDS, groups, vals, i64(NULL_I64), NULL_OBJ, clone_obj(filter));
     }
     return index_group_i64_unscoped(obj, filter);
 }
@@ -1906,7 +1906,7 @@ obj_p index_group_guid(obj_p obj, obj_p filter) {
 
     drop_obj(ht);
 
-    return index_group_build(INDEX_TYPE_IDS, j, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
+    return index_group_build(INDEX_TYPE_IDS, j, vals, i64(NULL_I64), NULL_OBJ, clone_obj(filter));
 }
 
 obj_p index_group_obj(obj_p obj, obj_p filter) {
@@ -1923,7 +1923,7 @@ obj_p index_group_obj(obj_p obj, obj_p filter) {
 
     g = index_group_distribute(values, indices, out, len, &hash_obj, &hash_cmp_obj);
 
-    return index_group_build(INDEX_TYPE_IDS, g, vals, NULL_I64, NULL_OBJ, clone_obj(filter));
+    return index_group_build(INDEX_TYPE_IDS, g, vals, i64(NULL_I64), NULL_OBJ, clone_obj(filter));
 }
 
 obj_p index_group(obj_p val, obj_p filter) {
@@ -1964,7 +1964,8 @@ obj_p index_group(obj_p val, obj_p filter) {
                 g = AS_LIST(val)[0]->len;
             }
 
-            return index_group_build(INDEX_TYPE_PARTEDCOMMON, g, clone_obj(val), NULL_I64, NULL_OBJ, clone_obj(filter));
+            return index_group_build(INDEX_TYPE_PARTEDCOMMON, g, clone_obj(val), i64(NULL_I64), NULL_OBJ,
+                                     clone_obj(filter));
         default:
             THROW(ERR_TYPE, "'index group' unable to group by: %s", type_name(val->type));
     }
@@ -2155,7 +2156,7 @@ obj_p index_group_list(obj_p obj, obj_p filter) {
 
     timeit_tick("group index list");
 
-    return index_group_build(INDEX_TYPE_IDS, g, res, NULL_I64, NULL_OBJ, clone_obj(filter));
+    return index_group_build(INDEX_TYPE_IDS, g, res, i64(NULL_I64), NULL_OBJ, clone_obj(filter));
 }
 
 obj_p index_left_join_obj(obj_p lcols, obj_p rcols, i64_t len) {
@@ -2425,10 +2426,9 @@ static inline obj_p __window_filter_i32(i32_t min, i32_t max, i32_t vals[], obj_
     return f;
 }
 
-obj_p index_window_join_obj(obj_p lcols, obj_p lxcol, obj_p rcols, obj_p rxcol, obj_p windows, obj_p ltab, obj_p rtab,
-                            obj_p aggr) {
-    i64_t i, j, ll, rl;
-    obj_p v, ht, hashes, aggrvals, f, t;
+obj_p index_window_join_obj(obj_p lcols, obj_p lxcol, obj_p rcols, obj_p rxcol, obj_p windows, obj_p ltab, obj_p rtab) {
+    i64_t i, ll, rl;
+    obj_p v, ht, hashes, index;
     i64_t idx;
     __index_list_ctx_t ctx;
 
@@ -2452,9 +2452,7 @@ obj_p index_window_join_obj(obj_p lcols, obj_p lxcol, obj_p rcols, obj_p rxcol, 
         }
     }
 
-    aggrvals = LIST(aggr->len);
-    for (i = 0; i < aggr->len; i++)
-        AS_LIST(aggrvals)[i] = NULL_OBJ;
+    index = LIST(ll);
 
     // Left hashes
     __index_list_precalc_hash(lcols, (i64_t *)AS_I64(hashes), lcols->len, ll, NULL, B8_TRUE);
@@ -2467,38 +2465,9 @@ obj_p index_window_join_obj(obj_p lcols, obj_p lxcol, obj_p rcols, obj_p rxcol, 
             for (i = 0; i < ll; i++) {
                 idx = ht_oa_tab_get_with(ht, i, &__index_list_hash_get, &__index_list_cmp_row, &ctx);
                 if (idx != NULL_I64) {
-                    f = __window_filter_i32(AS_I32(AS_LIST(windows)[0])[i], AS_I32(AS_LIST(windows)[1])[i],
-                                            AS_I32(rxcol), AS_LIST(AS_LIST(ht)[1])[idx]);
-                    t = filter_map(rtab, f);
-                    mount_env(t);
-
-                    for (j = 0; j < aggr->len; j++) {
-                        v = eval(AS_LIST(aggr)[j]);
-
-                        if (IS_ERR(v)) {
-                            unmount_env(AS_LIST(t)[0]->len);
-                            drop_obj(f);
-                            drop_obj(t);
-                            for (j = 0; j < aggr->len; j++)
-                                AS_LIST(aggrvals)[j]->len = i;
-                            drop_obj(aggrvals);
-                            drop_obj(hashes);
-                            for (i = 0; i < rl; i++)
-                                if (AS_I64(AS_LIST(ht)[0])[i] != NULL_I64)
-                                    drop_obj(AS_LIST(AS_LIST(ht)[1])[i]);
-
-                            drop_obj(ht);
-                            return v;
-                        }
-                        push_obj(AS_LIST(aggrvals) + j, v);
-                    }
-
-                    unmount_env(AS_LIST(t)[0]->len);
-                    drop_obj(f);
-                    drop_obj(t);
+                    AS_LIST(index)[i] = clone_obj(AS_LIST(AS_LIST(ht)[1])[idx]);
                 } else {
-                    for (j = 0; j < aggr->len; j++)
-                        push_obj(AS_LIST(aggrvals) + j, null(AS_LIST(aggrvals)[i]->type));
+                    AS_LIST(index)[i] = NULL_OBJ;
                 }
             }
             break;
@@ -2514,5 +2483,5 @@ obj_p index_window_join_obj(obj_p lcols, obj_p lxcol, obj_p rcols, obj_p rxcol, 
 
     drop_obj(ht);
 
-    return aggrvals;
+    return index_group_build(INDEX_TYPE_WINDOW, ll, clone_obj(lxcol), clone_obj(rxcol), clone_obj(windows), index);
 }

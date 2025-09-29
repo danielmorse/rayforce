@@ -390,13 +390,15 @@ obj_p ray_window_join(obj_p *x, i64_t n) {
     lvals = at_obj(x[2], keys);
     rvals = at_obj(x[3], keys);
 
-    idx = index_window_join_obj(lvals, wjkl, rvals, wjkr, x[1], x[2], x[3], AS_LIST(x[4])[1]);
+    idx = index_window_join_obj(lvals, wjkl, rvals, wjkr, x[1], x[2], x[3]);
 
     drop_obj(keys);
     drop_obj(lvals);
     drop_obj(rvals);
     drop_obj(wjkl);
     drop_obj(wjkr);
+
+    return idx;
 
     resyms = ray_concat(AS_LIST(x[2])[0], AS_LIST(x[4])[0]);
     recols = ray_concat(AS_LIST(x[2])[1], idx);

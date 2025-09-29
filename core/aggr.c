@@ -92,6 +92,13 @@
                     aggr;                                                            \
                 }                                                                    \
                 break;                                                               \
+            case INDEX_TYPE_WINDOW:                                                  \
+                for ($i = 0; $i < len; $i++) {                                       \
+                    $x = $i + offset;                                                \
+                    $y = group_ids[$x];                                              \
+                    aggr;                                                            \
+                }                                                                    \
+                break;                                                               \
         }                                                                            \
     })
 
