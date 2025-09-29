@@ -30,6 +30,8 @@
 #include "index.h"
 #include "group.h"
 #include "eval.h"
+#include "filter.h"
+#include "aggr.h"
 
 obj_p select_column(obj_p left_col, obj_p right_col, i64_t ids[], i64_t len) {
     i64_t i;
@@ -348,7 +350,7 @@ obj_p ray_asof_join(obj_p *x, i64_t n) {
 
 obj_p ray_window_join(obj_p *x, i64_t n) {
     i64_t i, l;
-    obj_p v, wjkl, wjkr, keys, lvals, rvals, idx;
+    obj_p k, v, wjkl, wjkr, keys, lvals, rvals, idx;
     obj_p agrvals, resyms, recols, rtab;
 
     if (n != 5)
@@ -414,6 +416,33 @@ obj_p ray_window_join(obj_p *x, i64_t n) {
             drop_obj(rtab);
             return v;
         }
+
+        // Materialize fields
+        switch (v->type) {
+            case TYPE_MAPFILTER:
+                k = filter_collect(AS_LIST(v)[0], AS_LIST(v)[1]);
+                drop_obj(v);
+                v = k;
+                break;
+            case TYPE_MAPGROUP:
+                k = aggr_collect(AS_LIST(v)[0], AS_LIST(v)[1]);
+                drop_obj(v);
+                v = k;
+                break;
+            default:
+                k = ray_value(v);
+                drop_obj(v);
+                v = k;
+                break;
+        }
+
+        if (IS_ERR(v)) {
+            agrvals->len = i;
+            drop_obj(agrvals);
+            drop_obj(rtab);
+            return v;
+        }
+
         AS_LIST(agrvals)[i] = v;
     }
 

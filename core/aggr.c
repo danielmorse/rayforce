@@ -105,7 +105,6 @@
                         $ri = AS_LIST(AS_LIST(index)[5])[$i]->len - 1;                                        \
                     $y = $i;                                                                                  \
                     for ($x = $li; $x <= $ri; ++$x) {                                                         \
-                        printf("x: %lld, y: %lld, li: %lld, ri: %lld\n", $x, $y, $li, $ri);                   \
                         Aggr;                                                                                 \
                     }                                                                                         \
                 }                                                                                             \
@@ -168,8 +167,6 @@ obj_p aggr_map(raw_p aggr, obj_p val, i8_t outype, obj_p index) {
     out_len = (index_type == INDEX_TYPE_PARTEDCOMMON) ? 1 : group_count;
 
     n = pool_split_by(pool, group_len, group_count);
-
-    printf("group_len: %lld, group_count: %lld, out_len: %lld, n: %lld\n", group_len, group_count, out_len, n);
 
     if (n == 1) {
         argv[0] = (raw_p)group_len;

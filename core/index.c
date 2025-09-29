@@ -2344,8 +2344,6 @@ i64_t index_bin_i32(i32_t val, i32_t vals[], i64_t ids[], i64_t len) {
         }
     }
 
-    printf("val: %d, idx: %lld, len: %lld\n", val, ids[idx], len);
-
     return ids[idx];
 }
 i64_t index_bin_i64(i64_t val, i64_t vals[], i64_t ids[], i64_t len) {
