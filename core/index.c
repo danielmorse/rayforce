@@ -2492,11 +2492,29 @@ clean:
     return ids;
 }
 
+static obj_p __window_join_fill(__index_list_ctx_t *ctx, obj_p ht, i64_t len, i64_t offset, obj_p out) {
+    i64_t i, idx;
+    obj_p *ids;
+
+    ids = AS_LIST(out) + offset;
+
+    for (i = 0; i < len; i++) {
+        idx = ht_oa_tab_get_with(ht, i, &__index_list_hash_get, &__index_list_cmp_row, ctx);
+        if (idx != NULL_I64)
+            ids[i] = clone_obj(AS_LIST(AS_LIST(ht)[1])[idx]);
+        else
+            ids[i] = NULL_OBJ;
+    }
+
+    return NULL_OBJ;
+}
+
 obj_p index_window_join_obj(obj_p lcols, obj_p lxcol, obj_p rcols, obj_p rxcol, obj_p windows, obj_p ltab, obj_p rtab) {
-    i64_t i, ll, rl;
+    i64_t i, ll, rl, n, chunk;
     obj_p v, ht, hashes, index;
     i64_t idx;
     __index_list_ctx_t ctx;
+    pool_p pool;
 
     ll = ops_count(ltab);
     rl = ops_count(rtab);
@@ -2525,29 +2543,19 @@ obj_p index_window_join_obj(obj_p lcols, obj_p lxcol, obj_p rcols, obj_p rxcol, 
     __index_list_precalc_hash(lcols, (i64_t *)AS_I64(hashes), lcols->len, ll, NULL, B8_TRUE);
     ctx = (__index_list_ctx_t){rcols, lcols, (i64_t *)AS_I64(hashes), NULL};
 
-    switch (lxcol->type) {
-        case TYPE_I32:
-        case TYPE_DATE:
-        case TYPE_TIME:
-            for (i = 0; i < ll; i++) {
-                idx = ht_oa_tab_get_with(ht, i, &__index_list_hash_get, &__index_list_cmp_row, &ctx);
-                if (idx != NULL_I64)
-                    AS_LIST(index)[i] = clone_obj(AS_LIST(AS_LIST(ht)[1])[idx]);
-                else
-                    AS_LIST(index)[i] = NULL_OBJ;
-            }
-            break;
-        default:
-            index->len = 0;
-            drop_obj(index);
-            drop_obj(hashes);
-            rl = AS_LIST(ht)[0]->len;
-            for (i = 0; i < rl; i++)
-                if (AS_I64(AS_LIST(ht)[0])[i] != NULL_I64)
-                    drop_obj(AS_LIST(AS_LIST(ht)[1])[i]);
+    pool = pool_get();
+    n = pool_split_by(pool, ll, 0);
 
-            drop_obj(ht);
-            THROW(ERR_TYPE, "index_asof_join_obj: invalid type: %s", type_name(lxcol->type));
+    if (n == 1) {
+        __window_join_fill(&ctx, ht, ll, 0, index);
+    } else {
+        pool_prepare(pool);
+        chunk = ll / n;
+        for (i = 0; i < n - 1; i++)
+            pool_add_task(pool, (raw_p)__window_join_fill, 5, &ctx, ht, chunk, i * chunk, index);
+        pool_add_task(pool, (raw_p)__window_join_fill, 5, &ctx, ht, ll - i * chunk, i * chunk, index);
+        v = pool_run(pool);
+        drop_obj(v);
     }
 
     drop_obj(hashes);
