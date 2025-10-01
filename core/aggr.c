@@ -164,7 +164,7 @@ nil_t index_bin_i32_(i32_t val, i32_t vals[], i32_t offset, i64_t len, i64_t *le
                         index_bin_i32_(AS_I32(AS_LIST(AS_LIST(Index)[4])[0])[$i], AS_I32(AS_LIST(Index)[3]), $fi, \
                                        $ti - $fi, &$li, &$ri);                                                    \
                     }                                                                                             \
-                    if ($rn == NULL_OBJ || $li > $ri) {                                                           \
+                    if ($rn == NULL_OBJ || $li > $ti) {                                                           \
                         Incoerce##_t $nil = __NULL_##Incoerce;                                                    \
                         memcpy(&$out[$y], &$nil, __SIZE_OF_##Incoerce);                                           \
                         continue;                                                                                 \
