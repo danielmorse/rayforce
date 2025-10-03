@@ -2381,25 +2381,6 @@ i64_t index_bin_f64(f64_t val, f64_t vals[], i64_t ids[], i64_t len) {
     return ids[idx];
 }
 
-i64_t index_bin_guid(guid_t val, guid_t vals[], i64_t ids[], i64_t len) {
-    // i64_t left, right, mid, idx;
-    // left = 0, right = len - 1, idx = NULL_I64;
-    // while (left <= right) {
-    //     mid = left + (right - left) / 2;
-    //     if (vals[ids[mid]] <= val) {
-    //         idx = mid;
-    //         left = mid + 1;
-    //     } else {
-    //         right = mid - 1;
-    //     }
-    // }
-
-    // return ids[idx];
-    return NULL_I64;
-}
-
-i64_t index_bin_list(obj_p val, obj_p vals[], i64_t ids[], i64_t len) { return NULL_I64; }
-
 static obj_p __asof_ids_partial(__index_list_ctx_t *ctx, obj_p lxcol, obj_p rxcol, obj_p ht, i64_t len, i64_t offset,
                                 obj_p ids) {
     i64_t i, idx, p;

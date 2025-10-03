@@ -99,8 +99,6 @@ i64_t index_bin_i16(i16_t val, i16_t vals[], i64_t ids[], i64_t len);
 i64_t index_bin_i32(i32_t val, i32_t vals[], i64_t ids[], i64_t len);
 i64_t index_bin_i64(i64_t val, i64_t vals[], i64_t ids[], i64_t len);
 i64_t index_bin_f64(f64_t val, f64_t vals[], i64_t ids[], i64_t len);
-i64_t index_bin_guid(guid_t val, guid_t vals[], i64_t ids[], i64_t len);
-i64_t index_bin_list(obj_p val, obj_p vals[], i64_t ids[], i64_t len);
 obj_p index_asof_join_obj(obj_p lcols, obj_p lxcol, obj_p rcols, obj_p rxcol);
 obj_p index_window_join_obj(obj_p lcols, obj_p lxcol, obj_p rcols, obj_p rxcol, obj_p windows, obj_p ltab, obj_p rtab,
                             i64_t jtype);

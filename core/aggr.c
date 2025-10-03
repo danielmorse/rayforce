@@ -931,8 +931,8 @@ obj_p aggr_dev(obj_p val, obj_p index) {
 }
 
 obj_p aggr_collect(obj_p val, obj_p index) {
-    i64_t i, l, m, n;
-    obj_p cnt, k, v, res;
+    i64_t i, l, n;
+    obj_p k, v, res;
 
     l = index_group_len(index);
     n = index_group_count(index);
@@ -998,7 +998,11 @@ obj_p aggr_row(obj_p val, obj_p index) {
     for (i = 0; i < n; i++)
         AS_LIST(res)[i] = I64(0);
 
-    AGGR_ITER(index, l, 0, val, res, i64, list, , push_raw($out + $y, &$x), );
+    AGGR_ITER(
+        index, l, 0, val, res, i64, list, , {
+            UNUSED($in);
+            push_raw($out + $y, &$x);
+        }, );
 
     return res;
 }
