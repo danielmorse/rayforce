@@ -378,7 +378,7 @@ static obj_p __window_join(obj_p *x, i64_t n, i64_t tp) {
 
     v = ray_last(x[0]);
     wjkl = ray_at(x[2], v);
-    wjkr = ray_at(x[3], v);
+    wjkr = ray_at(jtab, v);
     drop_obj(v);
 
     if (is_null(wjkl) || is_null(wjkr)) {
@@ -396,9 +396,9 @@ static obj_p __window_join(obj_p *x, i64_t n, i64_t tp) {
     keys = cow_obj(x[0]);
     keys = remove_idx(&keys, keys->len - 1);
     lvals = at_obj(x[2], keys);
-    rvals = at_obj(x[3], keys);
+    rvals = at_obj(jtab, keys);
 
-    idx = index_window_join_obj(lvals, wjkl, rvals, wjkr, x[1], x[2], x[3], tp);
+    idx = index_window_join_obj(lvals, wjkl, rvals, wjkr, x[1], x[2], jtab, tp);
 
     drop_obj(keys);
     drop_obj(lvals);
