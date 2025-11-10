@@ -10,8 +10,15 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        # windows-latest temporarily disabled until build is fixed
+        include:
+          - os: ubuntu-latest
+            arch: x86_64
+          - os: macos-14
+            arch: arm64
+          # macos-13 is Intel x86_64, uncomment to build for Intel Mac
+          # - os: macos-13
+          #   arch: x86_64
+          # windows-latest temporarily disabled until build is fixed
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v4
@@ -56,8 +63,8 @@ jobs:
 
     - name: Make (macOS)
       if: runner.os == 'macOS'
-      run: make RELEASE_CFLAGS="-fPIC -Wall -Wextra -std=c17 -Ofast -march=native -fassociative-math -ftree-vectorize  -mfma -mpclmul -mbmi2 -m64" release
-
+      run: make RELEASE_CFLAGS="-fPIC -Wall -Wextra -std=c17 -O3 -fsigned-char -march=native -fassociative-math -ftree-vectorize -funsafe-math-optimizations -funroll-loops -m64 -flax-vector-conversions -fno-math-errno" release
+ 
     - name: Create build directory and copy binary (Linux)
       if: runner.os == 'Linux'
       run: |
@@ -66,7 +73,7 @@ jobs:
         cp -r ./examples ./build/
         cp ./LICENSE-BIN.md ./build/LICENSE.md
         cd ./build
-        tar -cvpzf ../${{ matrix.os }}.tar.gz *
+        tar -cvpzf ../${{ matrix.os }}-${{ matrix.arch }}.tar.gz *
 
     - name: Create build directory and copy binary (Windows)
       if: runner.os == 'Windows'
@@ -87,14 +94,14 @@ jobs:
         cp -r ./examples ./build/
         cp ./LICENSE-BIN.md ./build/LICENSE.md
         cd ./build
-        tar -cvpzf ../${{ matrix.os }}.tar.gz *
+        tar -cvpzf ../${{ matrix.os }}-${{ matrix.arch }}.tar.gz *
 
     - name: Upload Artifact (Linux)
       uses: actions/upload-artifact@v4
       if: runner.os == 'Linux'
       with:
-        name: ${{ matrix.os }}.tar.gz
-        path: ${{ matrix.os }}.tar.gz
+        name: ${{ matrix.os }}-${{ matrix.arch }}.tar.gz
+        path: ${{ matrix.os }}-${{ matrix.arch }}.tar.gz
 
     - name: Upload Artifact (Windows)
       uses: actions/upload-artifact@v4
@@ -107,8 +114,8 @@ jobs:
       uses: actions/upload-artifact@v4
       if: runner.os == 'macOS'
       with:
-        name: ${{ matrix.os }}.tar.gz
-        path: ${{ matrix.os }}.tar.gz
+        name: ${{ matrix.os }}-${{ matrix.arch }}.tar.gz
+        path: ${{ matrix.os }}-${{ matrix.arch }}.tar.gz
 
   create-release:
     needs: build
@@ -129,7 +136,7 @@ jobs:
             --notes-file ${{ github.workspace }}/release-notes/RELEASE.md \
             --draft=false \
             --prerelease=false \
-            ${{ github.workspace }}/ubuntu-latest.tar.gz/ubuntu-latest.tar.gz \
-            ${{ github.workspace }}/macos-latest.tar.gz/macos-latest.tar.gz
+            ${{ github.workspace }}/ubuntu-latest-x86_64.tar.gz/ubuntu-latest-x86_64.tar.gz \
+            ${{ github.workspace }}/macos-14-arm64.tar.gz/macos-14-arm64.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
