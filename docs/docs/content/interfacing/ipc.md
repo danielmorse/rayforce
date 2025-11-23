@@ -1,7 +1,7 @@
 # :material-remote: IPC
 
 !!! warning
-    For now it is unsatable and possible subject of changes in the future!
+    For now it is unstable and possible subject of changes in the future!
 
 A RayforceDB can communicate with other RayforceDBs via IPC. It is a very fast and efficient way of communication. It is used to send data between RayforceDBs, to send data to the client, and to send data to the server.
 
@@ -29,6 +29,19 @@ Now, you can send data to the remote process:
 ↪ (write h (list (+ 1 2)))
 3
 ```
+
+## :material-forward: Tip - Accessing variables from the server runtime
+When you need to refer to variables that exist only on the server runtime, make sure they are not evaluated on the client side.
+
+For example, if a table exists only on the server and is named `employees`:
+```clj
+(write h employees) ; This fails because `employees` is resolved on the client
+```
+Instead, pass the variable name as a quoted symbol so it can be resolved on the server:
+``` clj
+(write h 'employees) ; The symbol is sent as-is and evaluated server-side
+```
+To understand the behavior better - refer to [Quote](../repl/quote.html) documentation
 
 ## :material-message: Message format
 
